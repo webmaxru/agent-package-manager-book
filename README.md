@@ -10,7 +10,7 @@ driver prompt) that collaborate under an orchestrator in a wave-based pipeline.
 
 > 📖 **Read the playbook live:** <https://valentina-alto.github.io/microsoft-agent-framework-playbook-fleets-generated/>
 >
-> *(Published automatically from [`site/`](site/) via GitHub Pages — see [`.github/workflows/deploy-pages.yml`](.github/workflows/deploy-pages.yml).)*
+> *(Published via GitHub Pages from the [`gh-pages`](https://github.com/Valentina-Alto/microsoft-agent-framework-playbook-fleets-generated/tree/gh-pages) branch, which mirrors the [`site/`](site/) folder. To refresh it after editing `site/`, run `git subtree split --prefix site -b gh-pages` and force-push the branch.)*
 
 ---
 
