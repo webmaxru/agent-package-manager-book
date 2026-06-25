@@ -80,10 +80,10 @@ flowchart TD
     Brief["content/playbook-brief.md<br/>(scope + intent)"] --> Orchestrator
 
     subgraph Driver["Orchestrator (manager)"]
-        Orchestrator["run-playbook prompt<br/>dispatches agents in waves<br/>tracks state on a todo board"]
+        Orchestrator["run-playbook prompt<br/>dispatches agents in waves<br/>tracks state on todo board"]
     end
 
-    Orchestrator --> Env["maf-environment-setup skill<br/>create .venv + install agent-framework 1.9.0"]
+    Orchestrator --> Env["maf-environment-setup skill<br/>creates venv, installs MAF"]
 
     subgraph Wave0["Wave 0 — Design & scaffold"]
         Architect["playbook-architect<br/>→ toc.yml + outline"]
@@ -94,8 +94,8 @@ flowchart TD
         direction TB
         Explorer["maf-library-explorer<br/>introspect REAL API"]
         Theory["theory-researcher<br/>concept notes"]
-        Author["chapter-author<br/>fill HTML slots + write examples"]
-        Verifier["code-verifier<br/>run examples in .venv → EXIT 0"]
+        Author["chapter-author<br/>fills slots, writes code"]
+        Verifier["code-verifier<br/>runs examples → EXIT 0"]
         Reviewer["chapter-reviewer<br/>ACCEPT / REVISE"]
 
         Explorer --> Author
@@ -108,8 +108,8 @@ flowchart TD
     Env --> Wave0
     Wave0 --> WaveN
     WaveN -- "ACCEPT" --> Commit["git commit per wave"]
-    Commit --> Integration["Integration pass<br/>cross-chapter consistency review"]
-    Integration --> Site["site/ — index.html + 10 chapter pages<br/>served over http.server"]
+    Commit --> Integration["Integration pass<br/>cross-chapter consistency"]
+    Integration --> Site["site/ — index.html<br/>+ 10 chapter pages"]
 ```
 
 ### The wave loop, in words
