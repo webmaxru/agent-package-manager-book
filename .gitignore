@@ -1,0 +1,12 @@
+# Python
+.venv/
+__pycache__/
+*.pyc
+
+# Secrets / environment
+.env
+*.env
+
+# Build / artifacts
+dist/
+build/
