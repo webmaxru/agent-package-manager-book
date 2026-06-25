@@ -8,6 +8,10 @@ What makes this repository interesting is not just the playbook itself, but **ho
 by a small **fleet of GitHub Copilot primitives** (custom agents, skills, instruction files, and a
 driver prompt) that collaborate under an orchestrator in a wave-based pipeline.
 
+> 📖 **Read the playbook live:** <https://valentina-alto.github.io/microsoft-agent-framework-playbook-fleets-generated/>
+>
+> *(Published automatically from [`site/`](site/) via GitHub Pages — see [`.github/workflows/deploy-pages.yml`](.github/workflows/deploy-pages.yml).)*
+
 ---
 
 ## The idea behind the fleet
