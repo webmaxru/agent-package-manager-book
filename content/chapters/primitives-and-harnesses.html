@@ -1,90 +1,13 @@
-<!doctype html>
-<html lang="en">
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="description" content="Know the vocabulary of what APM manages and how those primitives relate to agent harnesses.">
-  <title>Primitives &amp; Harnesses | The Missing Package Manager</title>
-  <link rel="preconnect" href="https://cdnjs.cloudflare.com">
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css" crossorigin="anonymous" referrerpolicy="no-referrer">
-  <link rel="stylesheet" href="../assets/style.css">
-  <script defer src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
-  <script defer src="../assets/app.js"></script>
-</head>
-<body class="chapter-page">
-  <a class="skip-link" href="#main-content">Skip to main content</a>
-  <button class="sidebar-toggle" type="button" aria-controls="chapter-sidebar" aria-expanded="false">☰ Chapters</button>
+<!--
+  Chapter 3 - Primitives & Harnesses (authored content fragment).
+  Injected by site/generate.py into site/chapters/primitives-and-harnesses.html at each
+  slot marker below. No page chrome, no h1/h2 (the shell renders those).
+  APM CLI referenced: v0.23.1. Deploy-path evidence: real install of
+  microsoft/apm-sample-package (--target copilot vs. --target claude), captured by
+  apm-cli-explorer on 2026-07-02. Cite official docs, not source-docs.
+-->
 
-  <div class="page-shell">
-    <aside id="chapter-sidebar" class="sidebar" aria-label="Book chapters">
-      <div class="sidebar-inner">
-        <a class="site-title" href="../index.html">The Missing Package Manager</a>
-        <nav class="chapter-nav" aria-label="Chapter navigation">
-          <ol>
-          <li><a href="the-context-problem.html"><span class="chapter-number">01</span><span>The Context Problem</span></a></li>
-          <li><a href="lessons-from-package-managers.html"><span class="chapter-number">02</span><span>Lessons from Package Managers</span></a></li>
-          <li><a class="is-current" aria-current="page" href="primitives-and-harnesses.html"><span class="chapter-number">03</span><span>Primitives &amp; Harnesses</span></a></li>
-          <li><a href="the-manifest-apm-yml.html"><span class="chapter-number">04</span><span>The Manifest: apm.yml</span></a></li>
-          <li><a href="install-and-restore.html"><span class="chapter-number">05</span><span>Install &amp; Restore</span></a></li>
-          <li><a href="the-lockfile-and-reproducibility.html"><span class="chapter-number">06</span><span>The Lockfile &amp; Reproducibility</span></a></li>
-          <li><a href="lifecycle.html"><span class="chapter-number">07</span><span>Lifecycle</span></a></li>
-          <li><a href="security-by-default.html"><span class="chapter-number">08</span><span>Security by Default</span></a></li>
-          <li><a href="governance-and-policy.html"><span class="chapter-number">09</span><span>Governance &amp; Policy</span></a></li>
-          <li><a href="becoming-a-producer.html"><span class="chapter-number">10</span><span>Becoming a Producer</span></a></li>
-          <li><a href="enterprise-at-fleet-scale.html"><span class="chapter-number">11</span><span>Enterprise at Fleet Scale</span></a></li>
-          <li><a href="the-landscape-and-whats-next.html"><span class="chapter-number">12</span><span>The Landscape &amp; What&#x27;s Next</span></a></li>
-          </ol>
-        </nav>
-      </div>
-    </aside>
-
-    <div class="content-shell">
-      <header class="chapter-header">
-        <nav class="breadcrumb" aria-label="Breadcrumb"><a href="../index.html">Home</a> / Chapter 3</nav>
-        <p class="eyebrow">Chapter 3</p>
-        <h1>Primitives &amp; Harnesses</h1>
-        <p class="lead">Know the vocabulary of what APM manages and how those primitives relate to agent harnesses.</p>
-      </header>
-
-      <main id="main-content" class="chapter-main" tabindex="-1">
-        <div class="chapter-meta">
-          <nav class="metadata-card" aria-labelledby="section-nav-heading">
-            <h2 id="section-nav-heading">On this page</h2>
-            <ol>
-              <li><a href="#objective">Objective</a></li>
-              <li><a href="#concept-theory">Concept/Theory</a></li>
-              <li><a href="#in-apm">In APM</a></li>
-              <li><a href="#when-to-use-pitfalls">When to use / pitfalls</a></li>
-              <li><a href="#worked-example">Worked example</a></li>
-              <li><a href="#recap-and-next">Recap &amp; next</a></li>
-            </ol>
-          </nav>
-          <aside class="metadata-card" aria-labelledby="features-heading">
-            <h2 id="features-heading">APM features</h2>
-            <ul class="tag-list">
-            <li>skills</li>
-            <li>prompts</li>
-            <li>instructions</li>
-            <li>agents</li>
-            <li>plugins</li>
-            <li>MCP servers</li>
-            <li>AGENTS.md</li>
-            <li>SKILL.md</li>
-            <li>MCP</li>
-            </ul>
-          </aside>
-          <aside class="metadata-card" aria-labelledby="depends-heading">
-            <h2 id="depends-heading">Prerequisites</h2>
-            <ul>
-            <li><a href="the-context-problem.html">Chapter 1: The Context Problem</a></li>
-            <li><a href="lessons-from-package-managers.html">Chapter 2: Lessons from Package Managers</a></li>
-            </ul>
-          </aside>
-        </div>
-
-        <section class="chapter-section" data-section="objective">
-          <h2 id="objective"><a class="anchor-link" href="#objective" aria-label="Link to Objective section">Objective</a></h2>
-          <div class="section-content" data-content-slot="objective">
+<!-- SLOT: objective -->
 <p>
   After this chapter you can name the seven primitive types APM manages &mdash; instruction, prompt,
   skill, agent, plugin, MCP server, and hook &mdash; tell the three that look alike apart by
@@ -94,11 +17,8 @@
   <span class="property property--portability">portable</span> and a security decision
   <span class="property property--governance">governable</span> in the chapters ahead.
 </p>
-          </div>
-        </section>
-        <section class="chapter-section" data-section="concept-theory">
-          <h2 id="concept-theory"><a class="anchor-link" href="#concept-theory" aria-label="Link to Concept/Theory section">Concept/Theory</a></h2>
-          <div class="section-content" data-content-slot="concept-theory">
+
+<!-- SLOT: concept-theory -->
 <h3>You can't package what you can't name</h3>
 <p>
   In <a href="the-context-problem.html">Chapter 1</a> the team's agent context was an undifferentiated
@@ -276,11 +196,8 @@
     <em>not yet a manifest</em>: it's just the pile, finally typed.
   </p>
 </aside>
-          </div>
-        </section>
-        <section class="chapter-section" data-section="in-apm">
-          <h2 id="in-apm"><a class="anchor-link" href="#in-apm" aria-label="Link to In APM section">In APM</a></h2>
-          <div class="section-content" data-content-slot="in-apm">
+
+<!-- SLOT: in-apm -->
 <h3>One source, many harnesses</h3>
 <p>
   A <strong>harness</strong> is the agent runtime that executes primitives &mdash; harnesses include
@@ -404,11 +321,8 @@
     <a href="governance-and-policy.html">Chapter 9</a>.
   </p>
 </aside>
-          </div>
-        </section>
-        <section class="chapter-section" data-section="when-to-use-pitfalls">
-          <h2 id="when-to-use-pitfalls"><a class="anchor-link" href="#when-to-use-pitfalls" aria-label="Link to When to use / pitfalls section">When to use / pitfalls</a></h2>
-          <div class="section-content" data-content-slot="when-to-use-pitfalls">
+
+<!-- SLOT: when-to-use-pitfalls -->
 <h3>Which primitive for the job?</h3>
 <p>
   Distinct names prevent category errors. &ldquo;Add a security review&rdquo; is ambiguous until you say
@@ -496,11 +410,8 @@
     and targets</a>).
   </p>
 </aside>
-          </div>
-        </section>
-        <section class="chapter-section" data-section="worked-example">
-          <h2 id="worked-example"><a class="anchor-link" href="#worked-example" aria-label="Link to Worked example section">Worked example</a></h2>
-          <div class="section-content" data-content-slot="worked-example">
+
+<!-- SLOT: worked-example -->
 <h3>Meridian's context, finally typed</h3>
 <p>
   Here is Meridian's pile from <a href="the-context-problem.html">Chapter 1</a>, sorted into its
@@ -549,11 +460,8 @@ dependencies:
   mcp: []              # MCP servers -- declared + gated here, the server runs elsewhere:
     #  - &lt;payment-sandbox&gt;</code></pre>
 </figure>
-          </div>
-        </section>
-        <section class="chapter-section" data-section="recap-and-next">
-          <h2 id="recap-and-next"><a class="anchor-link" href="#recap-and-next" aria-label="Link to Recap &amp; next section">Recap &amp; next</a></h2>
-          <div class="section-content" data-content-slot="recap-and-next">
+
+<!-- SLOT: recap-and-next -->
 <h3>Recap</h3>
 <ul>
   <li>
@@ -594,19 +502,3 @@ dependencies:
   syntax, pinned git sources, and the two buckets (<code>apm</code> and <code>mcp</code>) filled in for
   the first time.
 </p>
-          </div>
-        </section>
-
-        <nav class="pager" aria-label="Chapter pagination">
-          <a class="pager-link" rel="prev" href="lessons-from-package-managers.html">← Chapter 2: Lessons from Package Managers</a>
-          <a class="pager-link" rel="next" href="the-manifest-apm-yml.html">Chapter 4: The Manifest: apm.yml →</a>
-        </nav>
-      </main>
-
-      <footer class="site-footer chapter-footer">
-        <p>Generated from <code>content/toc.yml</code>. Replace only section content blocks when authoring.</p>
-      </footer>
-    </div>
-  </div>
-</body>
-</html>
