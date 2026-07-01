@@ -1,79 +1,11 @@
-<!doctype html>
-<html lang="en">
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="description" content="Articulate why agent context needs a package manager and name the four properties APM is designed to protect.">
-  <title>The Context Problem | The Missing Package Manager</title>
-  <link rel="preconnect" href="https://cdnjs.cloudflare.com">
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css" crossorigin="anonymous" referrerpolicy="no-referrer">
-  <link rel="stylesheet" href="../assets/style.css">
-  <script defer src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
-  <script defer src="../assets/app.js"></script>
-</head>
-<body class="chapter-page">
-  <a class="skip-link" href="#main-content">Skip to main content</a>
-  <button class="sidebar-toggle" type="button" aria-controls="chapter-sidebar" aria-expanded="false">☰ Chapters</button>
+<!--
+  Chapter 1 - The Context Problem (authored content fragment).
+  Injected by site/generate.py into site/chapters/the-context-problem.html at each
+  slot marker below. No page chrome, no h1/h2 (the shell renders those).
+  APM CLI referenced: v0.23.1. Cite official docs, not source-docs.
+-->
 
-  <div class="page-shell">
-    <aside id="chapter-sidebar" class="sidebar" aria-label="Book chapters">
-      <div class="sidebar-inner">
-        <a class="site-title" href="../index.html">The Missing Package Manager</a>
-        <nav class="chapter-nav" aria-label="Chapter navigation">
-          <ol>
-          <li><a class="is-current" aria-current="page" href="the-context-problem.html"><span class="chapter-number">01</span><span>The Context Problem</span></a></li>
-          <li><a href="lessons-from-package-managers.html"><span class="chapter-number">02</span><span>Lessons from Package Managers</span></a></li>
-          <li><a href="primitives-and-harnesses.html"><span class="chapter-number">03</span><span>Primitives &amp; Harnesses</span></a></li>
-          <li><a href="the-manifest-apm-yml.html"><span class="chapter-number">04</span><span>The Manifest: apm.yml</span></a></li>
-          <li><a href="install-and-restore.html"><span class="chapter-number">05</span><span>Install &amp; Restore</span></a></li>
-          <li><a href="the-lockfile-and-reproducibility.html"><span class="chapter-number">06</span><span>The Lockfile &amp; Reproducibility</span></a></li>
-          <li><a href="lifecycle.html"><span class="chapter-number">07</span><span>Lifecycle</span></a></li>
-          <li><a href="security-by-default.html"><span class="chapter-number">08</span><span>Security by Default</span></a></li>
-          <li><a href="governance-and-policy.html"><span class="chapter-number">09</span><span>Governance &amp; Policy</span></a></li>
-          <li><a href="becoming-a-producer.html"><span class="chapter-number">10</span><span>Becoming a Producer</span></a></li>
-          <li><a href="enterprise-at-fleet-scale.html"><span class="chapter-number">11</span><span>Enterprise at Fleet Scale</span></a></li>
-          <li><a href="the-landscape-and-whats-next.html"><span class="chapter-number">12</span><span>The Landscape &amp; What&#x27;s Next</span></a></li>
-          </ol>
-        </nav>
-      </div>
-    </aside>
-
-    <div class="content-shell">
-      <header class="chapter-header">
-        <nav class="breadcrumb" aria-label="Breadcrumb"><a href="../index.html">Home</a> / Chapter 1</nav>
-        <p class="eyebrow">Chapter 1</p>
-        <h1>The Context Problem</h1>
-        <p class="lead">Articulate why agent context needs a package manager and name the four properties APM is designed to protect.</p>
-      </header>
-
-      <main id="main-content" class="chapter-main" tabindex="-1">
-        <div class="chapter-meta">
-          <nav class="metadata-card" aria-labelledby="section-nav-heading">
-            <h2 id="section-nav-heading">On this page</h2>
-            <ol>
-              <li><a href="#objective">Objective</a></li>
-              <li><a href="#concept-theory">Concept/Theory</a></li>
-              <li><a href="#in-apm">In APM</a></li>
-              <li><a href="#when-to-use-pitfalls">When to use / pitfalls</a></li>
-              <li><a href="#worked-example">Worked example</a></li>
-              <li><a href="#recap-and-next">Recap &amp; next</a></li>
-            </ol>
-          </nav>
-          <aside class="metadata-card" aria-labelledby="features-heading">
-            <h2 id="features-heading">APM features</h2>
-            <ul class="tag-list">
-            <li>apm.yml</li>
-            <li>apm.lock.yaml</li>
-            <li>apm-policy.yml</li>
-            <li>apm install</li>
-            <li>supported harnesses</li>
-            </ul>
-          </aside>
-        </div>
-
-        <section class="chapter-section" data-section="objective">
-          <h2 id="objective"><a class="anchor-link" href="#objective" aria-label="Link to Objective section">Objective</a></h2>
-          <div class="section-content" data-content-slot="objective">
+<!-- SLOT: objective -->
 <p>
   After this chapter you can explain why the files that configure an AI coding agent behave like a
   project dependency, describe the drift that appears when they go unmanaged, and name the four
@@ -84,11 +16,8 @@
   <span class="property property--governance">Governance</span> &mdash; and how APM's three promises
   deliver them.
 </p>
-          </div>
-        </section>
-        <section class="chapter-section" data-section="concept-theory">
-          <h2 id="concept-theory"><a class="anchor-link" href="#concept-theory" aria-label="Link to Concept/Theory section">Concept/Theory</a></h2>
-          <div class="section-content" data-content-slot="concept-theory">
+
+<!-- SLOT: concept-theory -->
 <h3>Agent context is a dependency you never declared</h3>
 <p>
   Before npm, pip, and Cargo, application dependencies lived wherever each developer happened to put
@@ -195,11 +124,8 @@
   lands as the <em>same</em> bytes. And security asks &ldquo;is this safe?&rdquo; while governance asks
   &ldquo;is this allowed here?&rdquo; The next section maps all four onto what APM actually ships.
 </p>
-          </div>
-        </section>
-        <section class="chapter-section" data-section="in-apm">
-          <h2 id="in-apm"><a class="anchor-link" href="#in-apm" aria-label="Link to In APM section">In APM</a></h2>
-          <div class="section-content" data-content-slot="in-apm">
+
+<!-- SLOT: in-apm -->
 <h3>Three files and one habit</h3>
 <p>
   APM borrows the manifest-plus-lockfile shape from npm, pip, and Cargo and applies it to the files
@@ -324,11 +250,8 @@
     you already require of <code>package.json</code> or <code>requirements.txt</code>.
   </p>
 </aside>
-          </div>
-        </section>
-        <section class="chapter-section" data-section="when-to-use-pitfalls">
-          <h2 id="when-to-use-pitfalls"><a class="anchor-link" href="#when-to-use-pitfalls" aria-label="Link to When to use / pitfalls section">When to use / pitfalls</a></h2>
-          <div class="section-content" data-content-slot="when-to-use-pitfalls">
+
+<!-- SLOT: when-to-use-pitfalls -->
 <h3>When a package-manager frame helps</h3>
 <p>APM earns its keep when context is <em>shared</em> and <em>plural</em>:</p>
 <ul>
@@ -403,11 +326,8 @@
     already learned (naming, pinning, resolution) and shows which ones APM inherits.
   </p>
 </aside>
-          </div>
-        </section>
-        <section class="chapter-section" data-section="worked-example">
-          <h2 id="worked-example"><a class="anchor-link" href="#worked-example" aria-label="Link to Worked example section">Worked example</a></h2>
-          <div class="section-content" data-content-slot="worked-example">
+
+<!-- SLOT: worked-example -->
 <h3>Meridian: from scattered files to one declaration</h3>
 <p>
   Here is Meridian's drift as an inventory. Nothing below is an APM file yet &mdash; it's four
@@ -506,11 +426,8 @@ includes: auto</code></pre>
   <code>apm install</code>. Chapter 4 turns this sketch into a validated manifest; Chapter 5 runs the
   install for real.
 </p>
-          </div>
-        </section>
-        <section class="chapter-section" data-section="recap-and-next">
-          <h2 id="recap-and-next"><a class="anchor-link" href="#recap-and-next" aria-label="Link to Recap &amp; next section">Recap &amp; next</a></h2>
-          <div class="section-content" data-content-slot="recap-and-next">
+
+<!-- SLOT: recap-and-next -->
 <h3>Recap</h3>
 <ul>
   <li>
@@ -546,19 +463,3 @@ includes: auto</code></pre>
   distills what npm, pip, and Cargo taught us &mdash; manifests, lockfiles, pinning, and the
   name-collision problem flagged above &mdash; and shows which lessons APM inherits.
 </p>
-          </div>
-        </section>
-
-        <nav class="pager" aria-label="Chapter pagination">
-          <span class="pager-link is-disabled">← No previous chapter</span>
-          <a class="pager-link" rel="next" href="lessons-from-package-managers.html">Chapter 2: Lessons from Package Managers →</a>
-        </nav>
-      </main>
-
-      <footer class="site-footer chapter-footer">
-        <p>Generated from <code>content/toc.yml</code>. Replace only section content blocks when authoring.</p>
-      </footer>
-    </div>
-  </div>
-</body>
-</html>
