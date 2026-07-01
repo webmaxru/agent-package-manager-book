@@ -1,4 +1,4 @@
-"""Generate the static Microsoft Agent Framework playbook site from content/toc.yml."""
+"""Generate the static Agent Package Manager book site from content/toc.yml."""
 from __future__ import annotations
 
 import html
@@ -13,10 +13,10 @@ SITE = ROOT / "site"
 CHAPTERS_DIR = SITE / "chapters"
 TOC_PATH = ROOT / "content" / "toc.yml"
 
-PLAYBOOK_TITLE = "Microsoft Agent Framework Playbook"
-PLAYBOOK_INTRO = (
-    "A progressive, Python-focused guide that starts with agent concepts and builds "
-    "toward Microsoft Agent Framework components, orchestration, observability, and hosting."
+BOOK_TITLE = "Agent Package Manager Book"
+BOOK_INTRO = (
+    "A progressive, hands-on guide that starts with agent-primitive packaging concepts and "
+    "builds toward the Agent Package Manager CLI, manifests, lockfiles, policy, and multi-harness workflows."
 )
 
 
@@ -33,10 +33,10 @@ def slugify(value: str) -> str:
 
 def load_chapters() -> list[dict[str, Any]]:
     with TOC_PATH.open("r", encoding="utf-8") as handle:
-        data = yaml.safe_load(handle)
-    chapters = data.get("chapters", [])
-    if len(chapters) != 10:
-        raise ValueError(f"Expected 10 chapters in {TOC_PATH}, found {len(chapters)}")
+        data = yaml.safe_load(handle) or {}
+    chapters = data.get("chapters") or []
+    if not isinstance(chapters, list):
+        raise ValueError(f"'chapters' in {TOC_PATH} must be a list, found {type(chapters).__name__}")
     return chapters
 
 
@@ -44,7 +44,7 @@ def root_head(title: str, description: str, prefix: str = "") -> str:
     return f"""<meta charset=\"utf-8\">
   <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">
   <meta name=\"description\" content=\"{esc(description)}\">
-  <title>{esc(title)} | {esc(PLAYBOOK_TITLE)}</title>
+  <title>{esc(title)} | {esc(BOOK_TITLE)}</title>
   <link rel=\"preconnect\" href=\"https://cdnjs.cloudflare.com\">
   <link rel=\"stylesheet\" href=\"https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css\" crossorigin=\"anonymous\" referrerpolicy=\"no-referrer\">
   <link rel=\"stylesheet\" href=\"{prefix}assets/style.css\">
@@ -72,48 +72,57 @@ def build_chapter_nav(chapters: list[dict[str, Any]], current_id: str | None = N
 def render_index(chapters: list[dict[str, Any]]) -> str:
     cards: list[str] = []
     for chapter in chapters:
-        components = chapter.get("maf_components") or []
-        component_html = ""
-        if components:
-            component_html = "\n".join(f"              <li>{esc(component)}</li>" for component in components)
-            component_html = f'''
+        features = chapter.get("apm_features") or []
+        feature_html = ""
+        if features:
+            feature_html = "\n".join(f"              <li>{esc(feature)}</li>" for feature in features)
+            feature_html = f'''
             <details class="component-list">
-              <summary>MAF components</summary>
+              <summary>APM features</summary>
               <ul>
-{component_html}
+{feature_html}
               </ul>
             </details>'''
         cards.append(f'''        <article class="chapter-card">
           <p class="eyebrow">Chapter {esc(chapter["number"])}</p>
           <h2><a href="{esc(chapter_url(chapter))}">{esc(chapter["title"])}</a></h2>
-          <p>{esc(chapter["objective"])}</p>{component_html}
+          <p>{esc(chapter["objective"])}</p>{feature_html}
         </article>''')
+
+    if cards:
+        cards_html = chr(10).join(cards)
+    else:
+        cards_html = '''        <article class="chapter-card">
+          <p class="eyebrow">Coming soon</p>
+          <h2>Chapters are being authored</h2>
+          <p>The table of contents in <code>content/toc.yml</code> is currently empty. Once the book-architect populates it, chapters will appear here.</p>
+        </article>'''
 
     return f'''<!doctype html>
 <html lang="en">
 <head>
-  {root_head("Home", PLAYBOOK_INTRO)}
+  {root_head("Home", BOOK_INTRO)}
 </head>
 <body>
   <a class="skip-link" href="#main-content">Skip to main content</a>
   <header class="site-header" role="banner">
     <div class="container hero">
-      <p class="eyebrow">Interactive HTML playbook</p>
-      <h1>{esc(PLAYBOOK_TITLE)}</h1>
-      <p class="lead">{esc(PLAYBOOK_INTRO)}</p>
+      <p class="eyebrow">Interactive HTML book</p>
+      <h1>{esc(BOOK_TITLE)}</h1>
+      <p class="lead">{esc(BOOK_INTRO)}</p>
     </div>
   </header>
 
   <main id="main-content" class="container" tabindex="-1">
     <section class="intro-panel" aria-labelledby="start-heading">
       <h2 id="start-heading">Start with the learning path</h2>
-      <p>Use the chapter grid to move from foundational agent vocabulary into hands-on MAF component shells. Chapter authors can add content inside each prepared section without changing the site chrome.</p>
+      <p>Use the chapter grid to move from foundational agent-packaging vocabulary into hands-on APM feature walkthroughs. Chapter authors can add content inside each prepared section without changing the site chrome.</p>
     </section>
 
     <section aria-labelledby="chapters-heading">
       <h2 id="chapters-heading">Chapters</h2>
       <div class="chapter-grid">
-{chr(10).join(cards)}
+{cards_html}
       </div>
     </section>
   </main>
@@ -161,15 +170,15 @@ def render_chapter(chapters: list[dict[str, Any]], index: int) -> str:
         if next_chapter else '<span class="pager-link is-disabled">No next chapter →</span>'
     )
 
-    components = chapter.get("maf_components") or []
-    components_html = ""
-    if components:
-        components_html = "\n".join(f"            <li>{esc(component)}</li>" for component in components)
-        components_html = f'''
-          <aside class="metadata-card" aria-labelledby="components-heading">
-            <h2 id="components-heading">MAF components</h2>
+    features = chapter.get("apm_features") or []
+    features_html = ""
+    if features:
+        features_html = "\n".join(f"            <li>{esc(feature)}</li>" for feature in features)
+        features_html = f'''
+          <aside class="metadata-card" aria-labelledby="features-heading">
+            <h2 id="features-heading">APM features</h2>
             <ul class="tag-list">
-{components_html}
+{features_html}
             </ul>
           </aside>'''
 
@@ -202,9 +211,9 @@ def render_chapter(chapters: list[dict[str, Any]], index: int) -> str:
   <button class="sidebar-toggle" type="button" aria-controls="chapter-sidebar" aria-expanded="false">☰ Chapters</button>
 
   <div class="page-shell">
-    <aside id="chapter-sidebar" class="sidebar" aria-label="Playbook chapters">
+    <aside id="chapter-sidebar" class="sidebar" aria-label="Book chapters">
       <div class="sidebar-inner">
-        <a class="site-title" href="../index.html">{esc(PLAYBOOK_TITLE)}</a>
+        <a class="site-title" href="../index.html">{esc(BOOK_TITLE)}</a>
         <nav class="chapter-nav" aria-label="Chapter navigation">
           <ol>
 {build_chapter_nav(chapters, chapter["id"], "")}
@@ -228,7 +237,7 @@ def render_chapter(chapters: list[dict[str, Any]], index: int) -> str:
             <ol>
 {chr(10).join(section_nav)}
             </ol>
-          </nav>{components_html}{depends_html}
+          </nav>{features_html}{depends_html}
         </div>
 
 {chr(10).join(sections)}
@@ -261,4 +270,3 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
-

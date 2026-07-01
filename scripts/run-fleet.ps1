@@ -1,5 +1,5 @@
 #!/usr/bin/env pwsh
-# Launches the MAF playbook agent fleet autonomously (headless).
+# Launches the APM book agent fleet autonomously (headless).
 # Runs the master orchestrator prompt to completion via Copilot CLI, then exits.
 #
 # Usage:
@@ -14,7 +14,7 @@
 [CmdletBinding()]
 param(
     [switch]$DryRun,
-    [string]$PromptPath = ".github/prompts/run-playbook.prompt.md"
+    [string]$PromptPath = ".github/prompts/run-book.prompt.md"
 )
 
 $ErrorActionPreference = "Stop"
@@ -33,7 +33,7 @@ if (-not (Get-Command copilot -ErrorAction SilentlyContinue)) {
 
 $prompt = Get-Content -Raw $PromptPath
 
-Write-Host "Launching MAF playbook fleet from '$PromptPath'..." -ForegroundColor Cyan
+Write-Host "Launching APM book fleet from '$PromptPath'..." -ForegroundColor Cyan
 
 if ($DryRun) {
     Write-Host "[DryRun] Would run: copilot -p <orchestrator-prompt> --allow-all-tools" -ForegroundColor Yellow

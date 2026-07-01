@@ -1,45 +1,44 @@
 ---
-name: playbook-orchestration
-description: The wave-based workflow that coordinates the playbook agent team (architect, theory-researcher, maf-library-explorer, chapter-author, code-verifier, chapter-reviewer, frontend-builder) to produce the MAF interactive playbook end to end. Use to plan and run the production pipeline for one or more chapters.
+name: book-orchestration
+description: The wave-based workflow that coordinates the book agent team (book-architect, theory-researcher, apm-cli-explorer, chapter-author, code-verifier, chapter-reviewer, frontend-builder) to produce the APM interactive book end to end. Use to plan and run the production pipeline for one or more chapters.
 ---
 
-# Playbook Orchestration
+# Book Orchestration
 
-This skill describes **how the playbook agents work together** to build the Microsoft Agent
-Framework (MAF) interactive playbook. It is the orchestration layer: who is dispatched, in what
-order, with what hand-offs and checkpoints. (This is a starting scaffold — refine as the project
-evolves.)
+This skill describes **how the book agents work together** to build the Agent Package Manager (APM)
+interactive book. It is the orchestration layer: who is dispatched, in what order, with what
+hand-offs and checkpoints. (This is a starting scaffold — refine as the project evolves.)
 
 ## The team
 | Agent | Role |
 |-------|------|
-| `playbook-architect` | Designs TOC, chapter specs, navigation, wave plan |
-| `theory-researcher` | Produces cited concept briefs from Microsoft docs |
-| `maf-library-explorer` | Installs & introspects `agent-framework`; component notes + examples |
-| `chapter-author` | Weaves theory + library into chapter content |
-| `code-verifier` | Runs every example; reports pass/fail |
+| `book-architect` | Designs TOC, chapter specs, navigation, wave plan |
+| `theory-researcher` | Produces cited concept briefs from APM docs |
+| `apm-cli-explorer` | Installs & introspects the `apm` CLI; feature notes + examples |
+| `chapter-author` | Weaves theory + CLI reference into chapter content |
+| `code-verifier` | Runs/validates every example; reports pass/fail |
 | `chapter-reviewer` | Reviews chapters; ACCEPT/REVISE + ranked findings |
 | `frontend-builder` | Builds the interactive HTML shell and wires content in |
 
 ## Pipeline (per the case-study methodology: draft → review → revise, in waves)
 
 ### Phase 0 — Architecture
-1. Dispatch `playbook-architect` → TOC, chapter table, section breakdowns, wave plan.
+1. Dispatch `book-architect` → TOC, chapter table, section breakdowns, wave plan.
 2. Dispatch `frontend-builder` → scaffold the site shell + nav driven by the TOC.
 3. Checkpoint: commit TOC + shell.
 
 ### Phase 1 — Environment
-4. Run the `maf-environment-setup` skill (via `maf-library-explorer`) → Python env with
-   `agent-framework` installed and introspectable.
+4. Run the `apm-environment-setup` skill (via `apm-cli-explorer`) → the `apm` CLI installed and
+   introspectable, plus a sample project to inspect.
 
 ### Waves (repeat per wave; start with ONE pilot chapter, then widen)
 For each chapter in the wave, run **research in parallel**, then author, verify, review:
 5. **Research (parallel):**
    - `theory-researcher` → concept brief (`content/research/<ch>-theory.md`)
-   - `maf-library-explorer` → component notes + draft examples (`content/research/<ch>-library.md`)
+   - `apm-cli-explorer` → feature notes + draft examples (`content/research/<ch>-reference.md`)
 6. **Author:** `chapter-author` → chapter draft, pulling both briefs together.
-7. **Verify:** `code-verifier` → run every example; loop with author/explorer until all PASS
-   (or SKIPPED-needs-creds with a clear marker).
+7. **Verify:** `code-verifier` → validate/run every example; loop with author/explorer until all PASS
+   (or SKIPPED-needs-network with a clear marker).
 8. **Review:** `chapter-reviewer` → ACCEPT or REVISE; on REVISE, route must-fixes to `chapter-author`.
 9. **Integrate:** `frontend-builder` → wire the accepted chapter into the site nav.
 10. Checkpoint: commit the chapter (draft + examples + review verdict).
@@ -50,9 +49,9 @@ For each chapter in the wave, run **research in parallel**, then author, verify,
 12. `chapter-author` applies cross-cutting fixes; `frontend-builder` finalizes nav/cross-links.
 
 ## Wave ordering guidance
-- **Wave 0:** one pilot chapter (e.g. "What is an agent?") to validate the whole pipeline.
+- **Wave 0:** one pilot chapter (e.g. "Why a package manager for agents?") to validate the pipeline.
 - **Wave 1:** chapters with the most existing source material (lowest risk).
-- **Wave 2:** the hardest chapters (multi-agent workflows/orchestration).
+- **Wave 2:** the hardest chapters (governance/policy, transitive MCP, enterprise ramp).
 - **Wave 3:** integration chapters needing cross-references to earlier ones.
 
 ## Orchestration principles
