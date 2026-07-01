@@ -59,7 +59,7 @@
   });
 
   if (window.hljs) {
-    window.hljs.configure({ languages: ['python', 'py', 'bash', 'shell', 'json', 'yaml'] });
+    window.hljs.configure({ languages: ['yaml', 'bash', 'shell', 'json', 'text', 'plaintext', 'python'] });
     window.hljs.highlightAll();
   }
 })();

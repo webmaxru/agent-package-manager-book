@@ -3,8 +3,8 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="description" content="A progressive, Python-focused guide that starts with agent concepts and builds toward Microsoft Agent Framework components, orchestration, observability, and hosting.">
-  <title>Home | Microsoft Agent Framework Playbook</title>
+  <meta name="description" content="A hands-on guide to APM, the package manager for AI agent context. Declare the skills, prompts, instructions, agents, and MCP servers your project needs in one manifest, then install and restore the same context across every supported harness.">
+  <title>Home | The Missing Package Manager</title>
   <link rel="preconnect" href="https://cdnjs.cloudflare.com">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css" crossorigin="anonymous" referrerpolicy="no-referrer">
   <link rel="stylesheet" href="assets/style.css">
@@ -15,17 +15,19 @@
   <a class="skip-link" href="#main-content">Skip to main content</a>
   <header class="site-header" role="banner">
     <div class="container hero">
-      <p class="eyebrow">Interactive HTML playbook</p>
-      <h1>Microsoft Agent Framework Playbook</h1>
-      <p class="lead">A progressive, Python-focused guide that starts with agent concepts and builds toward Microsoft Agent Framework components, orchestration, observability, and hosting.</p>
+      <p class="eyebrow">Interactive book</p>
+      <h1>The Missing Package Manager</h1>
+      <p class="subtitle">Managing AI Agent Context with APM</p>
+      <p class="lead">A hands-on guide to APM, the package manager for AI agent context. Declare the skills, prompts, instructions, agents, and MCP servers your project needs in one manifest, then install and restore the same context across every supported harness.</p>
+      <p class="tagline">Portable by manifest · secure by default · governed by policy.</p>
     </div>
   </header>
 
   <main id="main-content" class="container" tabindex="-1">
     <section class="intro-panel" aria-labelledby="start-heading">
-      <h2 id="start-heading">Start with the learning path</h2>
-      <p>Use the chapter grid to move from foundational agent vocabulary into hands-on MAF component shells. Chapter authors can add content inside each prepared section without changing the site chrome.</p>
-      <p>🤖 Curious how this playbook was built? <a href="orchestration.html">See the interactive agent-orchestration wireframe →</a></p>
+      <h2 id="start-heading">How to read this book</h2>
+      <p>Chapters build in order, concept before command. Every APM feature is introduced as the implementation of one of four properties &mdash; <span class="property property--portability">Portability</span> <span class="property property--reproducibility">Reproducibility</span> <span class="property property--security">Security</span> <span class="property property--governance">Governance</span>.</p>
+      <p>Two reading paths share every page. Developers follow the body and the worked examples; engineering leaders can skim the <strong>For engineering leaders</strong> asides. A recurring <strong>Meridian</strong> marker tracks what one team does next, chapter by chapter.</p>
     </section>
 
     <section aria-labelledby="chapters-heading">
@@ -33,131 +35,198 @@
       <div class="chapter-grid">
         <article class="chapter-card">
           <p class="eyebrow">Chapter 1</p>
-          <h2><a href="chapters/what-is-an-agent.html">What is an agent?</a></h2>
-          <p>Define AI agents, distinguish them from chatbots and workflows, and learn the vocabulary used by the rest of the playbook.</p>
+          <h2><a href="chapters/the-context-problem.html">The Context Problem</a></h2>
+          <p>Articulate why agent context needs a package manager and name the four properties APM is designed to protect.</p>
+            <details class="component-list">
+              <summary>APM features</summary>
+              <ul>
+              <li>apm.yml</li>
+              <li>apm.lock.yaml</li>
+              <li>apm-policy.yml</li>
+              <li>apm install</li>
+              <li>supported harnesses</li>
+              </ul>
+            </details>
         </article>
         <article class="chapter-card">
           <p class="eyebrow">Chapter 2</p>
-          <h2><a href="chapters/agentic-patterns-and-maf-map.html">Agentic patterns and the MAF map</a></h2>
-          <p>Connect common agentic patterns to MAF&#x27;s component families before introducing APIs.</p>
+          <h2><a href="chapters/lessons-from-package-managers.html">Lessons from Package Managers</a></h2>
+          <p>Map package-manager concepts onto agent context so APM feels familiar rather than novel.</p>
+            <details class="component-list">
+              <summary>APM features</summary>
+              <ul>
+              <li>apm.yml</li>
+              <li>apm.lock.yaml</li>
+              <li>version pinning</li>
+              <li>git sources</li>
+              <li>apm update</li>
+              <li>apm outdated</li>
+              <li>apm audit</li>
+              </ul>
+            </details>
         </article>
         <article class="chapter-card">
           <p class="eyebrow">Chapter 3</p>
-          <h2><a href="chapters/agents-and-instructions.html">Agents and instructions</a></h2>
-          <p>Create a Python MAF agent with a clear role, instructions, and model client boundary.</p>
+          <h2><a href="chapters/primitives-and-harnesses.html">Primitives &amp; Harnesses</a></h2>
+          <p>Know the vocabulary of what APM manages and how those primitives relate to agent harnesses.</p>
             <details class="component-list">
-              <summary>MAF components</summary>
+              <summary>APM features</summary>
               <ul>
-              <li>Agent</li>
+              <li>skills</li>
+              <li>prompts</li>
               <li>instructions</li>
-              <li>agent identity/name</li>
-              <li>run invocation</li>
+              <li>agents</li>
+              <li>plugins</li>
+              <li>MCP servers</li>
+              <li>AGENTS.md</li>
+              <li>SKILL.md</li>
+              <li>MCP</li>
               </ul>
             </details>
         </article>
         <article class="chapter-card">
           <p class="eyebrow">Chapter 4</p>
-          <h2><a href="chapters/chat-clients-messages-and-conversations.html">Chat clients, messages, and conversations</a></h2>
-          <p>Understand how MAF separates agent behavior from provider chat clients, messages, and conversation state.</p>
+          <h2><a href="chapters/the-manifest-apm-yml.html">The Manifest: apm.yml</a></h2>
+          <p>Author a valid apm.yml that declares Meridian&#x27;s first shared agent-context dependencies.</p>
             <details class="component-list">
-              <summary>MAF components</summary>
+              <summary>APM features</summary>
               <ul>
-              <li>ChatClient</li>
-              <li>FoundryChatClient</li>
-              <li>providers</li>
-              <li>messages</li>
-              <li>conversations</li>
-              <li>multi-turn state</li>
+              <li>apm.yml</li>
+              <li>dependencies</li>
+              <li>git sources</li>
+              <li>version pinning</li>
+              <li>scripts</li>
+              <li>harness targets</li>
               </ul>
             </details>
         </article>
         <article class="chapter-card">
           <p class="eyebrow">Chapter 5</p>
-          <h2><a href="chapters/tools-and-function-calling.html">Tools and function calling</a></h2>
-          <p>Add safe, well-scoped tools so an agent can act beyond text generation.</p>
+          <h2><a href="chapters/install-and-restore.html">Install &amp; Restore</a></h2>
+          <p>Install and restore a project&#x27;s agent context with the daily APM consumer loop.</p>
             <details class="component-list">
-              <summary>MAF components</summary>
+              <summary>APM features</summary>
               <ul>
-              <li>tools</li>
-              <li>function calling</li>
-              <li>tool schemas</li>
-              <li>agent skills</li>
+              <li>apm init</li>
+              <li>apm install &lt;pkg&gt;</li>
+              <li>apm install</li>
+              <li>apm run &lt;script&gt;</li>
+              <li>harness targets</li>
               </ul>
             </details>
         </article>
         <article class="chapter-card">
           <p class="eyebrow">Chapter 6</p>
-          <h2><a href="chapters/workflows-sequential-and-concurrent.html">Workflows for sequential and concurrent orchestration</a></h2>
-          <p>Model repeatable multi-step agent systems with workflow executors, edges, and sequential or concurrent paths.</p>
+          <h2><a href="chapters/the-lockfile-and-reproducibility.html">The Lockfile &amp; Reproducibility</a></h2>
+          <p>Reproduce an APM setup exactly and explain how the lockfile supports that guarantee.</p>
             <details class="component-list">
-              <summary>MAF components</summary>
+              <summary>APM features</summary>
               <ul>
-              <li>workflows</li>
-              <li>WorkflowBuilder</li>
-              <li>executors</li>
-              <li>edges</li>
-              <li>sequential orchestration</li>
-              <li>concurrent orchestration</li>
+              <li>apm.lock.yaml</li>
+              <li>exact versions</li>
+              <li>content hashes</li>
+              <li>byte-for-byte restore</li>
+              <li>apm install</li>
               </ul>
             </details>
         </article>
         <article class="chapter-card">
           <p class="eyebrow">Chapter 7</p>
-          <h2><a href="chapters/handoff-and-group-chat.html">Handoff and group chat orchestration</a></h2>
-          <p>Choose handoff and group collaboration patterns when one agent is not enough.</p>
+          <h2><a href="chapters/lifecycle.html">Lifecycle</a></h2>
+          <p>Keep APM dependencies current while detecting drift and risk deliberately.</p>
             <details class="component-list">
-              <summary>MAF components</summary>
+              <summary>APM features</summary>
               <ul>
-              <li>handoff orchestration</li>
-              <li>group chat</li>
-              <li>multi-agent collaboration</li>
-              <li>routing</li>
+              <li>apm outdated</li>
+              <li>apm update</li>
+              <li>apm audit</li>
+              <li>apm.yml</li>
+              <li>apm.lock.yaml</li>
               </ul>
             </details>
         </article>
         <article class="chapter-card">
           <p class="eyebrow">Chapter 8</p>
-          <h2><a href="chapters/streaming-checkpointing-and-human-in-the-loop.html">Streaming, checkpointing, and human-in-the-loop</a></h2>
-          <p>Make longer-running agent workflows observable, resumable, and controllable by people.</p>
+          <h2><a href="chapters/security-by-default.html">Security by Default</a></h2>
+          <p>Understand and rely on APM&#x27;s install-time security checks without confusing them with runtime sandboxing.</p>
             <details class="component-list">
-              <summary>MAF components</summary>
+              <summary>APM features</summary>
               <ul>
-              <li>streaming</li>
-              <li>checkpointing</li>
-              <li>durability</li>
-              <li>human-in-the-loop</li>
-              <li>workflow events</li>
+              <li>hidden-Unicode scanning</li>
+              <li>content-hash pinning</li>
+              <li>transitive MCP blocking</li>
+              <li>apm install</li>
+              <li>apm.lock.yaml</li>
+              <li>apm-policy.yml</li>
               </ul>
             </details>
         </article>
         <article class="chapter-card">
           <p class="eyebrow">Chapter 9</p>
-          <h2><a href="chapters/middleware-and-observability.html">Middleware and observability</a></h2>
-          <p>Add cross-cutting behavior and OpenTelemetry traces without burying operational concerns inside agent logic.</p>
+          <h2><a href="chapters/governance-and-policy.html">Governance &amp; Policy</a></h2>
+          <p>Write and pilot an apm-policy.yml that enforces agent-package rules at install time.</p>
             <details class="component-list">
-              <summary>MAF components</summary>
+              <summary>APM features</summary>
               <ul>
-              <li>middleware</li>
-              <li>request/response pipeline</li>
-              <li>exception handling</li>
-              <li>OpenTelemetry</li>
-              <li>tracing</li>
+              <li>apm-policy.yml</li>
+              <li>install-time enforcement</li>
+              <li>transitive MCP governance</li>
+              <li>tighten-only inheritance</li>
+              <li>warn mode</li>
+              <li>block mode</li>
               </ul>
             </details>
         </article>
         <article class="chapter-card">
           <p class="eyebrow">Chapter 10</p>
-          <h2><a href="chapters/declarative-hosting-and-devui.html">Declarative agents, hosting, and DevUI</a></h2>
-          <p>Understand how MAF projects move from local authored components toward YAML configuration, hosted execution, and interactive debugging.</p>
+          <h2><a href="chapters/becoming-a-producer.html">Becoming a Producer</a></h2>
+          <p>Package and publish reusable APM primitives so other teams can consume them through the normal install loop.</p>
             <details class="component-list">
-              <summary>MAF components</summary>
+              <summary>APM features</summary>
               <ul>
-              <li>declarative agents</li>
-              <li>YAML configuration</li>
-              <li>Foundry-hosted agents</li>
-              <li>hosting overview</li>
-              <li>A2A integration</li>
-              <li>DevUI</li>
+              <li>producer package shape</li>
+              <li>skills</li>
+              <li>prompts</li>
+              <li>plugins</li>
+              <li>apm pack</li>
+              <li>apm plugin init</li>
+              <li>apm marketplace init</li>
+              <li>apm marketplace add</li>
+              </ul>
+            </details>
+        </article>
+        <article class="chapter-card">
+          <p class="eyebrow">Chapter 11</p>
+          <h2><a href="chapters/enterprise-at-fleet-scale.html">Enterprise at Fleet Scale</a></h2>
+          <p>Gate and govern APM usage across an organization without turning developer setup into a bottleneck.</p>
+            <details class="component-list">
+              <summary>APM features</summary>
+              <ul>
+              <li>apm audit --ci</li>
+              <li>CI gating</li>
+              <li>registry proxy</li>
+              <li>air-gapped environments</li>
+              <li>adoption playbook</li>
+              <li>apm-policy.yml</li>
+              <li>microsoft/apm-action</li>
+              </ul>
+            </details>
+        </article>
+        <article class="chapter-card">
+          <p class="eyebrow">Chapter 12</p>
+          <h2><a href="chapters/the-landscape-and-whats-next.html">The Landscape &amp; What&#x27;s Next</a></h2>
+          <p>Place APM in the market and standards landscape, then decide what to adopt, watch, or build around.</p>
+            <details class="component-list">
+              <summary>APM features</summary>
+              <ul>
+              <li>OpenAPM v0.1</li>
+              <li>SKILL.md</li>
+              <li>AGENTS.md</li>
+              <li>MCP</li>
+              <li>supported harnesses</li>
+              <li>git-based distribution</li>
+              <li>policy model</li>
+              <li>registry roadmap</li>
               </ul>
             </details>
         </article>

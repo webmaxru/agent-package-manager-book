@@ -12,11 +12,18 @@ ROOT = Path(__file__).resolve().parents[1]
 SITE = ROOT / "site"
 CHAPTERS_DIR = SITE / "chapters"
 TOC_PATH = ROOT / "content" / "toc.yml"
+CONTENT_CHAPTERS_DIR = ROOT / "content" / "chapters"
 
-BOOK_TITLE = "Agent Package Manager Book"
+# Matches an HTML-comment slot delimiter: <!-- SLOT: <slot-id> -->
+SLOT_RE = re.compile(r"<!--\s*SLOT:\s*([a-z0-9-]+)\s*-->")
+
+BOOK_TITLE = "The Missing Package Manager"
+BOOK_SUBTITLE = "Managing AI Agent Context with APM"
+BOOK_TAGLINE = "Portable by manifest \u00b7 secure by default \u00b7 governed by policy."
 BOOK_INTRO = (
-    "A progressive, hands-on guide that starts with agent-primitive packaging concepts and "
-    "builds toward the Agent Package Manager CLI, manifests, lockfiles, policy, and multi-harness workflows."
+    "A hands-on guide to APM, the package manager for AI agent context. Declare the skills, "
+    "prompts, instructions, agents, and MCP servers your project needs in one manifest, then "
+    "install and restore the same context across every supported harness."
 )
 
 
@@ -38,6 +45,30 @@ def load_chapters() -> list[dict[str, Any]]:
     if not isinstance(chapters, list):
         raise ValueError(f"'chapters' in {TOC_PATH} must be a list, found {type(chapters).__name__}")
     return chapters
+
+
+def load_fragment(slug: str) -> dict[str, str]:
+    """Return a mapping of slot id -> authored inner HTML for one chapter.
+
+    Authored content lives in content/chapters/<slug>.html, decoupled from this
+    presentation layer. Sections are divided by HTML-comment slot markers (see
+    SLOT_RE); everything from a marker up to the next marker (or EOF) is that
+    slot's trusted inner HTML. A missing file, unknown slot ids, or empty slots
+    simply yield no override, so the section keeps its "Content pending" note.
+    """
+    fragment_path = CONTENT_CHAPTERS_DIR / f"{slug}.html"
+    if not fragment_path.exists():
+        return {}
+    raw = fragment_path.read_text(encoding="utf-8")
+    # re.split with one capture group yields: [preamble, id1, body1, id2, body2, ...]
+    parts = SLOT_RE.split(raw)
+    slots: dict[str, str] = {}
+    for i in range(1, len(parts), 2):
+        slot_id = parts[i]
+        body = parts[i + 1].strip()
+        if body:
+            slots[slot_id] = body
+    return slots
 
 
 def root_head(title: str, description: str, prefix: str = "") -> str:
@@ -107,16 +138,19 @@ def render_index(chapters: list[dict[str, Any]]) -> str:
   <a class="skip-link" href="#main-content">Skip to main content</a>
   <header class="site-header" role="banner">
     <div class="container hero">
-      <p class="eyebrow">Interactive HTML book</p>
+      <p class="eyebrow">Interactive book</p>
       <h1>{esc(BOOK_TITLE)}</h1>
+      <p class="subtitle">{esc(BOOK_SUBTITLE)}</p>
       <p class="lead">{esc(BOOK_INTRO)}</p>
+      <p class="tagline">{esc(BOOK_TAGLINE)}</p>
     </div>
   </header>
 
   <main id="main-content" class="container" tabindex="-1">
     <section class="intro-panel" aria-labelledby="start-heading">
-      <h2 id="start-heading">Start with the learning path</h2>
-      <p>Use the chapter grid to move from foundational agent-packaging vocabulary into hands-on APM feature walkthroughs. Chapter authors can add content inside each prepared section without changing the site chrome.</p>
+      <h2 id="start-heading">How to read this book</h2>
+      <p>Chapters build in order, concept before command. Every APM feature is introduced as the implementation of one of four properties &mdash; <span class="property property--portability">Portability</span> <span class="property property--reproducibility">Reproducibility</span> <span class="property property--security">Security</span> <span class="property property--governance">Governance</span>.</p>
+      <p>Two reading paths share every page. Developers follow the body and the worked examples; engineering leaders can skim the <strong>For engineering leaders</strong> asides. A recurring <strong>Meridian</strong> marker tracks what one team does next, chapter by chapter.</p>
     </section>
 
     <section aria-labelledby="chapters-heading">
@@ -142,9 +176,16 @@ def render_chapter(chapters: list[dict[str, Any]], index: int) -> str:
     prev_chapter = chapters[index - 1] if index > 0 else None
     next_chapter = chapters[index + 1] if index < len(chapters) - 1 else None
 
+    slots = load_fragment(chapter["slug"])
     section_nav: list[str] = []
     sections: list[str] = []
     used_ids: set[str] = set()
+    pending_note = (
+        '            <p class="pending-note"><strong>Content pending.</strong> This section is '
+        "reserved for the chapter author. Authored content lives in "
+        "<code>content/chapters/&lt;slug&gt;.html</code> under the matching "
+        "<code>&lt;!-- SLOT: id --&gt;</code> marker.</p>"
+    )
     for title in chapter.get("sections", []):
         base = slugify(title)
         section_id = base
@@ -154,10 +195,12 @@ def render_chapter(chapters: list[dict[str, Any]], index: int) -> str:
             counter += 1
         used_ids.add(section_id)
         section_nav.append(f'              <li><a href="#{esc(section_id)}">{esc(title)}</a></li>')
+        authored = slots.get(section_id)
+        section_body = authored if authored else pending_note
         sections.append(f'''        <section class="chapter-section" data-section="{esc(section_id)}">
           <h2 id="{esc(section_id)}"><a class="anchor-link" href="#{esc(section_id)}" aria-label="Link to {esc(title)} section">{esc(title)}</a></h2>
           <div class="section-content" data-content-slot="{esc(section_id)}">
-            <p class="pending-note"><strong>Content pending.</strong> This section is reserved for the chapter author. Add authored content inside this <code>.section-content</code> block.</p>
+{section_body}
           </div>
         </section>''')
 
@@ -258,6 +301,19 @@ def render_chapter(chapters: list[dict[str, Any]], index: int) -> str:
 '''
 
 
+def prune_stale_chapters(chapters: list[dict[str, Any]]) -> list[str]:
+    """Delete site/chapters/*.html whose slug is not in the current TOC."""
+    current_slugs = {chapter["slug"] for chapter in chapters}
+    removed: list[str] = []
+    if not CHAPTERS_DIR.exists():
+        return removed
+    for existing in sorted(CHAPTERS_DIR.glob("*.html")):
+        if existing.stem not in current_slugs:
+            existing.unlink()
+            removed.append(existing.name)
+    return removed
+
+
 def main() -> None:
     chapters = load_chapters()
     CHAPTERS_DIR.mkdir(parents=True, exist_ok=True)
@@ -265,7 +321,10 @@ def main() -> None:
     for index, _chapter in enumerate(chapters):
         output = CHAPTERS_DIR / f"{chapters[index]['slug']}.html"
         output.write_text(render_chapter(chapters, index), encoding="utf-8")
+    removed = prune_stale_chapters(chapters)
     print(f"Generated {1 + len(chapters)} HTML files in {SITE}")
+    if removed:
+        print(f"Removed {len(removed)} stale chapter file(s): {', '.join(removed)}")
 
 
 if __name__ == "__main__":
