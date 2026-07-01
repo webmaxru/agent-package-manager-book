@@ -69,7 +69,7 @@ All primitives live under [`.github/`](.github/) following GitHub Copilot conven
 | `apm-examples` | instructions | Auto-applied rules for writing valid, verifiable manifest/command examples. |
 | `run-book` | prompt | The master driver prompt that boots and coordinates the whole fleet. |
 
-**Inputs that steer the fleet:** [`content/book-brief.md`](content/book-brief.md) (scope) and
+**Inputs that steer the fleet:** [`content/playbook-brief.md`](content/playbook-brief.md) (scope) and
 [`content/toc.yml`](content/toc.yml) (chapter spec / source of truth).
 
 ---
@@ -78,7 +78,7 @@ All primitives live under [`.github/`](.github/) following GitHub Copilot conven
 
 ```mermaid
 flowchart TD
-    Brief["content/book-brief.md<br/>(scope + intent)"] --> Orchestrator
+    Brief["content/playbook-brief.md<br/>(scope + intent)"] --> Orchestrator
 
     subgraph Driver["Orchestrator (manager)"]
         Orchestrator["run-book prompt<br/>dispatches agents in waves<br/>tracks state on todo board"]
@@ -142,7 +142,7 @@ current one) and batches reviews to cut dispatch overhead.
   instructions/   # auto-applied content & example rules
   prompts/        # run-book driver + new-chapter helper
 content/
-  book-brief.md       # scope / intent
+  playbook-brief.md       # scope / intent
   toc.yml             # chapter spec (source of truth)
   research/           # per-chapter theory + reference notes
 backend/

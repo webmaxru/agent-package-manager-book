@@ -2,7 +2,7 @@
 #
 # STATUS: awaiting architecture. The previous chapters were cleared when the repository was
 # reframed to Agent Package Manager. The `book-architect` populates `chapters` below from
-# `content/book-brief.md`, then `frontend-builder` runs `site/generate.py` to render the shell.
+# `content/playbook-brief.md`, then `frontend-builder` runs `site/generate.py` to render the shell.
 #
 # Schema per chapter (fill in when authoring):
 #   - id: 01-<slug>            # stable id, "NN-<slug>"

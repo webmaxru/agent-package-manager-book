@@ -1,12 +1,12 @@
 # Agent Package Manager Book Outline
 
-This outline follows `content/book-brief.md`: concepts first, `apm`-CLI-and-manifest-primary
+This outline follows `content/playbook-brief.md`: concepts first, `apm`-CLI-and-manifest-primary
 coverage, mid-level practical depth, no CLI internals, and content decoupled from the interactive
 HTML presentation.
 
 > **Status: awaiting architecture.** The previous chapter arc has been cleared as part of reframing
 > the repository to Agent Package Manager. The `book-architect` populates the chapter table below
-> and `content/toc.yml` (the machine-readable source of truth) from `content/book-brief.md` when the
+> and `content/toc.yml` (the machine-readable source of truth) from `content/playbook-brief.md` when the
 > book is built. `content/toc.yml` currently holds an empty `chapters: []` with the expected schema.
 
 ## Chapter table

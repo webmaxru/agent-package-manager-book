@@ -29,12 +29,12 @@ At every step: set the todo `in_progress` before dispatch, `done` on success, `b
 reason in the description) if stuck. Pick the next ready todo (no unfinished deps) and continue.
 
 ## Scope
-The book's scope, depth, audience, and output format are pinned in **`content/book-brief.md`**.
+The book's scope, depth, audience, and output format are pinned in **`content/playbook-brief.md`**.
 Read it before anything else and build *within* it — do not invent a different scope. (If it is
 missing, use the project goal in `.github/copilot-instructions.md`.)
 
 ## Pipeline (autonomous loop)
-1. **Architecture** — dispatch `book-architect` (it reads `content/book-brief.md`): produce
+1. **Architecture** — dispatch `book-architect` (it reads `content/playbook-brief.md`): produce
    `content/toc.yml` (or `outline.md`), chapter table, section specs, and the wave plan. Seed
    `todos` from the wave plan.
 2. **Shell** — dispatch `frontend-builder`: scaffold the HTML site + nav driven by the TOC. Verify

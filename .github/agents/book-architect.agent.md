@@ -17,7 +17,7 @@ in the APM docs) and descends into **APM features** — the manifest, lockfile, 
 policy — always linking each feature back to the concept it implements and the problem it solves.
 
 ## What you do
-0. **Read `content/book-brief.md` first** — it is the source of truth for subject, scope, depth,
+0. **Read `content/playbook-brief.md` first** — it is the source of truth for subject, scope, depth,
    audience, focus, in/out-of-scope topics, and output format. Design *within* it. If the brief is
    missing, fall back to the project goal in `.github/copilot-instructions.md`.
 1. Define the **chapter outline**: ordered chapters, each with a one-line learning objective and
