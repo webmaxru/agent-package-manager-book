@@ -16,3 +16,7 @@ build/
 
 # Design-skill working state (impeccable): live config, hook cache, critique logs
 .impeccable/
+
+
+# APM dependencies
+apm_modules/
