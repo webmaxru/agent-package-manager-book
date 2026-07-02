@@ -4,7 +4,33 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="description" content="A hands-on guide to APM, the package manager for AI agent context. Declare the skills, prompts, instructions, agents, and MCP servers your project needs in one manifest, then install and restore the same context across every supported harness.">
-  <title>Home | The Missing Package Manager</title>
+  <title>The Missing Package Manager — Managing AI Agent Context with APM</title>
+  <link rel="canonical" href="https://apm.isainative.dev/">
+  <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1">
+  <meta name="googlebot" content="index, follow">
+  <meta name="author" content="Maxim Salnikov">
+  <meta name="theme-color" content="#F6F7FB" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#10141F" media="(prefers-color-scheme: dark)">
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="The Missing Package Manager">
+  <meta property="og:locale" content="en_US">
+  <meta property="og:title" content="The Missing Package Manager — Managing AI Agent Context with APM">
+  <meta property="og:description" content="A hands-on guide to APM, the package manager for AI agent context. Declare the skills, prompts, instructions, agents, and MCP servers your project needs in one manifest, then install and restore the same context across every supported harness.">
+  <meta property="og:url" content="https://apm.isainative.dev/">
+  <meta property="og:image" content="https://apm.isainative.dev/assets/og-cover.png">
+  <meta property="og:image:type" content="image/png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="og:image:alt" content="The Missing Package Manager — Managing AI Agent Context with APM">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="The Missing Package Manager — Managing AI Agent Context with APM">
+  <meta name="twitter:description" content="A hands-on guide to APM, the package manager for AI agent context. Declare the skills, prompts, instructions, agents, and MCP servers your project needs in one manifest, then install and restore the same context across every supported harness.">
+  <meta name="twitter:image" content="https://apm.isainative.dev/assets/og-cover.png">
+  <meta name="twitter:image:alt" content="The Missing Package Manager — Managing AI Agent Context with APM">
+  <link rel="icon" href="favicon.ico" sizes="32x32">
+  <link rel="icon" href="favicon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="apple-touch-icon.png">
+  <link rel="manifest" href="site.webmanifest">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="preconnect" href="https://cdnjs.cloudflare.com">
@@ -12,6 +38,143 @@
   <link rel="stylesheet" href="assets/style.css">
   <script defer src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
   <script defer src="assets/app.js"></script>
+  <script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "WebSite",
+      "@id": "https://apm.isainative.dev/#website",
+      "url": "https://apm.isainative.dev/",
+      "name": "The Missing Package Manager",
+      "alternateName": "Managing AI Agent Context with APM",
+      "description": "A hands-on guide to APM, the package manager for AI agent context. Declare the skills, prompts, instructions, agents, and MCP servers your project needs in one manifest, then install and restore the same context across every supported harness.",
+      "inLanguage": "en",
+      "publisher": {
+        "@id": "https://apm.isainative.dev/#author"
+      }
+    },
+    {
+      "@type": "Person",
+      "@id": "https://apm.isainative.dev/#author",
+      "name": "Maxim Salnikov",
+      "url": "https://www.linkedin.com/in/webmaxru/"
+    },
+    {
+      "@type": "Book",
+      "@id": "https://apm.isainative.dev/#book",
+      "name": "The Missing Package Manager",
+      "alternateName": "Managing AI Agent Context with APM",
+      "url": "https://apm.isainative.dev/",
+      "description": "A hands-on guide to APM, the package manager for AI agent context. Declare the skills, prompts, instructions, agents, and MCP servers your project needs in one manifest, then install and restore the same context across every supported harness.",
+      "inLanguage": "en",
+      "bookFormat": "https://schema.org/EBook",
+      "numberOfPages": 12,
+      "genre": "Technology",
+      "author": {
+        "@id": "https://apm.isainative.dev/#author"
+      },
+      "publisher": {
+        "@id": "https://apm.isainative.dev/#author"
+      },
+      "image": "https://apm.isainative.dev/assets/og-cover.png",
+      "about": [
+        "Agent Package Manager",
+        "AI agents",
+        "dependency management",
+        "developer tooling",
+        "Model Context Protocol"
+      ],
+      "hasPart": [
+        {
+          "@type": "Chapter",
+          "position": 1,
+          "name": "The Context Problem",
+          "url": "https://apm.isainative.dev/chapters/the-context-problem.html",
+          "abstract": "Articulate why agent context needs a package manager and name the four properties APM is designed to protect."
+        },
+        {
+          "@type": "Chapter",
+          "position": 2,
+          "name": "Lessons from Package Managers",
+          "url": "https://apm.isainative.dev/chapters/lessons-from-package-managers.html",
+          "abstract": "Map package-manager concepts onto agent context so APM feels familiar rather than novel."
+        },
+        {
+          "@type": "Chapter",
+          "position": 3,
+          "name": "Primitives \u0026 Harnesses",
+          "url": "https://apm.isainative.dev/chapters/primitives-and-harnesses.html",
+          "abstract": "Know the vocabulary of what APM manages and how those primitives relate to agent harnesses."
+        },
+        {
+          "@type": "Chapter",
+          "position": 4,
+          "name": "The Manifest: apm.yml",
+          "url": "https://apm.isainative.dev/chapters/the-manifest-apm-yml.html",
+          "abstract": "Author a valid apm.yml that declares Meridian's first shared agent-context dependencies."
+        },
+        {
+          "@type": "Chapter",
+          "position": 5,
+          "name": "Install \u0026 Restore",
+          "url": "https://apm.isainative.dev/chapters/install-and-restore.html",
+          "abstract": "Install and restore a project's agent context with the daily APM consumer loop."
+        },
+        {
+          "@type": "Chapter",
+          "position": 6,
+          "name": "The Lockfile \u0026 Reproducibility",
+          "url": "https://apm.isainative.dev/chapters/the-lockfile-and-reproducibility.html",
+          "abstract": "Reproduce an APM setup exactly and explain how the lockfile supports that guarantee."
+        },
+        {
+          "@type": "Chapter",
+          "position": 7,
+          "name": "Lifecycle",
+          "url": "https://apm.isainative.dev/chapters/lifecycle.html",
+          "abstract": "Keep APM dependencies current while detecting drift and risk deliberately."
+        },
+        {
+          "@type": "Chapter",
+          "position": 8,
+          "name": "Security by Default",
+          "url": "https://apm.isainative.dev/chapters/security-by-default.html",
+          "abstract": "Understand and rely on APM's install-time security checks without confusing them with runtime sandboxing."
+        },
+        {
+          "@type": "Chapter",
+          "position": 9,
+          "name": "Governance \u0026 Policy",
+          "url": "https://apm.isainative.dev/chapters/governance-and-policy.html",
+          "abstract": "Write and pilot an apm-policy.yml that enforces agent-package rules at install time."
+        },
+        {
+          "@type": "Chapter",
+          "position": 10,
+          "name": "Becoming a Producer",
+          "url": "https://apm.isainative.dev/chapters/becoming-a-producer.html",
+          "abstract": "Package and publish reusable APM primitives so other teams can consume them through the normal install loop."
+        },
+        {
+          "@type": "Chapter",
+          "position": 11,
+          "name": "Enterprise at Fleet Scale",
+          "url": "https://apm.isainative.dev/chapters/enterprise-at-fleet-scale.html",
+          "abstract": "Gate and govern APM usage across an organization without turning developer setup into a bottleneck."
+        },
+        {
+          "@type": "Chapter",
+          "position": 12,
+          "name": "The Landscape \u0026 What's Next",
+          "url": "https://apm.isainative.dev/chapters/the-landscape-and-whats-next.html",
+          "abstract": "Place APM in the market and standards landscape, then decide what to adopt, watch, or build around."
+        }
+      ]
+    }
+  ]
+}
+  </script>
 </head>
 <body>
   <a class="skip-link" href="#main-content">Skip to main content</a>

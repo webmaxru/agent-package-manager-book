@@ -1,8 +1,11 @@
 """Generate the static Agent Package Manager book site from content/toc.yml."""
 from __future__ import annotations
 
+import datetime
 import html
+import json
 import re
+import shutil
 from pathlib import Path
 from typing import Any
 
@@ -25,6 +28,23 @@ BOOK_INTRO = (
     "prompts, instructions, agents, and MCP servers your project needs in one manifest, then "
     "install and restore the same context across every supported harness."
 )
+
+# Deployment + SEO identity. The site is published to a custom domain at the
+# root, so canonical / Open Graph / JSON-LD URLs are absolute against SITE_URL
+# (crawlers and social scrapers require absolute URLs).
+SITE_URL = "https://apm.isainative.dev"
+BOOK_AUTHOR = "Maxim Salnikov"
+AUTHOR_URL = "https://www.linkedin.com/in/webmaxru/"
+REPO_URL = "https://github.com/webmaxru/agent-package-manager-book"
+APM_DOCS_URL = "https://microsoft.github.io/apm/"
+LOCALE = "en_US"
+OG_IMAGE_PATH = "assets/og-cover.png"
+OG_IMAGE_ALT = "The Missing Package Manager \u2014 Managing AI Agent Context with APM"
+OG_IMAGE_W = 1200
+OG_IMAGE_H = 630
+THEME_LIGHT = "#F6F7FB"
+THEME_DARK = "#10141F"
+THEME_INDIGO = "#5A54F0"
 
 
 def esc(value: Any) -> str:
@@ -71,18 +91,83 @@ def load_fragment(slug: str) -> dict[str, str]:
     return slots
 
 
-def root_head(title: str, description: str, prefix: str = "") -> str:
+def abs_url(path: str = "") -> str:
+    """Absolute URL for a site-relative path.
+
+    Canonical / Open Graph / JSON-LD must be absolute, and the site is served at
+    the domain root, so a bare join against SITE_URL is correct.
+    """
+    path = path.lstrip("/")
+    return f"{SITE_URL}/{path}" if path else f"{SITE_URL}/"
+
+
+def json_ld(data: Any) -> str:
+    """Serialize a schema.org object into a safe application/ld+json script."""
+    payload = json.dumps(data, ensure_ascii=False, indent=2)
+    # Neutralize characters that could break out of the <script> element.
+    payload = payload.replace("<", "\\u003c").replace(">", "\\u003e").replace("&", "\\u0026")
+    return '<script type="application/ld+json">\n' + payload + "\n  </script>"
+
+
+def social_meta(full_title: str, description: str, path: str, og_type: str) -> str:
+    """Canonical URL, robots directives, Open Graph, and Twitter Card tags."""
+    canonical = abs_url(path)
+    og_image = abs_url(OG_IMAGE_PATH)
+    return f"""  <link rel=\"canonical\" href=\"{esc(canonical)}\">
+  <meta name=\"robots\" content=\"index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1\">
+  <meta name=\"googlebot\" content=\"index, follow\">
+  <meta name=\"author\" content=\"{esc(BOOK_AUTHOR)}\">
+  <meta name=\"theme-color\" content=\"{THEME_LIGHT}\" media=\"(prefers-color-scheme: light)\">
+  <meta name=\"theme-color\" content=\"{THEME_DARK}\" media=\"(prefers-color-scheme: dark)\">
+  <meta property=\"og:type\" content=\"{esc(og_type)}\">
+  <meta property=\"og:site_name\" content=\"{esc(BOOK_TITLE)}\">
+  <meta property=\"og:locale\" content=\"{LOCALE}\">
+  <meta property=\"og:title\" content=\"{esc(full_title)}\">
+  <meta property=\"og:description\" content=\"{esc(description)}\">
+  <meta property=\"og:url\" content=\"{esc(canonical)}\">
+  <meta property=\"og:image\" content=\"{esc(og_image)}\">
+  <meta property=\"og:image:type\" content=\"image/png\">
+  <meta property=\"og:image:width\" content=\"{OG_IMAGE_W}\">
+  <meta property=\"og:image:height\" content=\"{OG_IMAGE_H}\">
+  <meta property=\"og:image:alt\" content=\"{esc(OG_IMAGE_ALT)}\">
+  <meta name=\"twitter:card\" content=\"summary_large_image\">
+  <meta name=\"twitter:title\" content=\"{esc(full_title)}\">
+  <meta name=\"twitter:description\" content=\"{esc(description)}\">
+  <meta name=\"twitter:image\" content=\"{esc(og_image)}\">
+  <meta name=\"twitter:image:alt\" content=\"{esc(OG_IMAGE_ALT)}\">"""
+
+
+def icon_links(prefix: str) -> str:
+    """Favicon, Apple touch icon, and web app manifest links (prefix-relative)."""
+    return f"""  <link rel=\"icon\" href=\"{prefix}favicon.ico\" sizes=\"32x32\">
+  <link rel=\"icon\" href=\"{prefix}favicon.svg\" type=\"image/svg+xml\">
+  <link rel=\"apple-touch-icon\" href=\"{prefix}apple-touch-icon.png\">
+  <link rel=\"manifest\" href=\"{prefix}site.webmanifest\">"""
+
+
+def root_head(
+    title: str,
+    description: str,
+    prefix: str = "",
+    path: str = "",
+    og_type: str = "website",
+    jsonld: str = "",
+) -> str:
+    full_title = f"{BOOK_TITLE} \u2014 {BOOK_SUBTITLE}" if path == "" else f"{title} | {BOOK_TITLE}"
+    jsonld_block = f"\n  {jsonld}" if jsonld else ""
     return f"""<meta charset=\"utf-8\">
   <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">
   <meta name=\"description\" content=\"{esc(description)}\">
-  <title>{esc(title)} | {esc(BOOK_TITLE)}</title>
+  <title>{esc(full_title)}</title>
+{social_meta(full_title, description, path, og_type)}
+{icon_links(prefix)}
   <link rel=\"preconnect\" href=\"https://fonts.googleapis.com\">
   <link rel=\"preconnect\" href=\"https://fonts.gstatic.com\" crossorigin>
   <link rel=\"preconnect\" href=\"https://cdnjs.cloudflare.com\">
   <link rel=\"stylesheet\" href=\"https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700;12..96,800&family=IBM+Plex+Mono:ital,wght@0,400;0,500;0,600;1,400&family=Literata:ital,opsz,wght@0,7..72,400;0,7..72,500;0,7..72,600;1,7..72,400&display=swap\">
   <link rel=\"stylesheet\" href=\"{prefix}assets/style.css\">
   <script defer src=\"https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js\" crossorigin=\"anonymous\" referrerpolicy=\"no-referrer\"></script>
-  <script defer src=\"{prefix}assets/app.js\"></script>"""
+  <script defer src=\"{prefix}assets/app.js\"></script>{jsonld_block}"""
 
 
 def chapter_url(chapter: dict[str, Any], prefix: str = "chapters/") -> str:
@@ -236,7 +321,7 @@ def render_index(chapters: list[dict[str, Any]]) -> str:
     return f'''<!doctype html>
 <html lang="en">
 <head>
-  {root_head("Home", BOOK_INTRO)}
+  {root_head("Home", BOOK_INTRO, path="", og_type="website", jsonld=index_jsonld(chapters))}
 </head>
 <body>
   <a class="skip-link" href="#main-content">Skip to main content</a>
@@ -379,7 +464,7 @@ def render_chapter(chapters: list[dict[str, Any]], index: int) -> str:
     return f'''<!doctype html>
 <html lang="en">
 <head>
-  {root_head(chapter["title"], chapter["objective"], "../")}
+  {root_head(chapter["title"], chapter["objective"], "../", path=chapter_url(chapter), og_type="article", jsonld=chapter_jsonld(chapters, index))}
 </head>
 <body class="chapter-page">
   <a class="skip-link" href="#main-content">Skip to main content</a>
@@ -434,6 +519,224 @@ def render_chapter(chapters: list[dict[str, Any]], index: int) -> str:
 '''
 
 
+def index_jsonld(chapters: list[dict[str, Any]]) -> str:
+    """schema.org graph for the home page: WebSite + Person + Book (w/ chapters)."""
+    author = {"@id": abs_url() + "#author"}
+    has_part = [
+        {
+            "@type": "Chapter",
+            "position": int(chapter["number"]),
+            "name": chapter["title"],
+            "url": abs_url(chapter_url(chapter)),
+            "abstract": chapter.get("objective", ""),
+        }
+        for chapter in chapters
+    ]
+    graph = [
+        {
+            "@type": "WebSite",
+            "@id": abs_url() + "#website",
+            "url": abs_url(),
+            "name": BOOK_TITLE,
+            "alternateName": BOOK_SUBTITLE,
+            "description": BOOK_INTRO,
+            "inLanguage": "en",
+            "publisher": author,
+        },
+        {
+            "@type": "Person",
+            "@id": abs_url() + "#author",
+            "name": BOOK_AUTHOR,
+            "url": AUTHOR_URL,
+        },
+        {
+            "@type": "Book",
+            "@id": abs_url() + "#book",
+            "name": BOOK_TITLE,
+            "alternateName": BOOK_SUBTITLE,
+            "url": abs_url(),
+            "description": BOOK_INTRO,
+            "inLanguage": "en",
+            "bookFormat": "https://schema.org/EBook",
+            "numberOfPages": len(chapters),
+            "genre": "Technology",
+            "author": author,
+            "publisher": author,
+            "image": abs_url(OG_IMAGE_PATH),
+            "about": [
+                "Agent Package Manager",
+                "AI agents",
+                "dependency management",
+                "developer tooling",
+                "Model Context Protocol",
+            ],
+            "hasPart": has_part,
+        },
+    ]
+    return json_ld({"@context": "https://schema.org", "@graph": graph})
+
+
+def chapter_jsonld(chapters: list[dict[str, Any]], index: int) -> str:
+    """schema.org graph for a chapter page: TechArticle + BreadcrumbList."""
+    chapter = chapters[index]
+    page = abs_url(chapter_url(chapter))
+    graph = [
+        {
+            "@type": "TechArticle",
+            "@id": page + "#article",
+            "headline": chapter["title"],
+            "name": chapter["title"],
+            "description": chapter["objective"],
+            "url": page,
+            "image": abs_url(OG_IMAGE_PATH),
+            "inLanguage": "en",
+            "position": int(chapter["number"]),
+            "articleSection": f"Chapter {chapter['number']}",
+            "author": {"@type": "Person", "name": BOOK_AUTHOR, "url": AUTHOR_URL},
+            "isPartOf": {
+                "@type": "Book",
+                "@id": abs_url() + "#book",
+                "name": BOOK_TITLE,
+                "url": abs_url(),
+            },
+        },
+        {
+            "@type": "BreadcrumbList",
+            "itemListElement": [
+                {"@type": "ListItem", "position": 1, "name": "Home", "item": abs_url()},
+                {"@type": "ListItem", "position": 2, "name": chapter["title"], "item": page},
+            ],
+        },
+    ]
+    return json_ld({"@context": "https://schema.org", "@graph": graph})
+
+
+def render_robots() -> str:
+    """robots.txt — welcome search + AI/agent crawlers; point to the sitemap."""
+    ai_agents = [
+        "GPTBot", "OAI-SearchBot", "ChatGPT-User", "ClaudeBot", "Claude-User",
+        "anthropic-ai", "PerplexityBot", "Perplexity-User", "Google-Extended",
+        "Applebot-Extended", "CCBot", "cohere-ai", "Amazonbot", "meta-externalagent",
+    ]
+    agent_group = "\n".join(f"User-agent: {name}" for name in ai_agents)
+    return (
+        f"# robots.txt \u2014 {BOOK_TITLE}\n"
+        "# Search engines and AI/agent crawlers are welcome.\n"
+        "# LLM-friendly index: /llms.txt\n"
+        "\n"
+        "User-agent: *\n"
+        "Allow: /\n"
+        "\n"
+        "# AI / agent crawlers (explicitly welcomed)\n"
+        f"{agent_group}\n"
+        "Allow: /\n"
+        "\n"
+        f"Sitemap: {abs_url('sitemap.xml')}\n"
+    )
+
+
+def render_sitemap(chapters: list[dict[str, Any]]) -> str:
+    """XML sitemap for the home page, chapters, and the orchestration page."""
+    today = datetime.date.today().isoformat()
+    entries: list[tuple[str, str]] = [(abs_url(), "1.0")]
+    entries += [(abs_url(chapter_url(chapter)), "0.8") for chapter in chapters]
+    entries.append((abs_url("orchestration.html"), "0.5"))
+    rows = "\n".join(
+        "  <url>\n"
+        f"    <loc>{esc(loc)}</loc>\n"
+        f"    <lastmod>{today}</lastmod>\n"
+        "    <changefreq>monthly</changefreq>\n"
+        f"    <priority>{priority}</priority>\n"
+        "  </url>"
+        for loc, priority in entries
+    )
+    return (
+        '<?xml version="1.0" encoding="UTF-8"?>\n'
+        '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n'
+        f"{rows}\n"
+        "</urlset>\n"
+    )
+
+
+def render_manifest() -> str:
+    """Web app manifest (PWA installability + a named, themed install target)."""
+    data = {
+        "name": f"{BOOK_TITLE} \u2014 {BOOK_SUBTITLE}",
+        "short_name": "APM Book",
+        "description": BOOK_INTRO,
+        "id": "/",
+        "start_url": "/",
+        "scope": "/",
+        "display": "standalone",
+        "orientation": "portrait-primary",
+        "lang": "en",
+        "dir": "ltr",
+        "background_color": THEME_LIGHT,
+        "theme_color": THEME_INDIGO,
+        "categories": ["books", "education", "developer tools", "reference"],
+        "icons": [
+            {"src": "/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any"},
+            {"src": "/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any"},
+            {"src": "/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable"},
+        ],
+    }
+    return json.dumps(data, ensure_ascii=False, indent=2) + "\n"
+
+
+def render_llms(chapters: list[dict[str, Any]]) -> str:
+    """llms.txt (llmstxt.org): a concise, link-first index for LLMs / agents."""
+    lines = [
+        f"# {BOOK_TITLE}",
+        "",
+        f"> {BOOK_SUBTITLE}. {BOOK_INTRO}",
+        "",
+        "An interactive, multi-page HTML book. Chapters build in order, concept before "
+        "command. Every APM feature is introduced as the implementation of one of four "
+        "properties \u2014 portability, reproducibility, security, and governance \u2014 and every "
+        "example is verified against the real `apm` CLI.",
+        "",
+        "## Chapters",
+        "",
+    ]
+    lines += [
+        f"- [Chapter {chapter['number']}: {chapter['title']}]({abs_url(chapter_url(chapter))}): {chapter['objective']}"
+        for chapter in chapters
+    ]
+    lines += [
+        "",
+        "## About",
+        "",
+        f"- [Home]({abs_url()}): overview, reading paths, and the full table of contents.",
+        f"- [How the fleet built this]({abs_url('orchestration.html')}): the agent-orchestration pipeline that produced the book.",
+        "",
+        "## Reference",
+        "",
+        f"- [APM documentation]({APM_DOCS_URL}): official Agent Package Manager docs.",
+        "- [microsoft/apm](https://github.com/microsoft/apm): the APM source repository and samples.",
+        f"- [Book source]({REPO_URL}): source for this book.",
+        "",
+    ]
+    return "\n".join(lines)
+
+
+def copy_og_image() -> None:
+    """Copy the shared cover PNG into site/ so the Open Graph image resolves."""
+    src = ROOT / "assets" / "cover.png"
+    dst = SITE / "assets" / "og-cover.png"
+    dst.parent.mkdir(parents=True, exist_ok=True)
+    if src.exists():
+        shutil.copyfile(src, dst)
+
+
+def write_seo_files(chapters: list[dict[str, Any]]) -> None:
+    """Emit robots.txt, sitemap.xml, site.webmanifest, llms.txt; copy the OG image."""
+    (SITE / "robots.txt").write_text(render_robots(), encoding="utf-8")
+    (SITE / "sitemap.xml").write_text(render_sitemap(chapters), encoding="utf-8")
+    (SITE / "site.webmanifest").write_text(render_manifest(), encoding="utf-8")
+    (SITE / "llms.txt").write_text(render_llms(chapters), encoding="utf-8")
+    copy_og_image()
+
+
 def prune_stale_chapters(chapters: list[dict[str, Any]]) -> list[str]:
     """Delete site/chapters/*.html whose slug is not in the current TOC."""
     current_slugs = {chapter["slug"] for chapter in chapters}
@@ -454,8 +757,10 @@ def main() -> None:
     for index, _chapter in enumerate(chapters):
         output = CHAPTERS_DIR / f"{chapters[index]['slug']}.html"
         output.write_text(render_chapter(chapters, index), encoding="utf-8")
+    write_seo_files(chapters)
     removed = prune_stale_chapters(chapters)
     print(f"Generated {1 + len(chapters)} HTML files in {SITE}")
+    print("Wrote robots.txt, sitemap.xml, site.webmanifest, llms.txt; copied assets/og-cover.png")
     if removed:
         print(f"Removed {len(removed)} stale chapter file(s): {', '.join(removed)}")
 

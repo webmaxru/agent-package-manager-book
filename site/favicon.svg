@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64" role="img" aria-label="The Missing Package Manager">
+  <title>The Missing Package Manager</title>
+  <defs>
+    <linearGradient id="apm-mark" x1="6" y1="6" x2="58" y2="58" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#5A54F0"/>
+      <stop offset="0.38" stop-color="#0EA5A5"/>
+      <stop offset="0.70" stop-color="#E7B23D"/>
+      <stop offset="1" stop-color="#C2468A"/>
+    </linearGradient>
+  </defs>
+  <rect x="3" y="3" width="58" height="58" rx="15" fill="url(#apm-mark)"/>
+  <g fill="none" stroke="#FFFFFF" stroke-width="4.25" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M32 15 L49 24 V40 L32 49 L15 40 V24 Z"/>
+    <path d="M15 24 L32 33 L49 24"/>
+    <path d="M32 33 V49"/>
+  </g>
+</svg>

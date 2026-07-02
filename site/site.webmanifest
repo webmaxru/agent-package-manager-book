@@ -1,0 +1,40 @@
+{
+  "name": "The Missing Package Manager — Managing AI Agent Context with APM",
+  "short_name": "APM Book",
+  "description": "A hands-on guide to APM, the package manager for AI agent context. Declare the skills, prompts, instructions, agents, and MCP servers your project needs in one manifest, then install and restore the same context across every supported harness.",
+  "id": "/",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "lang": "en",
+  "dir": "ltr",
+  "background_color": "#F6F7FB",
+  "theme_color": "#5A54F0",
+  "categories": [
+    "books",
+    "education",
+    "developer tools",
+    "reference"
+  ],
+  "icons": [
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icon-maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
+}

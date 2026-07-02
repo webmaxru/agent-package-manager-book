@@ -1,0 +1,31 @@
+# The Missing Package Manager
+
+> Managing AI Agent Context with APM. A hands-on guide to APM, the package manager for AI agent context. Declare the skills, prompts, instructions, agents, and MCP servers your project needs in one manifest, then install and restore the same context across every supported harness.
+
+An interactive, multi-page HTML book. Chapters build in order, concept before command. Every APM feature is introduced as the implementation of one of four properties — portability, reproducibility, security, and governance — and every example is verified against the real `apm` CLI.
+
+## Chapters
+
+- [Chapter 1: The Context Problem](https://apm.isainative.dev/chapters/the-context-problem.html): Articulate why agent context needs a package manager and name the four properties APM is designed to protect.
+- [Chapter 2: Lessons from Package Managers](https://apm.isainative.dev/chapters/lessons-from-package-managers.html): Map package-manager concepts onto agent context so APM feels familiar rather than novel.
+- [Chapter 3: Primitives & Harnesses](https://apm.isainative.dev/chapters/primitives-and-harnesses.html): Know the vocabulary of what APM manages and how those primitives relate to agent harnesses.
+- [Chapter 4: The Manifest: apm.yml](https://apm.isainative.dev/chapters/the-manifest-apm-yml.html): Author a valid apm.yml that declares Meridian's first shared agent-context dependencies.
+- [Chapter 5: Install & Restore](https://apm.isainative.dev/chapters/install-and-restore.html): Install and restore a project's agent context with the daily APM consumer loop.
+- [Chapter 6: The Lockfile & Reproducibility](https://apm.isainative.dev/chapters/the-lockfile-and-reproducibility.html): Reproduce an APM setup exactly and explain how the lockfile supports that guarantee.
+- [Chapter 7: Lifecycle](https://apm.isainative.dev/chapters/lifecycle.html): Keep APM dependencies current while detecting drift and risk deliberately.
+- [Chapter 8: Security by Default](https://apm.isainative.dev/chapters/security-by-default.html): Understand and rely on APM's install-time security checks without confusing them with runtime sandboxing.
+- [Chapter 9: Governance & Policy](https://apm.isainative.dev/chapters/governance-and-policy.html): Write and pilot an apm-policy.yml that enforces agent-package rules at install time.
+- [Chapter 10: Becoming a Producer](https://apm.isainative.dev/chapters/becoming-a-producer.html): Package and publish reusable APM primitives so other teams can consume them through the normal install loop.
+- [Chapter 11: Enterprise at Fleet Scale](https://apm.isainative.dev/chapters/enterprise-at-fleet-scale.html): Gate and govern APM usage across an organization without turning developer setup into a bottleneck.
+- [Chapter 12: The Landscape & What's Next](https://apm.isainative.dev/chapters/the-landscape-and-whats-next.html): Place APM in the market and standards landscape, then decide what to adopt, watch, or build around.
+
+## About
+
+- [Home](https://apm.isainative.dev/): overview, reading paths, and the full table of contents.
+- [How the fleet built this](https://apm.isainative.dev/orchestration.html): the agent-orchestration pipeline that produced the book.
+
+## Reference
+
+- [APM documentation](https://microsoft.github.io/apm/): official Agent Package Manager docs.
+- [microsoft/apm](https://github.com/microsoft/apm): the APM source repository and samples.
+- [Book source](https://github.com/webmaxru/agent-package-manager-book): source for this book.
