@@ -19,6 +19,7 @@
   document.querySelectorAll('pre > code').forEach((codeBlock) => {
     const pre = codeBlock.parentElement;
     if (!pre || pre.parentElement.classList.contains('code-block')) return;
+    if (pre.closest('.manifest-artifact')) return;
 
     const wrapper = document.createElement('div');
     wrapper.className = 'code-block';
@@ -61,5 +62,18 @@
   if (window.hljs) {
     window.hljs.configure({ languages: ['yaml', 'bash', 'shell', 'json', 'text', 'plaintext', 'python'] });
     window.hljs.highlightAll();
+  }
+
+  // Index hero: reveal the manifest artifact's lines as if "resolving".
+  // The hidden/animated state lives behind @media (prefers-reduced-motion:
+  // no-preference) in CSS; adding the class only when motion is welcome keeps
+  // reduced-motion users (and no-JS) on the fully visible default.
+  const artifact = document.querySelector('.manifest-artifact');
+  if (
+    artifact &&
+    window.matchMedia &&
+    window.matchMedia('(prefers-reduced-motion: no-preference)').matches
+  ) {
+    artifact.classList.add('reveal-on');
   }
 })();

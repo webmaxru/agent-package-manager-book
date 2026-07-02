@@ -5,8 +5,10 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="description" content="A hands-on guide to APM, the package manager for AI agent context. Declare the skills, prompts, instructions, agents, and MCP servers your project needs in one manifest, then install and restore the same context across every supported harness.">
   <title>Home | The Missing Package Manager</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="preconnect" href="https://cdnjs.cloudflare.com">
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css" crossorigin="anonymous" referrerpolicy="no-referrer">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700;12..96,800&family=IBM+Plex+Mono:ital,wght@0,400;0,500;0,600;1,400&family=Literata:ital,opsz,wght@0,7..72,400;0,7..72,500;0,7..72,600;1,7..72,400&display=swap">
   <link rel="stylesheet" href="assets/style.css">
   <script defer src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
   <script defer src="assets/app.js"></script>
@@ -14,12 +16,25 @@
 <body>
   <a class="skip-link" href="#main-content">Skip to main content</a>
   <header class="site-header" role="banner">
-    <div class="container hero">
-      <p class="eyebrow">Interactive book</p>
-      <h1>The Missing Package Manager</h1>
-      <p class="subtitle">Managing AI Agent Context with APM</p>
-      <p class="lead">A hands-on guide to APM, the package manager for AI agent context. Declare the skills, prompts, instructions, agents, and MCP servers your project needs in one manifest, then install and restore the same context across every supported harness.</p>
-      <p class="tagline">Portable by manifest · secure by default · governed by policy.</p>
+    <div class="container">
+      <div class="hero">
+        <div class="hero-copy">
+          <p class="eyebrow">The Missing Package Manager</p>
+          <h1 class="hero-title">Agent context is a dependency. Manage it like one.</h1>
+          <p class="hero-sub">A hands-on guide to APM, the package manager for AI agent context. Declare the skills, prompts, instructions, agents, and MCP servers your project needs in one manifest, then install and restore the same context across every supported harness.</p>
+          <div class="hero-actions">
+            <a class="btn btn-primary" href="chapters/the-context-problem.html">Start reading</a>
+            <a class="btn btn-secondary" href="https://github.com/microsoft/apm" rel="noreferrer">View microsoft/apm</a>
+          </div>
+        </div>
+        <figure class="manifest-artifact" aria-label="An apm.yml manifest, resolved">
+          <figcaption class="artifact-bar">
+            <span class="artifact-file">apm.yml</span>
+            <span class="artifact-stamp">resolved</span>
+          </figcaption>
+          <pre class="artifact-code"><code class="nohighlight"><span class="reveal-line" style="--i:0"><span class="tok-c"># apm.yml — your agent’s context, declared</span></span><span class="reveal-line" style="--i:1"><span class="tok-k">name</span>: <span class="tok-n">meridian-checkout</span></span><span class="reveal-line" style="--i:2"><span class="tok-k">version</span>: <span class="tok-pin">1.4.0</span></span><span class="reveal-line" style="--i:3">&nbsp;</span><span class="reveal-line" style="--i:4"><span class="tok-k">dependencies</span>:</span><span class="reveal-line" style="--i:5">  <span class="tok-n">microsoft/apm-sample-package</span>: <span class="tok-pin">^1.2.0</span></span><span class="reveal-line" style="--i:6">  <span class="tok-n">meridian/review-prompts</span>: <span class="tok-pin">3.1.0</span></span><span class="reveal-line" style="--i:7">  <span class="tok-n">meridian/money-skill</span><span class="tok-pin">#main</span>: <span class="tok-pin">latest</span></span><span class="reveal-line" style="--i:8">&nbsp;</span><span class="reveal-line" style="--i:9"><span class="tok-k">targets</span>: [<span class="tok-t">copilot</span>, <span class="tok-t">claude</span>, <span class="tok-t">cursor</span>]</span></code></pre>
+        </figure>
+      </div>
     </div>
   </header>
 
@@ -30,208 +45,156 @@
       <p>Two reading paths share every page. Developers follow the body and the worked examples; engineering leaders can skim the <strong>For engineering leaders</strong> asides. A recurring <strong>Meridian</strong> marker tracks what one team does next, chapter by chapter.</p>
     </section>
 
-    <section aria-labelledby="chapters-heading">
-      <h2 id="chapters-heading">Chapters</h2>
-      <div class="chapter-grid">
-        <article class="chapter-card">
-          <p class="eyebrow">Chapter 1</p>
-          <h2><a href="chapters/the-context-problem.html">The Context Problem</a></h2>
-          <p>Articulate why agent context needs a package manager and name the four properties APM is designed to protect.</p>
-            <details class="component-list">
-              <summary>APM features</summary>
-              <ul>
-              <li>apm.yml</li>
-              <li>apm.lock.yaml</li>
-              <li>apm-policy.yml</li>
-              <li>apm install</li>
-              <li>supported harnesses</li>
-              </ul>
-            </details>
-        </article>
-        <article class="chapter-card">
-          <p class="eyebrow">Chapter 2</p>
-          <h2><a href="chapters/lessons-from-package-managers.html">Lessons from Package Managers</a></h2>
-          <p>Map package-manager concepts onto agent context so APM feels familiar rather than novel.</p>
-            <details class="component-list">
-              <summary>APM features</summary>
-              <ul>
-              <li>apm.yml</li>
-              <li>apm.lock.yaml</li>
-              <li>version pinning</li>
-              <li>git sources</li>
-              <li>apm update</li>
-              <li>apm outdated</li>
-              <li>apm audit</li>
-              </ul>
-            </details>
-        </article>
-        <article class="chapter-card">
-          <p class="eyebrow">Chapter 3</p>
-          <h2><a href="chapters/primitives-and-harnesses.html">Primitives &amp; Harnesses</a></h2>
-          <p>Know the vocabulary of what APM manages and how those primitives relate to agent harnesses.</p>
-            <details class="component-list">
-              <summary>APM features</summary>
-              <ul>
-              <li>skills</li>
-              <li>prompts</li>
-              <li>instructions</li>
-              <li>agents</li>
-              <li>plugins</li>
-              <li>MCP servers</li>
-              <li>AGENTS.md</li>
-              <li>SKILL.md</li>
-              <li>MCP</li>
-              </ul>
-            </details>
-        </article>
-        <article class="chapter-card">
-          <p class="eyebrow">Chapter 4</p>
-          <h2><a href="chapters/the-manifest-apm-yml.html">The Manifest: apm.yml</a></h2>
-          <p>Author a valid apm.yml that declares Meridian&#x27;s first shared agent-context dependencies.</p>
-            <details class="component-list">
-              <summary>APM features</summary>
-              <ul>
-              <li>apm.yml</li>
-              <li>dependencies</li>
-              <li>git sources</li>
-              <li>version pinning</li>
-              <li>scripts</li>
-              <li>harness targets</li>
-              </ul>
-            </details>
-        </article>
-        <article class="chapter-card">
-          <p class="eyebrow">Chapter 5</p>
-          <h2><a href="chapters/install-and-restore.html">Install &amp; Restore</a></h2>
-          <p>Install and restore a project&#x27;s agent context with the daily APM consumer loop.</p>
-            <details class="component-list">
-              <summary>APM features</summary>
-              <ul>
-              <li>apm init</li>
-              <li>apm install &lt;pkg&gt;</li>
-              <li>apm install</li>
-              <li>apm run &lt;script&gt;</li>
-              <li>harness targets</li>
-              </ul>
-            </details>
-        </article>
-        <article class="chapter-card">
-          <p class="eyebrow">Chapter 6</p>
-          <h2><a href="chapters/the-lockfile-and-reproducibility.html">The Lockfile &amp; Reproducibility</a></h2>
-          <p>Reproduce an APM setup exactly and explain how the lockfile supports that guarantee.</p>
-            <details class="component-list">
-              <summary>APM features</summary>
-              <ul>
-              <li>apm.lock.yaml</li>
-              <li>exact versions</li>
-              <li>content hashes</li>
-              <li>byte-for-byte restore</li>
-              <li>apm install</li>
-              </ul>
-            </details>
-        </article>
-        <article class="chapter-card">
-          <p class="eyebrow">Chapter 7</p>
-          <h2><a href="chapters/lifecycle.html">Lifecycle</a></h2>
-          <p>Keep APM dependencies current while detecting drift and risk deliberately.</p>
-            <details class="component-list">
-              <summary>APM features</summary>
-              <ul>
-              <li>apm outdated</li>
-              <li>apm update</li>
-              <li>apm audit</li>
-              <li>apm.yml</li>
-              <li>apm.lock.yaml</li>
-              </ul>
-            </details>
-        </article>
-        <article class="chapter-card">
-          <p class="eyebrow">Chapter 8</p>
-          <h2><a href="chapters/security-by-default.html">Security by Default</a></h2>
-          <p>Understand and rely on APM&#x27;s install-time security checks without confusing them with runtime sandboxing.</p>
-            <details class="component-list">
-              <summary>APM features</summary>
-              <ul>
-              <li>hidden-Unicode scanning</li>
-              <li>content-hash pinning</li>
-              <li>transitive MCP blocking</li>
-              <li>apm install</li>
-              <li>apm.lock.yaml</li>
-              <li>apm-policy.yml</li>
-              </ul>
-            </details>
-        </article>
-        <article class="chapter-card">
-          <p class="eyebrow">Chapter 9</p>
-          <h2><a href="chapters/governance-and-policy.html">Governance &amp; Policy</a></h2>
-          <p>Write and pilot an apm-policy.yml that enforces agent-package rules at install time.</p>
-            <details class="component-list">
-              <summary>APM features</summary>
-              <ul>
-              <li>apm-policy.yml</li>
-              <li>install-time enforcement</li>
-              <li>transitive MCP governance</li>
-              <li>tighten-only inheritance</li>
-              <li>warn mode</li>
-              <li>block mode</li>
-              </ul>
-            </details>
-        </article>
-        <article class="chapter-card">
-          <p class="eyebrow">Chapter 10</p>
-          <h2><a href="chapters/becoming-a-producer.html">Becoming a Producer</a></h2>
-          <p>Package and publish reusable APM primitives so other teams can consume them through the normal install loop.</p>
-            <details class="component-list">
-              <summary>APM features</summary>
-              <ul>
-              <li>producer package shape</li>
-              <li>skills</li>
-              <li>prompts</li>
-              <li>plugins</li>
-              <li>apm pack</li>
-              <li>apm plugin init</li>
-              <li>apm marketplace init</li>
-              <li>apm marketplace add</li>
-              </ul>
-            </details>
-        </article>
-        <article class="chapter-card">
-          <p class="eyebrow">Chapter 11</p>
-          <h2><a href="chapters/enterprise-at-fleet-scale.html">Enterprise at Fleet Scale</a></h2>
-          <p>Gate and govern APM usage across an organization without turning developer setup into a bottleneck.</p>
-            <details class="component-list">
-              <summary>APM features</summary>
-              <ul>
-              <li>apm audit --ci</li>
-              <li>CI gating</li>
-              <li>registry proxy</li>
-              <li>air-gapped environments</li>
-              <li>adoption playbook</li>
-              <li>apm-policy.yml</li>
-              <li>microsoft/apm-action</li>
-              </ul>
-            </details>
-        </article>
-        <article class="chapter-card">
-          <p class="eyebrow">Chapter 12</p>
-          <h2><a href="chapters/the-landscape-and-whats-next.html">The Landscape &amp; What&#x27;s Next</a></h2>
-          <p>Place APM in the market and standards landscape, then decide what to adopt, watch, or build around.</p>
-            <details class="component-list">
-              <summary>APM features</summary>
-              <ul>
-              <li>OpenAPM v0.1</li>
-              <li>SKILL.md</li>
-              <li>AGENTS.md</li>
-              <li>MCP</li>
-              <li>supported harnesses</li>
-              <li>git-based distribution</li>
-              <li>policy model</li>
-              <li>registry roadmap</li>
-              </ul>
-            </details>
-        </article>
-      </div>
-    </section>
+    <div class="parts-intro">
+      <p class="eyebrow">The reading path</p>
+      <h2>Twelve chapters, six parts</h2>
+      <p>Chapters resolve in order &mdash; each one depends on the ones before it, like a dependency graph. Read straight through, or jump to the part you need.</p>
+    </div>
+
+        <section class="part" aria-labelledby="part-i">
+          <header class="part-head">
+            <span class="part-roman">Part I</span>
+            <h2 class="part-title" id="part-i">Why context needs a manifest</h2>
+          </header>
+          <ol class="dep-list">
+            <li class="dep-entry">
+              <span class="dep-pin"><span class="pin-tag pin-tag--lg">ch01</span></span>
+              <div class="dep-body">
+                <h3 class="dep-title"><a href="chapters/the-context-problem.html">The Context Problem</a></h3>
+                <p class="dep-objective">Articulate why agent context needs a package manager and name the four properties APM is designed to protect.</p>
+                <ul class="field-tags"><li>apm.yml</li><li>apm.lock.yaml</li><li>apm-policy.yml</li><li>apm install</li><li>supported harnesses</li></ul>
+              </div>
+            </li>
+            <li class="dep-entry">
+              <span class="dep-pin"><span class="pin-tag pin-tag--lg">ch02</span></span>
+              <div class="dep-body">
+                <h3 class="dep-title"><a href="chapters/lessons-from-package-managers.html">Lessons from Package Managers</a></h3>
+                <p class="dep-objective">Map package-manager concepts onto agent context so APM feels familiar rather than novel.</p>
+                <ul class="field-tags"><li>apm.yml</li><li>apm.lock.yaml</li><li>version pinning</li><li>git sources</li><li>apm update</li><li>apm outdated</li><li>apm audit</li></ul>
+              </div>
+            </li>
+            <li class="dep-entry">
+              <span class="dep-pin"><span class="pin-tag pin-tag--lg">ch03</span></span>
+              <div class="dep-body">
+                <h3 class="dep-title"><a href="chapters/primitives-and-harnesses.html">Primitives &amp; Harnesses</a></h3>
+                <p class="dep-objective">Know the vocabulary of what APM manages and how those primitives relate to agent harnesses.</p>
+                <ul class="field-tags"><li>skills</li><li>prompts</li><li>instructions</li><li>agents</li><li>plugins</li><li>MCP servers</li><li>AGENTS.md</li><li>SKILL.md</li><li>MCP</li></ul>
+              </div>
+            </li>
+          </ol>
+        </section>
+        <section class="part" aria-labelledby="part-ii">
+          <header class="part-head">
+            <span class="part-roman">Part II</span>
+            <h2 class="part-title" id="part-ii">Portable by manifest</h2>
+          </header>
+          <ol class="dep-list">
+            <li class="dep-entry">
+              <span class="dep-pin"><span class="pin-tag pin-tag--lg">ch04</span></span>
+              <div class="dep-body">
+                <h3 class="dep-title"><a href="chapters/the-manifest-apm-yml.html">The Manifest: apm.yml</a></h3>
+                <p class="dep-objective">Author a valid apm.yml that declares Meridian&#x27;s first shared agent-context dependencies.</p>
+                <ul class="field-tags"><li>apm.yml</li><li>dependencies</li><li>git sources</li><li>version pinning</li><li>scripts</li><li>harness targets</li></ul>
+              </div>
+            </li>
+            <li class="dep-entry">
+              <span class="dep-pin"><span class="pin-tag pin-tag--lg">ch05</span></span>
+              <div class="dep-body">
+                <h3 class="dep-title"><a href="chapters/install-and-restore.html">Install &amp; Restore</a></h3>
+                <p class="dep-objective">Install and restore a project&#x27;s agent context with the daily APM consumer loop.</p>
+                <ul class="field-tags"><li>apm init</li><li>apm install &lt;pkg&gt;</li><li>apm install</li><li>apm run &lt;script&gt;</li><li>harness targets</li></ul>
+              </div>
+            </li>
+          </ol>
+        </section>
+        <section class="part" aria-labelledby="part-iii">
+          <header class="part-head">
+            <span class="part-roman">Part III</span>
+            <h2 class="part-title" id="part-iii">Reproducible by lockfile</h2>
+          </header>
+          <ol class="dep-list">
+            <li class="dep-entry">
+              <span class="dep-pin"><span class="pin-tag pin-tag--lg">ch06</span></span>
+              <div class="dep-body">
+                <h3 class="dep-title"><a href="chapters/the-lockfile-and-reproducibility.html">The Lockfile &amp; Reproducibility</a></h3>
+                <p class="dep-objective">Reproduce an APM setup exactly and explain how the lockfile supports that guarantee.</p>
+                <ul class="field-tags"><li>apm.lock.yaml</li><li>exact versions</li><li>content hashes</li><li>byte-for-byte restore</li><li>apm install</li></ul>
+              </div>
+            </li>
+            <li class="dep-entry">
+              <span class="dep-pin"><span class="pin-tag pin-tag--lg">ch07</span></span>
+              <div class="dep-body">
+                <h3 class="dep-title"><a href="chapters/lifecycle.html">Lifecycle</a></h3>
+                <p class="dep-objective">Keep APM dependencies current while detecting drift and risk deliberately.</p>
+                <ul class="field-tags"><li>apm outdated</li><li>apm update</li><li>apm audit</li><li>apm.yml</li><li>apm.lock.yaml</li></ul>
+              </div>
+            </li>
+          </ol>
+        </section>
+        <section class="part" aria-labelledby="part-iv">
+          <header class="part-head">
+            <span class="part-roman">Part IV</span>
+            <h2 class="part-title" id="part-iv">Secure &amp; governed</h2>
+          </header>
+          <ol class="dep-list">
+            <li class="dep-entry">
+              <span class="dep-pin"><span class="pin-tag pin-tag--lg">ch08</span></span>
+              <div class="dep-body">
+                <h3 class="dep-title"><a href="chapters/security-by-default.html">Security by Default</a></h3>
+                <p class="dep-objective">Understand and rely on APM&#x27;s install-time security checks without confusing them with runtime sandboxing.</p>
+                <ul class="field-tags"><li>hidden-Unicode scanning</li><li>content-hash pinning</li><li>transitive MCP blocking</li><li>apm install</li><li>apm.lock.yaml</li><li>apm-policy.yml</li></ul>
+              </div>
+            </li>
+            <li class="dep-entry">
+              <span class="dep-pin"><span class="pin-tag pin-tag--lg">ch09</span></span>
+              <div class="dep-body">
+                <h3 class="dep-title"><a href="chapters/governance-and-policy.html">Governance &amp; Policy</a></h3>
+                <p class="dep-objective">Write and pilot an apm-policy.yml that enforces agent-package rules at install time.</p>
+                <ul class="field-tags"><li>apm-policy.yml</li><li>install-time enforcement</li><li>transitive MCP governance</li><li>tighten-only inheritance</li><li>warn mode</li><li>block mode</li></ul>
+              </div>
+            </li>
+          </ol>
+        </section>
+        <section class="part" aria-labelledby="part-v">
+          <header class="part-head">
+            <span class="part-roman">Part V</span>
+            <h2 class="part-title" id="part-v">Producing &amp; sharing</h2>
+          </header>
+          <ol class="dep-list">
+            <li class="dep-entry">
+              <span class="dep-pin"><span class="pin-tag pin-tag--lg">ch10</span></span>
+              <div class="dep-body">
+                <h3 class="dep-title"><a href="chapters/becoming-a-producer.html">Becoming a Producer</a></h3>
+                <p class="dep-objective">Package and publish reusable APM primitives so other teams can consume them through the normal install loop.</p>
+                <ul class="field-tags"><li>producer package shape</li><li>skills</li><li>prompts</li><li>plugins</li><li>apm pack</li><li>apm plugin init</li><li>apm marketplace init</li><li>apm marketplace add</li></ul>
+              </div>
+            </li>
+          </ol>
+        </section>
+        <section class="part" aria-labelledby="part-vi">
+          <header class="part-head">
+            <span class="part-roman">Part VI</span>
+            <h2 class="part-title" id="part-vi">At scale &amp; ahead</h2>
+          </header>
+          <ol class="dep-list">
+            <li class="dep-entry">
+              <span class="dep-pin"><span class="pin-tag pin-tag--lg">ch11</span></span>
+              <div class="dep-body">
+                <h3 class="dep-title"><a href="chapters/enterprise-at-fleet-scale.html">Enterprise at Fleet Scale</a></h3>
+                <p class="dep-objective">Gate and govern APM usage across an organization without turning developer setup into a bottleneck.</p>
+                <ul class="field-tags"><li>apm audit --ci</li><li>CI gating</li><li>registry proxy</li><li>air-gapped environments</li><li>adoption playbook</li><li>apm-policy.yml</li><li>microsoft/apm-action</li></ul>
+              </div>
+            </li>
+            <li class="dep-entry">
+              <span class="dep-pin"><span class="pin-tag pin-tag--lg">ch12</span></span>
+              <div class="dep-body">
+                <h3 class="dep-title"><a href="chapters/the-landscape-and-whats-next.html">The Landscape &amp; What&#x27;s Next</a></h3>
+                <p class="dep-objective">Place APM in the market and standards landscape, then decide what to adopt, watch, or build around.</p>
+                <ul class="field-tags"><li>OpenAPM v0.1</li><li>SKILL.md</li><li>AGENTS.md</li><li>MCP</li><li>supported harnesses</li><li>git-based distribution</li><li>policy model</li><li>registry roadmap</li></ul>
+              </div>
+            </li>
+          </ol>
+        </section>
   </main>
 
   <footer class="site-footer">

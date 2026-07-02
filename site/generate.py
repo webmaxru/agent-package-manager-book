@@ -76,8 +76,10 @@ def root_head(title: str, description: str, prefix: str = "") -> str:
   <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">
   <meta name=\"description\" content=\"{esc(description)}\">
   <title>{esc(title)} | {esc(BOOK_TITLE)}</title>
+  <link rel=\"preconnect\" href=\"https://fonts.googleapis.com\">
+  <link rel=\"preconnect\" href=\"https://fonts.gstatic.com\" crossorigin>
   <link rel=\"preconnect\" href=\"https://cdnjs.cloudflare.com\">
-  <link rel=\"stylesheet\" href=\"https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css\" crossorigin=\"anonymous\" referrerpolicy=\"no-referrer\">
+  <link rel=\"stylesheet\" href=\"https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700;12..96,800&family=IBM+Plex+Mono:ital,wght@0,400;0,500;0,600;1,400&family=Literata:ital,opsz,wght@0,7..72,400;0,7..72,500;0,7..72,600;1,7..72,400&display=swap\">
   <link rel=\"stylesheet\" href=\"{prefix}assets/style.css\">
   <script defer src=\"https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js\" crossorigin=\"anonymous\" referrerpolicy=\"no-referrer\"></script>
   <script defer src=\"{prefix}assets/app.js\"></script>"""
@@ -88,46 +90,104 @@ def chapter_url(chapter: dict[str, Any], prefix: str = "chapters/") -> str:
 
 
 def build_chapter_nav(chapters: list[dict[str, Any]], current_id: str | None = None, prefix: str = "chapters/") -> str:
+    """Render the sidebar chapter list as a resolution spine.
+
+    Chapters are a real ordered ``depends_on`` sequence, so each item carries a
+    ``data-state`` (resolved for prior chapters, current, pending for later
+    ones) that the stylesheet threads into a vertical dependency path. The
+    chapter number renders as a monospace version-pin tag (``ch01``).
+    """
+    current_index = next((i for i, c in enumerate(chapters) if c["id"] == current_id), None)
     items: list[str] = []
-    for chapter in chapters:
-        is_current = chapter["id"] == current_id
+    for i, chapter in enumerate(chapters):
+        if current_index is None or i > current_index:
+            state = "pending"
+        elif i < current_index:
+            state = "resolved"
+        else:
+            state = "current"
+        is_current = state == "current"
         aria = ' aria-current="page"' if is_current else ""
         cls = ' class="is-current"' if is_current else ""
         href = chapter_url(chapter, prefix)
+        pin = f"ch{int(chapter['number']):02d}"
         items.append(
-            f'''          <li><a{cls}{aria} href="{esc(href)}"><span class="chapter-number">{esc(chapter["number"]):0>2}</span><span>{esc(chapter["title"])}</span></a></li>'''
+            f'          <li data-state="{state}"><a{cls}{aria} href="{esc(href)}">'
+            f'<span class="pin-tag">{esc(pin)}</span>'
+            f'<span class="chapter-name">{esc(chapter["title"])}</span></a></li>'
         )
     return "\n".join(items)
 
 
-def render_index(chapters: list[dict[str, Any]]) -> str:
-    cards: list[str] = []
-    for chapter in chapters:
-        features = chapter.get("apm_features") or []
-        feature_html = ""
-        if features:
-            feature_html = "\n".join(f"              <li>{esc(feature)}</li>" for feature in features)
-            feature_html = f'''
-            <details class="component-list">
-              <summary>APM features</summary>
-              <ul>
-{feature_html}
-              </ul>
-            </details>'''
-        cards.append(f'''        <article class="chapter-card">
-          <p class="eyebrow">Chapter {esc(chapter["number"])}</p>
-          <h2><a href="{esc(chapter_url(chapter))}">{esc(chapter["title"])}</a></h2>
-          <p>{esc(chapter["objective"])}</p>{feature_html}
-        </article>''')
+PARTS: list[tuple[str, str, tuple[int, ...]]] = [
+    ("I", "Why context needs a manifest", (1, 2, 3)),
+    ("II", "Portable by manifest", (4, 5)),
+    ("III", "Reproducible by lockfile", (6, 7)),
+    ("IV", "Secure & governed", (8, 9)),
+    ("V", "Producing & sharing", (10,)),
+    ("VI", "At scale & ahead", (11, 12)),
+]
 
-    if cards:
-        cards_html = chr(10).join(cards)
+
+def render_index(chapters: list[dict[str, Any]]) -> str:
+    start_href = chapter_url(chapters[0]) if chapters else "#"
+
+    # Hand-authored apm.yml artifact (dual-voice colored; hljs skips it via
+    # .nohighlight so the per-line reveal spans survive).
+    manifest_lines = [
+        '<span class="tok-c"># apm.yml \u2014 your agent\u2019s context, declared</span>',
+        '<span class="tok-k">name</span>: <span class="tok-n">meridian-checkout</span>',
+        '<span class="tok-k">version</span>: <span class="tok-pin">1.4.0</span>',
+        '&nbsp;',
+        '<span class="tok-k">dependencies</span>:',
+        '  <span class="tok-n">microsoft/apm-sample-package</span>: <span class="tok-pin">^1.2.0</span>',
+        '  <span class="tok-n">meridian/review-prompts</span>: <span class="tok-pin">3.1.0</span>',
+        '  <span class="tok-n">meridian/money-skill</span><span class="tok-pin">#main</span>: <span class="tok-pin">latest</span>',
+        '&nbsp;',
+        '<span class="tok-k">targets</span>: [<span class="tok-t">copilot</span>, <span class="tok-t">claude</span>, <span class="tok-t">cursor</span>]',
+    ]
+    artifact_body = "".join(
+        f'<span class="reveal-line" style="--i:{i}">{line}</span>' for i, line in enumerate(manifest_lines)
+    )
+
+    by_number = {int(chapter["number"]): chapter for chapter in chapters}
+    parts_html: list[str] = []
+    for roman, part_title, numbers in PARTS:
+        entries: list[str] = []
+        for number in numbers:
+            chapter = by_number.get(number)
+            if not chapter:
+                continue
+            features = chapter.get("apm_features") or []
+            tags = "".join(f"<li>{esc(feature)}</li>" for feature in features)
+            tags_html = f'\n                <ul class="field-tags">{tags}</ul>' if tags else ""
+            pin = f"ch{int(chapter['number']):02d}"
+            entries.append(f'''            <li class="dep-entry">
+              <span class="dep-pin"><span class="pin-tag pin-tag--lg">{esc(pin)}</span></span>
+              <div class="dep-body">
+                <h3 class="dep-title"><a href="{esc(chapter_url(chapter))}">{esc(chapter["title"])}</a></h3>
+                <p class="dep-objective">{esc(chapter["objective"])}</p>{tags_html}
+              </div>
+            </li>''')
+        if not entries:
+            continue
+        part_id = f"part-{roman.lower()}"
+        parts_html.append(f'''        <section class="part" aria-labelledby="{part_id}">
+          <header class="part-head">
+            <span class="part-roman">Part {esc(roman)}</span>
+            <h2 class="part-title" id="{part_id}">{esc(part_title)}</h2>
+          </header>
+          <ol class="dep-list">
+{chr(10).join(entries)}
+          </ol>
+        </section>''')
+
+    if parts_html:
+        parts_block = chr(10).join(parts_html)
     else:
-        cards_html = '''        <article class="chapter-card">
-          <p class="eyebrow">Coming soon</p>
-          <h2>Chapters are being authored</h2>
+        parts_block = '''        <section class="part">
           <p>The table of contents in <code>content/toc.yml</code> is currently empty. Once the book-architect populates it, chapters will appear here.</p>
-        </article>'''
+        </section>'''
 
     return f'''<!doctype html>
 <html lang="en">
@@ -137,12 +197,25 @@ def render_index(chapters: list[dict[str, Any]]) -> str:
 <body>
   <a class="skip-link" href="#main-content">Skip to main content</a>
   <header class="site-header" role="banner">
-    <div class="container hero">
-      <p class="eyebrow">Interactive book</p>
-      <h1>{esc(BOOK_TITLE)}</h1>
-      <p class="subtitle">{esc(BOOK_SUBTITLE)}</p>
-      <p class="lead">{esc(BOOK_INTRO)}</p>
-      <p class="tagline">{esc(BOOK_TAGLINE)}</p>
+    <div class="container">
+      <div class="hero">
+        <div class="hero-copy">
+          <p class="eyebrow">{esc(BOOK_TITLE)}</p>
+          <h1 class="hero-title">Agent context is a dependency. Manage it like one.</h1>
+          <p class="hero-sub">{esc(BOOK_INTRO)}</p>
+          <div class="hero-actions">
+            <a class="btn btn-primary" href="{esc(start_href)}">Start reading</a>
+            <a class="btn btn-secondary" href="https://github.com/microsoft/apm" rel="noreferrer">View microsoft/apm</a>
+          </div>
+        </div>
+        <figure class="manifest-artifact" aria-label="An apm.yml manifest, resolved">
+          <figcaption class="artifact-bar">
+            <span class="artifact-file">apm.yml</span>
+            <span class="artifact-stamp">resolved</span>
+          </figcaption>
+          <pre class="artifact-code"><code class="nohighlight">{artifact_body}</code></pre>
+        </figure>
+      </div>
     </div>
   </header>
 
@@ -153,12 +226,13 @@ def render_index(chapters: list[dict[str, Any]]) -> str:
       <p>Two reading paths share every page. Developers follow the body and the worked examples; engineering leaders can skim the <strong>For engineering leaders</strong> asides. A recurring <strong>Meridian</strong> marker tracks what one team does next, chapter by chapter.</p>
     </section>
 
-    <section aria-labelledby="chapters-heading">
-      <h2 id="chapters-heading">Chapters</h2>
-      <div class="chapter-grid">
-{cards_html}
-      </div>
-    </section>
+    <div class="parts-intro">
+      <p class="eyebrow">The reading path</p>
+      <h2>Twelve chapters, six parts</h2>
+      <p>Chapters resolve in order &mdash; each one depends on the ones before it, like a dependency graph. Read straight through, or jump to the part you need.</p>
+    </div>
+
+{parts_block}
   </main>
 
   <footer class="site-footer">
@@ -257,6 +331,7 @@ def render_chapter(chapters: list[dict[str, Any]], index: int) -> str:
     <aside id="chapter-sidebar" class="sidebar" aria-label="Book chapters">
       <div class="sidebar-inner">
         <a class="site-title" href="../index.html">{esc(BOOK_TITLE)}</a>
+        <p class="sidebar-tagline">A pinned guide to APM</p>
         <nav class="chapter-nav" aria-label="Chapter navigation">
           <ol>
 {build_chapter_nav(chapters, chapter["id"], "")}
