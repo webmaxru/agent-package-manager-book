@@ -295,7 +295,7 @@ def render_index(chapters: list[dict[str, Any]]) -> str:
 
   <footer class="site-footer">
     <div class="container">
-      <p>Generated from <code>content/toc.yml</code>. Content and presentation are intentionally separated.</p>
+      <p>By <a href="https://www.linkedin.com/in/webmaxru/" rel="noreferrer">Maxim Salnikov</a> &middot; <a href="https://github.com/webmaxru/agent-package-manager-book" rel="noreferrer">Source on GitHub</a></p>
     </div>
   </footer>
 </body>
@@ -425,7 +425,7 @@ def render_chapter(chapters: list[dict[str, Any]], index: int) -> str:
       </main>
 
       <footer class="site-footer chapter-footer">
-        <p>Generated from <code>content/toc.yml</code>. Replace only section content blocks when authoring.</p>
+        <p>By <a href="https://www.linkedin.com/in/webmaxru/" rel="noreferrer">Maxim Salnikov</a> &middot; <a href="https://github.com/webmaxru/agent-package-manager-book" rel="noreferrer">Source on GitHub</a></p>
       </footer>
     </div>
   </div>
