@@ -1,0 +1,9 @@
+# Chapter 9 — smallest VERIFIED block policy (guaranteed to fail on an unpinned dep).
+# Run against a project with an UNPINNED dep (e.g. microsoft/apm-sample-package#main):
+#   apm audit --ci --policy ./apm-policy.min-block.yml  =>  exit 1  (dependency-pinned-constraint fails)
+# Verified against apm v0.23.1.
+name: min-block
+version: "1.0.0"
+enforcement: block
+dependencies:
+  require_pinned_constraint: true     # same finding as min-warn, now fails the audit => exit 1

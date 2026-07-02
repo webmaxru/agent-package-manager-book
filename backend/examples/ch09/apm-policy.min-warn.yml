@@ -1,0 +1,9 @@
+# Chapter 9 — smallest VERIFIED warn policy (guaranteed green).
+# Run against a project with an UNPINNED dep (e.g. microsoft/apm-sample-package#main):
+#   apm audit --ci --policy ./apm-policy.min-warn.yml   =>  exit 0  (violation shown, not failing)
+# Verified against apm v0.23.1.
+name: min-warn
+version: "1.0.0"
+enforcement: warn
+dependencies:
+  require_pinned_constraint: true     # flags the bare-branch dep, but warn => exit 0

@@ -1,0 +1,46 @@
+# Chapter 9 — Governance & Policy · Meridian PILOT policy
+# ---------------------------------------------------------------------------
+# enforcement: warn  → every rule is CHECKED and reported, but the audit/install
+#                      still exits 0. This is the measurement phase (Concept 4).
+# Verified against apm v0.23.1 with:
+#   apm policy status --policy-source ./apm-policy.warn.yml   (outcome=found, parses)
+#   apm audit --ci --policy ./apm-policy.warn.yml             (warn → exit 0)
+#
+# CORRECTION vs the running-example spec: the running example used a TOP-LEVEL
+# `targets:` key. apm v0.23.1 SILENTLY IGNORES it (no error, no enforcement —
+# `apm policy status` reports compilation_targets_allowed = -1). The real key is
+# `compilation.target.allow`. Every OTHER field in the running example is correct.
+name: Meridian Checkout APM Policy
+version: "0.1.0"
+enforcement: warn                       # off | warn | block
+
+dependencies:
+  allow:                                # allow-list: only these sources (null = no opinion)
+    - microsoft/**
+    - github/awesome-copilot/**
+    - meridian-finance/**
+  deny:                                 # deny always beats allow
+    - sketchy-org/**
+  require:                              # every repo must declare these (supports #version pins)
+    - meridian-finance/meridian-standards#v0.1.0   # SKIPPED-needs-network (private pkg)
+  require_pinned_constraint: true       # ban unbounded refs (bare branch / wildcard / open range)
+
+mcp:
+  allow:
+    - io.github.github/github-mcp-server            # SKIPPED-needs-network (registry MCP)
+  deny:
+    - io.github.sketchy/sketchy-mcp
+  transport:
+    allow: [http, stdio]                # explicit list blocks sse + streamable-http
+  self_defined: warn                    # allow | warn | deny (inline MCPs declared in apm.yml)
+
+compilation:                            # CORRECTED — was top-level `targets:` (a silent no-op)
+  target:
+    allow: [copilot, claude, cursor]
+
+manifest:
+  required_fields: [name, version, description]
+  scripts: allow                        # allow | deny
+
+unmanaged_files:
+  action: warn                          # ignore | warn | deny

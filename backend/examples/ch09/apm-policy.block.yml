@@ -1,0 +1,44 @@
+# Chapter 9 — Governance & Policy · Meridian POST-PILOT policy
+# ---------------------------------------------------------------------------
+# enforcement: block → a violation aborts `apm install` (exit 1) AND fails
+#                      `apm audit --ci` (exit 1). Flip here only after the warn
+#                      phase shows zero (or documented) violations (Concept 4).
+# Verified against apm v0.23.1 with:
+#   apm policy status --policy-source ./apm-policy.block.yml   (outcome=found, parses)
+#   apm audit --ci --policy ./apm-policy.block.yml             (violation → exit 1)
+#
+# Same CORRECTION as the warn file: `compilation.target.allow`, NOT top-level `targets:`.
+name: Meridian Checkout APM Policy
+version: "1.0.0"
+enforcement: block                      # off | warn | block
+
+dependencies:
+  allow:
+    - microsoft/**
+    - github/awesome-copilot/**
+    - meridian-finance/**
+  deny:
+    - sketchy-org/**
+  require:
+    - meridian-finance/meridian-standards#v1.0.0   # SKIPPED-needs-network (private pkg)
+  require_pinned_constraint: true
+
+mcp:
+  allow:
+    - io.github.github/github-mcp-server            # SKIPPED-needs-network (registry MCP)
+  deny:
+    - io.github.sketchy/sketchy-mcp
+  transport:
+    allow: [http, stdio]
+  self_defined: deny                    # tightened from `warn` in the pilot
+
+compilation:                            # CORRECTED — was top-level `targets:` (a silent no-op)
+  target:
+    allow: [copilot, claude, cursor]
+
+manifest:
+  required_fields: [name, version, description]
+  scripts: allow
+
+unmanaged_files:
+  action: deny                          # tightened from `warn` in the pilot
