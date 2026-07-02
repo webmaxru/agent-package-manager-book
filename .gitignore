@@ -13,3 +13,6 @@ build/
 
 # Private research working notes (not part of the published book)
 .source-docs/
+
+# Design-skill working state (impeccable): live config, hook cache, critique logs
+.impeccable/

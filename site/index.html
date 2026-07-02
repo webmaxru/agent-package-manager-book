@@ -42,7 +42,19 @@
     <section class="intro-panel" aria-labelledby="start-heading">
       <h2 id="start-heading">How to read this book</h2>
       <p>Chapters build in order, concept before command. Every APM feature is introduced as the implementation of one of four properties &mdash; <span class="property property--portability">Portability</span> <span class="property property--reproducibility">Reproducibility</span> <span class="property property--security">Security</span> <span class="property property--governance">Governance</span>.</p>
-      <p>Two reading paths share every page. Developers follow the body and the worked examples; engineering leaders can skim the <strong>For engineering leaders</strong> asides. A recurring <strong>Meridian</strong> marker tracks what one team does next, chapter by chapter.</p>
+      <div class="reading-paths">
+        <div class="reading-path">
+          <p class="path-lane-label">For developers</p>
+          <p>Follow the body and the worked examples end to end.</p>
+          <a class="path-link" href="chapters/the-context-problem.html">Start reading</a>
+        </div>
+        <div class="reading-path reading-path--leader">
+          <p class="path-lane-label">For engineering leaders</p>
+          <p>Skim the <strong>For engineering leaders</strong> asides for the risk, ROI, onboarding, and governance story.</p>
+          <a class="path-link" href="chapters/the-context-problem.html">Start with Chapter 1</a>
+        </div>
+      </div>
+      <p class="reading-note">A recurring <strong>Meridian</strong> marker tracks what one team does next, chapter by chapter.</p>
     </section>
 
     <div class="parts-intro">
@@ -50,6 +62,65 @@
       <h2>Twelve chapters, six parts</h2>
       <p>Chapters resolve in order &mdash; each one depends on the ones before it, like a dependency graph. Read straight through, or jump to the part you need.</p>
     </div>
+
+      <nav class="resolution-path" aria-label="Jump to a part">
+        <ol class="spine-track">
+            <li class="spine-node">
+              <a class="spine-link" href="#part-i">
+                <span class="spine-dot" aria-hidden="true"></span>
+                <span class="spine-text">
+                  <span class="spine-meta"><span class="spine-part">Part I</span> <span class="spine-pins">ch01–03</span></span>
+                  <span class="spine-title">Why context needs a manifest</span>
+                </span>
+              </a>
+            </li>
+            <li class="spine-node">
+              <a class="spine-link" href="#part-ii">
+                <span class="spine-dot" aria-hidden="true"></span>
+                <span class="spine-text">
+                  <span class="spine-meta"><span class="spine-part">Part II</span> <span class="spine-pins">ch04–05</span></span>
+                  <span class="spine-title">Portable by manifest</span>
+                </span>
+              </a>
+            </li>
+            <li class="spine-node">
+              <a class="spine-link" href="#part-iii">
+                <span class="spine-dot" aria-hidden="true"></span>
+                <span class="spine-text">
+                  <span class="spine-meta"><span class="spine-part">Part III</span> <span class="spine-pins">ch06–07</span></span>
+                  <span class="spine-title">Reproducible by lockfile</span>
+                </span>
+              </a>
+            </li>
+            <li class="spine-node">
+              <a class="spine-link" href="#part-iv">
+                <span class="spine-dot" aria-hidden="true"></span>
+                <span class="spine-text">
+                  <span class="spine-meta"><span class="spine-part">Part IV</span> <span class="spine-pins">ch08–09</span></span>
+                  <span class="spine-title">Secure &amp; governed</span>
+                </span>
+              </a>
+            </li>
+            <li class="spine-node">
+              <a class="spine-link" href="#part-v">
+                <span class="spine-dot" aria-hidden="true"></span>
+                <span class="spine-text">
+                  <span class="spine-meta"><span class="spine-part">Part V</span> <span class="spine-pins">ch10</span></span>
+                  <span class="spine-title">Producing &amp; sharing</span>
+                </span>
+              </a>
+            </li>
+            <li class="spine-node">
+              <a class="spine-link" href="#part-vi">
+                <span class="spine-dot" aria-hidden="true"></span>
+                <span class="spine-text">
+                  <span class="spine-meta"><span class="spine-part">Part VI</span> <span class="spine-pins">ch11–12</span></span>
+                  <span class="spine-title">At scale &amp; ahead</span>
+                </span>
+              </a>
+            </li>
+        </ol>
+      </nav>
 
         <section class="part" aria-labelledby="part-i">
           <header class="part-head">
@@ -70,7 +141,7 @@
               <div class="dep-body">
                 <h3 class="dep-title"><a href="chapters/lessons-from-package-managers.html">Lessons from Package Managers</a></h3>
                 <p class="dep-objective">Map package-manager concepts onto agent context so APM feels familiar rather than novel.</p>
-                <ul class="field-tags"><li>apm.yml</li><li>apm.lock.yaml</li><li>version pinning</li><li>git sources</li><li>apm update</li><li>apm outdated</li><li>apm audit</li></ul>
+                <ul class="field-tags"><li>apm.yml</li><li>apm.lock.yaml</li><li>version pinning</li><li>git sources</li><li>apm update</li><li class="field-tags-more">+2 more</li></ul>
               </div>
             </li>
             <li class="dep-entry">
@@ -78,7 +149,7 @@
               <div class="dep-body">
                 <h3 class="dep-title"><a href="chapters/primitives-and-harnesses.html">Primitives &amp; Harnesses</a></h3>
                 <p class="dep-objective">Know the vocabulary of what APM manages and how those primitives relate to agent harnesses.</p>
-                <ul class="field-tags"><li>skills</li><li>prompts</li><li>instructions</li><li>agents</li><li>plugins</li><li>MCP servers</li><li>AGENTS.md</li><li>SKILL.md</li><li>MCP</li></ul>
+                <ul class="field-tags"><li>skills</li><li>prompts</li><li>instructions</li><li>agents</li><li>plugins</li><li class="field-tags-more">+4 more</li></ul>
               </div>
             </li>
           </ol>
@@ -166,7 +237,7 @@
               <div class="dep-body">
                 <h3 class="dep-title"><a href="chapters/becoming-a-producer.html">Becoming a Producer</a></h3>
                 <p class="dep-objective">Package and publish reusable APM primitives so other teams can consume them through the normal install loop.</p>
-                <ul class="field-tags"><li>producer package shape</li><li>skills</li><li>prompts</li><li>plugins</li><li>apm pack</li><li>apm plugin init</li><li>apm marketplace init</li><li>apm marketplace add</li></ul>
+                <ul class="field-tags"><li>producer package shape</li><li>skills</li><li>prompts</li><li>plugins</li><li>apm pack</li><li class="field-tags-more">+3 more</li></ul>
               </div>
             </li>
           </ol>
@@ -182,7 +253,7 @@
               <div class="dep-body">
                 <h3 class="dep-title"><a href="chapters/enterprise-at-fleet-scale.html">Enterprise at Fleet Scale</a></h3>
                 <p class="dep-objective">Gate and govern APM usage across an organization without turning developer setup into a bottleneck.</p>
-                <ul class="field-tags"><li>apm audit --ci</li><li>CI gating</li><li>registry proxy</li><li>air-gapped environments</li><li>adoption playbook</li><li>apm-policy.yml</li><li>microsoft/apm-action</li></ul>
+                <ul class="field-tags"><li>apm audit --ci</li><li>CI gating</li><li>registry proxy</li><li>air-gapped environments</li><li>adoption playbook</li><li class="field-tags-more">+2 more</li></ul>
               </div>
             </li>
             <li class="dep-entry">
@@ -190,7 +261,7 @@
               <div class="dep-body">
                 <h3 class="dep-title"><a href="chapters/the-landscape-and-whats-next.html">The Landscape &amp; What&#x27;s Next</a></h3>
                 <p class="dep-objective">Place APM in the market and standards landscape, then decide what to adopt, watch, or build around.</p>
-                <ul class="field-tags"><li>OpenAPM v0.1</li><li>SKILL.md</li><li>AGENTS.md</li><li>MCP</li><li>supported harnesses</li><li>git-based distribution</li><li>policy model</li><li>registry roadmap</li></ul>
+                <ul class="field-tags"><li>OpenAPM v0.1</li><li>SKILL.md</li><li>AGENTS.md</li><li>MCP</li><li>supported harnesses</li><li class="field-tags-more">+3 more</li></ul>
               </div>
             </li>
           </ol>
