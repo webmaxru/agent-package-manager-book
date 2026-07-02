@@ -1,56 +1,86 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630" role="img" aria-label="The Missing Package Manager — Managing AI Agent Context with APM. Interactive, open-source, free.">
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630" role="img" aria-label="The Missing Package Manager — Managing AI Agent Context with APM. By Maxim Salnikov (Microsoft). Interactive, open-source, free.">
   <defs>
-    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0" stop-color="#0a0f1e"/>
-      <stop offset="1" stop-color="#141f38"/>
+    <!-- Light hero wash: a faint indigo tint at the top fading to the page bg,
+         mirroring .site-header's linear-gradient(indigo 6%, bg). -->
+    <linearGradient id="wash" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#EDEDFA"/>
+      <stop offset="0.55" stop-color="#F6F7FB"/>
+      <stop offset="1" stop-color="#F6F7FB"/>
     </linearGradient>
-    <radialGradient id="glow" cx="0.16" cy="0.12" r="0.55">
-      <stop offset="0" stop-color="#3a63ff" stop-opacity="0.30"/>
-      <stop offset="1" stop-color="#3a63ff" stop-opacity="0"/>
+    <radialGradient id="glowIndigo" cx="0.06" cy="0.05" r="0.6">
+      <stop offset="0" stop-color="#5A54F0" stop-opacity="0.10"/>
+      <stop offset="1" stop-color="#5A54F0" stop-opacity="0"/>
     </radialGradient>
-    <radialGradient id="glow2" cx="0.96" cy="0.92" r="0.5">
-      <stop offset="0" stop-color="#8f6bff" stop-opacity="0.20"/>
-      <stop offset="1" stop-color="#8f6bff" stop-opacity="0"/>
+    <radialGradient id="glowMagenta" cx="0.98" cy="0.96" r="0.5">
+      <stop offset="0" stop-color="#C2468A" stop-opacity="0.07"/>
+      <stop offset="1" stop-color="#C2468A" stop-opacity="0"/>
     </radialGradient>
-    <linearGradient id="accent" x1="0" y1="0" x2="1" y2="0">
-      <stop offset="0" stop-color="#5b8cff"/>
-      <stop offset="1" stop-color="#9a7bff"/>
+    <!-- Four-property spectrum: portability · reproducibility · security · governance -->
+    <linearGradient id="spectrum" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#5A54F0"/>
+      <stop offset="0.34" stop-color="#0EA5A5"/>
+      <stop offset="0.67" stop-color="#B87613"/>
+      <stop offset="1" stop-color="#C2468A"/>
     </linearGradient>
+    <linearGradient id="indigoBar" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#5A54F0"/>
+      <stop offset="1" stop-color="#8B84FF"/>
+    </linearGradient>
+    <filter id="cardShadow" x="-20%" y="-20%" width="140%" height="150%">
+      <feDropShadow dx="0" dy="24" stdDeviation="26" flood-color="#171A2D" flood-opacity="0.20"/>
+    </filter>
   </defs>
 
-  <rect width="1200" height="630" fill="url(#bg)"/>
-  <rect width="1200" height="630" fill="url(#glow)"/>
-  <rect width="1200" height="630" fill="url(#glow2)"/>
-  <rect x="0" y="0" width="1200" height="6" fill="url(#accent)"/>
+  <!-- Page surface -->
+  <rect width="1200" height="630" fill="url(#wash)"/>
+  <rect width="1200" height="630" fill="url(#glowIndigo)"/>
+  <rect width="1200" height="630" fill="url(#glowMagenta)"/>
+  <!-- Top signature: the four-property spectrum -->
+  <rect x="0" y="0" width="1200" height="6" fill="url(#spectrum)"/>
 
-  <!-- Left column: title + messaging -->
-  <text x="80" y="120" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="21" font-weight="700" letter-spacing="3.5" fill="#8091b5">INTERACTIVE  ·  OPEN-SOURCE  ·  FREE</text>
+  <!-- ============================================ Left column: identity -->
+  <text x="80" y="118" font-family="'IBM Plex Mono', Consolas, monospace" font-size="19" font-weight="600" letter-spacing="4" fill="#5A6478">INTERACTIVE&#160;&#160;·&#160;&#160;OPEN-SOURCE&#160;&#160;·&#160;&#160;FREE</text>
 
-  <text x="76" y="212" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="72" font-weight="800" fill="#f3f6ff">The Missing</text>
-  <text x="76" y="296" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="72" font-weight="800" fill="#f3f6ff">Package Manager</text>
+  <text x="76" y="206" font-family="'Bricolage Grotesque', 'Segoe UI', system-ui, sans-serif" font-size="70" font-weight="800" letter-spacing="-2" fill="#171A22">The Missing</text>
+  <text x="76" y="288" font-family="'Bricolage Grotesque', 'Segoe UI', system-ui, sans-serif" font-size="70" font-weight="800" letter-spacing="-2" fill="#171A22">Package Manager</text>
 
-  <text x="80" y="352" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="29" font-weight="500" fill="#aeb9d8">Managing AI Agent Context with APM</text>
+  <text x="80" y="342" font-family="Literata, Georgia, 'Times New Roman', serif" font-size="27" font-weight="500" fill="#4A5468">Managing AI Agent Context with APM</text>
 
-  <text x="80" y="416" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="21" font-weight="600" fill="#8492b3"><tspan fill="#6f9bff">Portable</tspan> by manifest  ·  <tspan fill="#6f9bff">Secure</tspan> by default  ·  <tspan fill="#6f9bff">Governed</tspan> by policy</text>
+  <!-- Four-property line, each word in its property color -->
+  <text x="80" y="404" font-family="'IBM Plex Mono', Consolas, monospace" font-size="20" font-weight="600"><tspan fill="#4A43E0">Portable</tspan><tspan fill="#8A93A8">&#160;&#160;·&#160;&#160;</tspan><tspan fill="#0B8B8B">Reproducible</tspan><tspan fill="#8A93A8">&#160;&#160;·&#160;&#160;</tspan><tspan fill="#8F5A0C">Secure</tspan><tspan fill="#8A93A8">&#160;&#160;·&#160;&#160;</tspan><tspan fill="#B0417E">Governed</tspan></text>
 
-  <text x="80" y="452" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="19" font-weight="500" fill="#5f6f92">12 chapters · verified against the real apm CLI</text>
+  <text x="80" y="442" font-family="Literata, Georgia, 'Times New Roman', serif" font-size="18" font-weight="400" fill="#6B7488">12 chapters · verified against the real apm CLI</text>
 
-  <rect x="80" y="500" width="70" height="3" rx="1.5" fill="url(#accent)"/>
-  <text x="80" y="556" font-family="Consolas, 'SF Mono', Menlo, monospace" font-size="23" font-weight="600" fill="#7fa6ff">webmaxru.github.io/agent-package-manager-book</text>
+  <!-- Author -->
+  <text x="80" y="506" font-family="'Bricolage Grotesque', 'Segoe UI', system-ui, sans-serif" font-size="23" font-weight="700" fill="#171A22">Maxim Salnikov<tspan font-family="Literata, Georgia, serif" font-weight="400" fill="#5A6478" font-size="21">&#160;&#160;·&#160;&#160;Microsoft</tspan></text>
 
-  <!-- Right column: apm.yml manifest card -->
-  <rect x="742" y="150" width="392" height="340" rx="18" fill="#0d1526" stroke="#28344f" stroke-width="1.5"/>
-  <circle cx="776" cy="188" r="6" fill="#ff5f57"/>
-  <circle cx="798" cy="188" r="6" fill="#febc2e"/>
-  <circle cx="820" cy="188" r="6" fill="#28c840"/>
-  <text x="1110" y="193" text-anchor="end" font-family="Consolas, 'SF Mono', Menlo, monospace" font-size="15" fill="#5c6b8a">apm.yml</text>
-  <line x1="758" y1="214" x2="1118" y2="214" stroke="#1f2a44" stroke-width="1"/>
+  <!-- URL -->
+  <rect x="80" y="528" width="64" height="3" rx="1.5" fill="url(#indigoBar)"/>
+  <text x="80" y="574" font-family="'IBM Plex Mono', Consolas, monospace" font-size="23" font-weight="600" fill="#4A43E0">apm.isainative.dev</text>
 
-  <text x="766" y="258" font-family="Consolas, 'SF Mono', Menlo, monospace" font-size="18"><tspan fill="#7aa2ff">name</tspan><tspan fill="#c8d3ee">:</tspan><tspan fill="#9ece9e"> meridian-checkout</tspan></text>
-  <text x="766" y="291" font-family="Consolas, 'SF Mono', Menlo, monospace" font-size="18"><tspan fill="#7aa2ff">version</tspan><tspan fill="#c8d3ee">:</tspan><tspan fill="#9ece9e"> 0.1.0</tspan></text>
-  <text x="766" y="324" font-family="Consolas, 'SF Mono', Menlo, monospace" font-size="18"><tspan fill="#7aa2ff">targets</tspan><tspan fill="#c8d3ee">: [</tspan><tspan fill="#9ece9e">copilot, claude</tspan><tspan fill="#c8d3ee">]</tspan></text>
-  <text x="766" y="357" font-family="Consolas, 'SF Mono', Menlo, monospace" font-size="18"><tspan fill="#7aa2ff">dependencies</tspan><tspan fill="#c8d3ee">:</tspan></text>
-  <text x="766" y="390" font-family="Consolas, 'SF Mono', Menlo, monospace" font-size="18"><tspan fill="#7aa2ff">  apm</tspan><tspan fill="#c8d3ee">: [</tspan><tspan fill="#9ece9e">meridian-standards</tspan><tspan fill="#c8d3ee">]</tspan></text>
-  <text x="766" y="423" font-family="Consolas, 'SF Mono', Menlo, monospace" font-size="18"><tspan fill="#7aa2ff">includes</tspan><tspan fill="#c8d3ee">:</tspan><tspan fill="#9ece9e"> auto</tspan></text>
-  <text x="766" y="462" font-family="Consolas, 'SF Mono', Menlo, monospace" font-size="17" fill="#5c6b8a"># one install, every harness</text>
+  <!-- ==================================== Right column: apm.yml manifest -->
+  <!-- Card body (dark "ink" surface, as on the site even in light theme) -->
+  <rect x="724" y="148" width="416" height="342" rx="14" fill="#10141F" filter="url(#cardShadow)"/>
+  <!-- Header bar (ink-2), top corners only -->
+  <path d="M724 162 a14 14 0 0 1 14 -14 h388 a14 14 0 0 1 14 14 v30 h-416 z" fill="#171D2C"/>
+  <line x1="724" y1="192" x2="1140" y2="192" stroke="#262E44" stroke-width="1"/>
+  <rect x="724.5" y="148.5" width="415" height="341" rx="13.5" fill="none" stroke="#2B3448" stroke-width="1"/>
+
+  <!-- Header: file icon + filename + resolved stamp -->
+  <rect x="745" y="163" width="18" height="18" rx="5" fill="#9E98FF" opacity="0.20"/>
+  <rect x="748" y="166" width="12" height="12" rx="3" fill="#9E98FF"/>
+  <text x="774" y="176" font-family="'IBM Plex Mono', Consolas, monospace" font-size="14.5" fill="#E6EAF6">apm.yml</text>
+  <text x="1116" y="176" text-anchor="end" font-family="'IBM Plex Mono', Consolas, monospace" font-size="14" fill="#E7B23D">&#10003; resolved</text>
+
+  <!-- Code (token colors mirror .tok-* on the site) -->
+  <g font-family="'IBM Plex Mono', Consolas, monospace" font-size="15">
+    <text x="748" y="223" fill="#9AA6C0" font-style="italic"># your agent&#8217;s context, declared</text>
+    <text x="748" y="248"><tspan fill="#E7B23D">name</tspan><tspan fill="#D8DEEC">:</tspan><tspan fill="#9E98FF"> meridian-checkout</tspan></text>
+    <text x="748" y="273"><tspan fill="#E7B23D">version</tspan><tspan fill="#D8DEEC">:</tspan><tspan fill="#E7B23D" font-weight="600"> 1.4.0</tspan></text>
+    <text x="748" y="323"><tspan fill="#E7B23D">dependencies</tspan><tspan fill="#D8DEEC">:</tspan></text>
+    <text x="748" y="348"><tspan fill="#9E98FF">&#160;&#160;microsoft/apm-sample-package</tspan><tspan fill="#D8DEEC">:</tspan><tspan fill="#E7B23D" font-weight="600"> ^1.2.0</tspan></text>
+    <text x="748" y="373"><tspan fill="#9E98FF">&#160;&#160;meridian/review-prompts</tspan><tspan fill="#D8DEEC">:</tspan><tspan fill="#E7B23D" font-weight="600"> 3.1.0</tspan></text>
+    <text x="748" y="398"><tspan fill="#9E98FF">&#160;&#160;meridian/money-skill</tspan><tspan fill="#E7B23D" font-weight="600">#main</tspan><tspan fill="#D8DEEC">:</tspan><tspan fill="#E7B23D" font-weight="600"> latest</tspan></text>
+    <text x="748" y="448"><tspan fill="#E7B23D">targets</tspan><tspan fill="#D8DEEC">: [</tspan><tspan fill="#5BD6CF">copilot</tspan><tspan fill="#D8DEEC">, </tspan><tspan fill="#5BD6CF">claude</tspan><tspan fill="#D8DEEC">, </tspan><tspan fill="#5BD6CF">cursor</tspan><tspan fill="#D8DEEC">]</tspan></text>
+  </g>
 </svg>
