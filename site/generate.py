@@ -129,6 +129,41 @@ PARTS: list[tuple[str, str, tuple[int, ...]]] = [
 ]
 
 
+def render_part_map(by_number: dict[int, dict[str, Any]]) -> str:
+    """The resolution path across the six parts.
+
+    Renders the chapter spine motif on the index so every part is one click
+    away: a connected row of nodes, each anchoring to its ``#part-*`` section.
+    Skips any part whose chapters are not present so no anchor dangles.
+    """
+    nodes: list[str] = []
+    for roman, part_title, numbers in PARTS:
+        present = [n for n in numbers if n in by_number]
+        if not present:
+            continue
+        lo, hi = min(present), max(present)
+        pins = f"ch{lo:02d}\u2013{hi:02d}" if lo != hi else f"ch{lo:02d}"
+        part_id = f"part-{roman.lower()}"
+        nodes.append(f'''            <li class="spine-node">
+              <a class="spine-link" href="#{part_id}">
+                <span class="spine-dot" aria-hidden="true"></span>
+                <span class="spine-text">
+                  <span class="spine-meta"><span class="spine-part">Part {esc(roman)}</span> <span class="spine-pins">{pins}</span></span>
+                  <span class="spine-title">{esc(part_title)}</span>
+                </span>
+              </a>
+            </li>''')
+    if not nodes:
+        return ""
+    return (
+        '      <nav class="resolution-path" aria-label="Jump to a part">\n'
+        '        <ol class="spine-track">\n'
+        + chr(10).join(nodes)
+        + '\n        </ol>\n'
+        '      </nav>'
+    )
+
+
 def render_index(chapters: list[dict[str, Any]]) -> str:
     start_href = chapter_url(chapters[0]) if chapters else "#"
 
@@ -159,8 +194,15 @@ def render_index(chapters: list[dict[str, Any]]) -> str:
             if not chapter:
                 continue
             features = chapter.get("apm_features") or []
-            tags = "".join(f"<li>{esc(feature)}</li>" for feature in features)
-            tags_html = f'\n                <ul class="field-tags">{tags}</ul>' if tags else ""
+            tag_cap = 5
+            if len(features) > tag_cap + 1:
+                shown = features[:tag_cap]
+                more = len(features) - tag_cap
+                tag_items = "".join(f"<li>{esc(feature)}</li>" for feature in shown)
+                tag_items += f'<li class="field-tags-more">+{more} more</li>'
+            else:
+                tag_items = "".join(f"<li>{esc(feature)}</li>" for feature in features)
+            tags_html = f'\n                <ul class="field-tags">{tag_items}</ul>' if tag_items else ""
             pin = f"ch{int(chapter['number']):02d}"
             entries.append(f'''            <li class="dep-entry">
               <span class="dep-pin"><span class="pin-tag pin-tag--lg">{esc(pin)}</span></span>
@@ -188,6 +230,8 @@ def render_index(chapters: list[dict[str, Any]]) -> str:
         parts_block = '''        <section class="part">
           <p>The table of contents in <code>content/toc.yml</code> is currently empty. Once the book-architect populates it, chapters will appear here.</p>
         </section>'''
+
+    part_map = render_part_map(by_number)
 
     return f'''<!doctype html>
 <html lang="en">
@@ -223,7 +267,19 @@ def render_index(chapters: list[dict[str, Any]]) -> str:
     <section class="intro-panel" aria-labelledby="start-heading">
       <h2 id="start-heading">How to read this book</h2>
       <p>Chapters build in order, concept before command. Every APM feature is introduced as the implementation of one of four properties &mdash; <span class="property property--portability">Portability</span> <span class="property property--reproducibility">Reproducibility</span> <span class="property property--security">Security</span> <span class="property property--governance">Governance</span>.</p>
-      <p>Two reading paths share every page. Developers follow the body and the worked examples; engineering leaders can skim the <strong>For engineering leaders</strong> asides. A recurring <strong>Meridian</strong> marker tracks what one team does next, chapter by chapter.</p>
+      <div class="reading-paths">
+        <div class="reading-path">
+          <p class="path-lane-label">For developers</p>
+          <p>Follow the body and the worked examples end to end.</p>
+          <a class="path-link" href="{esc(start_href)}">Start reading</a>
+        </div>
+        <div class="reading-path reading-path--leader">
+          <p class="path-lane-label">For engineering leaders</p>
+          <p>Skim the <strong>For engineering leaders</strong> asides for the risk, ROI, onboarding, and governance story.</p>
+          <a class="path-link" href="{esc(start_href)}">Start with Chapter 1</a>
+        </div>
+      </div>
+      <p class="reading-note">A recurring <strong>Meridian</strong> marker tracks what one team does next, chapter by chapter.</p>
     </section>
 
     <div class="parts-intro">
@@ -231,6 +287,8 @@ def render_index(chapters: list[dict[str, Any]]) -> str:
       <h2>Twelve chapters, six parts</h2>
       <p>Chapters resolve in order &mdash; each one depends on the ones before it, like a dependency graph. Read straight through, or jump to the part you need.</p>
     </div>
+
+{part_map}
 
 {parts_block}
   </main>
