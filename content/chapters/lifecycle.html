@@ -1,85 +1,24 @@
-<!doctype html>
-<html lang="en">
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="description" content="Keep APM dependencies current while detecting drift and risk deliberately.">
-  <title>Lifecycle | The Missing Package Manager</title>
-  <link rel="preconnect" href="https://cdnjs.cloudflare.com">
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css" crossorigin="anonymous" referrerpolicy="no-referrer">
-  <link rel="stylesheet" href="../assets/style.css">
-  <script defer src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
-  <script defer src="../assets/app.js"></script>
-</head>
-<body class="chapter-page">
-  <a class="skip-link" href="#main-content">Skip to main content</a>
-  <button class="sidebar-toggle" type="button" aria-controls="chapter-sidebar" aria-expanded="false">☰ Chapters</button>
+<!--
+  Chapter 7 - Lifecycle (authored content fragment).
+  Injected by site/generate.py into site/chapters/lifecycle.html at each SLOT marker
+  below. No page chrome, no h1/h2 (the shell renders those).
+  APM CLI referenced: v0.23.1. Ground truth: apm-cli-explorer verification of the
+  Meridian v0.2.0 maintenance triad (content/research/07-lifecycle-reference.md) --
+    * apm outdated : read-only drift report; exit 0 even when outdated; a freshly-locked
+      floating ref is NOT "outdated" until the branch advances past the locked commit;
+      keys off the committed lockfile, not a live apm.yml edit.
+    * apm update   : --dry-run preview (writes nothing) / --yes apply; the ONLY
+      version-moving verb; the plan OVER-STATES movement (marks pinned tags [~] updated,
+      renders destination SHA as -). Truth is in the deploy phase / lock diff: pinned
+      microsoft/apm-sample-package held @fb285168; transitive #main moved a4aebcd4 ->
+      3169734b (content_hash unchanged -- bytes identical).
+    * apm audit    : integrity check, NOT a CVE feed. Default is advisory on drift
+      (exit 0); --ci gates 9 checks (exit 1); hidden-Unicode content finding (exit 2).
+      Runs cache-only + local content scan -> offline on a local project.
+  Meridian author = "Meridian Checkout Team". Cite official docs, not source-docs.
+-->
 
-  <div class="page-shell">
-    <aside id="chapter-sidebar" class="sidebar" aria-label="Book chapters">
-      <div class="sidebar-inner">
-        <a class="site-title" href="../index.html">The Missing Package Manager</a>
-        <nav class="chapter-nav" aria-label="Chapter navigation">
-          <ol>
-          <li><a href="the-context-problem.html"><span class="chapter-number">01</span><span>The Context Problem</span></a></li>
-          <li><a href="lessons-from-package-managers.html"><span class="chapter-number">02</span><span>Lessons from Package Managers</span></a></li>
-          <li><a href="primitives-and-harnesses.html"><span class="chapter-number">03</span><span>Primitives &amp; Harnesses</span></a></li>
-          <li><a href="the-manifest-apm-yml.html"><span class="chapter-number">04</span><span>The Manifest: apm.yml</span></a></li>
-          <li><a href="install-and-restore.html"><span class="chapter-number">05</span><span>Install &amp; Restore</span></a></li>
-          <li><a href="the-lockfile-and-reproducibility.html"><span class="chapter-number">06</span><span>The Lockfile &amp; Reproducibility</span></a></li>
-          <li><a class="is-current" aria-current="page" href="lifecycle.html"><span class="chapter-number">07</span><span>Lifecycle</span></a></li>
-          <li><a href="security-by-default.html"><span class="chapter-number">08</span><span>Security by Default</span></a></li>
-          <li><a href="governance-and-policy.html"><span class="chapter-number">09</span><span>Governance &amp; Policy</span></a></li>
-          <li><a href="becoming-a-producer.html"><span class="chapter-number">10</span><span>Becoming a Producer</span></a></li>
-          <li><a href="enterprise-at-fleet-scale.html"><span class="chapter-number">11</span><span>Enterprise at Fleet Scale</span></a></li>
-          <li><a href="the-landscape-and-whats-next.html"><span class="chapter-number">12</span><span>The Landscape &amp; What&#x27;s Next</span></a></li>
-          </ol>
-        </nav>
-      </div>
-    </aside>
-
-    <div class="content-shell">
-      <header class="chapter-header">
-        <nav class="breadcrumb" aria-label="Breadcrumb"><a href="../index.html">Home</a> / Chapter 7</nav>
-        <p class="eyebrow">Chapter 7</p>
-        <h1>Lifecycle</h1>
-        <p class="lead">Keep APM dependencies current while detecting drift and risk deliberately.</p>
-      </header>
-
-      <main id="main-content" class="chapter-main" tabindex="-1">
-        <div class="chapter-meta">
-          <nav class="metadata-card" aria-labelledby="section-nav-heading">
-            <h2 id="section-nav-heading">On this page</h2>
-            <ol>
-              <li><a href="#objective">Objective</a></li>
-              <li><a href="#concept-theory">Concept/Theory</a></li>
-              <li><a href="#in-apm">In APM</a></li>
-              <li><a href="#when-to-use-pitfalls">When to use / pitfalls</a></li>
-              <li><a href="#worked-example">Worked example</a></li>
-              <li><a href="#recap-and-next">Recap &amp; next</a></li>
-            </ol>
-          </nav>
-          <aside class="metadata-card" aria-labelledby="features-heading">
-            <h2 id="features-heading">APM features</h2>
-            <ul class="tag-list">
-            <li>apm outdated</li>
-            <li>apm update</li>
-            <li>apm audit</li>
-            <li>apm.yml</li>
-            <li>apm.lock.yaml</li>
-            </ul>
-          </aside>
-          <aside class="metadata-card" aria-labelledby="depends-heading">
-            <h2 id="depends-heading">Prerequisites</h2>
-            <ul>
-            <li><a href="the-lockfile-and-reproducibility.html">Chapter 6: The Lockfile &amp; Reproducibility</a></li>
-            </ul>
-          </aside>
-        </div>
-
-        <section class="chapter-section" data-section="objective">
-          <h2 id="objective"><a class="anchor-link" href="#objective" aria-label="Link to Objective section">Objective</a></h2>
-          <div class="section-content" data-content-slot="objective">
+<!-- SLOT: objective -->
 <p>
   After this chapter you can run APM's maintenance triad &mdash; <code>apm outdated</code>,
   <code>apm update</code>, and <code>apm audit</code> &mdash; and keep the three jobs straight:
@@ -96,11 +35,8 @@
   with a first look at <span class="property property--security">Provenance / security</span> through
   the audit check.
 </p>
-          </div>
-        </section>
-        <section class="chapter-section" data-section="concept-theory">
-          <h2 id="concept-theory"><a class="anchor-link" href="#concept-theory" aria-label="Link to Concept/Theory section">Concept/Theory</a></h2>
-          <div class="section-content" data-content-slot="concept-theory">
+
+<!-- SLOT: concept-theory -->
 <h3>Reproducible is a floor, not a ceiling</h3>
 <p>
   <a href="the-lockfile-and-reproducibility.html">Chapter 6</a> solved &ldquo;works on my machine&rdquo;
@@ -166,11 +102,8 @@
     as a reviewed pull request. Deliberate change, not silent drift. That refresh is this chapter.
   </p>
 </aside>
-          </div>
-        </section>
-        <section class="chapter-section" data-section="in-apm">
-          <h2 id="in-apm"><a class="anchor-link" href="#in-apm" aria-label="Link to In APM section">In APM</a></h2>
-          <div class="section-content" data-content-slot="in-apm">
+
+<!-- SLOT: in-apm -->
 <h3>Three verbs, three jobs</h3>
 <p>
   APM splits maintenance into three single-purpose commands so that <em>reporting</em>, <em>changing</em>,
@@ -493,11 +426,8 @@
   remote, org policy would be fetched and enforced &mdash; that fleet story is
   <a href="enterprise-at-fleet-scale.html">Chapter 11</a>, not this chapter.
 </p>
-          </div>
-        </section>
-        <section class="chapter-section" data-section="when-to-use-pitfalls">
-          <h2 id="when-to-use-pitfalls"><a class="anchor-link" href="#when-to-use-pitfalls" aria-label="Link to When to use / pitfalls section">When to use / pitfalls</a></h2>
-          <div class="section-content" data-content-slot="when-to-use-pitfalls">
+
+<!-- SLOT: when-to-use-pitfalls -->
 <h3>The division of labor</h3>
 <p>
   Six commands touch a locked project, and keeping them straight is most of the skill. Only one moves a
@@ -620,11 +550,8 @@
     <code>apm update</code>.
   </p>
 </aside>
-          </div>
-        </section>
-        <section class="chapter-section" data-section="worked-example">
-          <h2 id="worked-example"><a class="anchor-link" href="#worked-example" aria-label="Link to Worked example section">Worked example</a></h2>
-          <div class="section-content" data-content-slot="worked-example">
+
+<!-- SLOT: worked-example -->
 <h3>Meridian's first monthly refresh, as a pull request</h3>
 <p>
   The staff engineer's scheduled job runs the triad in order &mdash; report, change, verify:
@@ -732,11 +659,8 @@ apm audit --ci          # verify: 9 integrity checks pass -> attach as PR eviden
     a CVE feed it is not.
   </p>
 </aside>
-          </div>
-        </section>
-        <section class="chapter-section" data-section="recap-and-next">
-          <h2 id="recap-and-next"><a class="anchor-link" href="#recap-and-next" aria-label="Link to Recap &amp; next section">Recap &amp; next</a></h2>
-          <div class="section-content" data-content-slot="recap-and-next">
+
+<!-- SLOT: recap-and-next -->
 <h3>Recap</h3>
 <ul>
   <li>
@@ -778,19 +702,3 @@ apm audit --ci          # verify: 9 integrity checks pass -> attach as PR eviden
   are held back &mdash; the <span class="property property--security">Provenance / security</span> property
   made mechanical, not optional.
 </p>
-          </div>
-        </section>
-
-        <nav class="pager" aria-label="Chapter pagination">
-          <a class="pager-link" rel="prev" href="the-lockfile-and-reproducibility.html">← Chapter 6: The Lockfile &amp; Reproducibility</a>
-          <a class="pager-link" rel="next" href="security-by-default.html">Chapter 8: Security by Default →</a>
-        </nav>
-      </main>
-
-      <footer class="site-footer chapter-footer">
-        <p>Generated from <code>content/toc.yml</code>. Replace only section content blocks when authoring.</p>
-      </footer>
-    </div>
-  </div>
-</body>
-</html>

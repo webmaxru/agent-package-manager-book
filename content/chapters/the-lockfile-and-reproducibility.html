@@ -1,85 +1,19 @@
-<!doctype html>
-<html lang="en">
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="description" content="Reproduce an APM setup exactly and explain how the lockfile supports that guarantee.">
-  <title>The Lockfile &amp; Reproducibility | The Missing Package Manager</title>
-  <link rel="preconnect" href="https://cdnjs.cloudflare.com">
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css" crossorigin="anonymous" referrerpolicy="no-referrer">
-  <link rel="stylesheet" href="../assets/style.css">
-  <script defer src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
-  <script defer src="../assets/app.js"></script>
-</head>
-<body class="chapter-page">
-  <a class="skip-link" href="#main-content">Skip to main content</a>
-  <button class="sidebar-toggle" type="button" aria-controls="chapter-sidebar" aria-expanded="false">☰ Chapters</button>
+<!--
+  Chapter 6 - The Lockfile & Reproducibility (authored content fragment).
+  Injected by site/generate.py into site/chapters/the-lockfile-and-reproducibility.html
+  at each slot marker below. No page chrome, no h1/h2 (the shell renders those).
+  APM CLI referenced: v0.23.1. Ground truth: apm-cli-explorer verification of the
+  Meridian v0.2.0 lockfile (resolved_ref/resolved_commit/content_hash; --frozen as a
+  STRUCTURAL presence gate; apm lock resolution-only; apm find provenance; byte-stable
+  restore), 2026-07-02.
+  CI-break framing: --frozen fails on a manifest<->lockfile MISMATCH (a dependency
+  declared in apm.yml but missing from apm.lock.yaml), NOT on a moved ref. Changing
+  #v1.0.0 -> #main at the same commit PASSES; adding an already-locked repo PASSES.
+  --frozen is presence/structure only; on-disk content integrity is `apm audit`.
+  Cite official docs, not source-docs.
+-->
 
-  <div class="page-shell">
-    <aside id="chapter-sidebar" class="sidebar" aria-label="Book chapters">
-      <div class="sidebar-inner">
-        <a class="site-title" href="../index.html">The Missing Package Manager</a>
-        <nav class="chapter-nav" aria-label="Chapter navigation">
-          <ol>
-          <li><a href="the-context-problem.html"><span class="chapter-number">01</span><span>The Context Problem</span></a></li>
-          <li><a href="lessons-from-package-managers.html"><span class="chapter-number">02</span><span>Lessons from Package Managers</span></a></li>
-          <li><a href="primitives-and-harnesses.html"><span class="chapter-number">03</span><span>Primitives &amp; Harnesses</span></a></li>
-          <li><a href="the-manifest-apm-yml.html"><span class="chapter-number">04</span><span>The Manifest: apm.yml</span></a></li>
-          <li><a href="install-and-restore.html"><span class="chapter-number">05</span><span>Install &amp; Restore</span></a></li>
-          <li><a class="is-current" aria-current="page" href="the-lockfile-and-reproducibility.html"><span class="chapter-number">06</span><span>The Lockfile &amp; Reproducibility</span></a></li>
-          <li><a href="lifecycle.html"><span class="chapter-number">07</span><span>Lifecycle</span></a></li>
-          <li><a href="security-by-default.html"><span class="chapter-number">08</span><span>Security by Default</span></a></li>
-          <li><a href="governance-and-policy.html"><span class="chapter-number">09</span><span>Governance &amp; Policy</span></a></li>
-          <li><a href="becoming-a-producer.html"><span class="chapter-number">10</span><span>Becoming a Producer</span></a></li>
-          <li><a href="enterprise-at-fleet-scale.html"><span class="chapter-number">11</span><span>Enterprise at Fleet Scale</span></a></li>
-          <li><a href="the-landscape-and-whats-next.html"><span class="chapter-number">12</span><span>The Landscape &amp; What&#x27;s Next</span></a></li>
-          </ol>
-        </nav>
-      </div>
-    </aside>
-
-    <div class="content-shell">
-      <header class="chapter-header">
-        <nav class="breadcrumb" aria-label="Breadcrumb"><a href="../index.html">Home</a> / Chapter 6</nav>
-        <p class="eyebrow">Chapter 6</p>
-        <h1>The Lockfile &amp; Reproducibility</h1>
-        <p class="lead">Reproduce an APM setup exactly and explain how the lockfile supports that guarantee.</p>
-      </header>
-
-      <main id="main-content" class="chapter-main" tabindex="-1">
-        <div class="chapter-meta">
-          <nav class="metadata-card" aria-labelledby="section-nav-heading">
-            <h2 id="section-nav-heading">On this page</h2>
-            <ol>
-              <li><a href="#objective">Objective</a></li>
-              <li><a href="#concept-theory">Concept/Theory</a></li>
-              <li><a href="#in-apm">In APM</a></li>
-              <li><a href="#when-to-use-pitfalls">When to use / pitfalls</a></li>
-              <li><a href="#worked-example">Worked example</a></li>
-              <li><a href="#recap-and-next">Recap &amp; next</a></li>
-            </ol>
-          </nav>
-          <aside class="metadata-card" aria-labelledby="features-heading">
-            <h2 id="features-heading">APM features</h2>
-            <ul class="tag-list">
-            <li>apm.lock.yaml</li>
-            <li>exact versions</li>
-            <li>content hashes</li>
-            <li>byte-for-byte restore</li>
-            <li>apm install</li>
-            </ul>
-          </aside>
-          <aside class="metadata-card" aria-labelledby="depends-heading">
-            <h2 id="depends-heading">Prerequisites</h2>
-            <ul>
-            <li><a href="install-and-restore.html">Chapter 5: Install &amp; Restore</a></li>
-            </ul>
-          </aside>
-        </div>
-
-        <section class="chapter-section" data-section="objective">
-          <h2 id="objective"><a class="anchor-link" href="#objective" aria-label="Link to Objective section">Objective</a></h2>
-          <div class="section-content" data-content-slot="objective">
+<!-- SLOT: objective -->
 <p>
   After this chapter you can read <code>apm.lock.yaml</code> and say exactly what it guarantees &mdash;
   the three levels of identity it records (<code>resolved_ref</code> &rarr; <code>resolved_commit</code>
@@ -92,11 +26,8 @@
   <span class="property property--reproducibility">Reproducibility</span> stops being a promise and
   becomes a mechanism.
 </p>
-          </div>
-        </section>
-        <section class="chapter-section" data-section="concept-theory">
-          <h2 id="concept-theory"><a class="anchor-link" href="#concept-theory" aria-label="Link to Concept/Theory section">Concept/Theory</a></h2>
-          <div class="section-content" data-content-slot="concept-theory">
+
+<!-- SLOT: concept-theory -->
 <h3>A manifest resolves; a lockfile freezes</h3>
 <p>
   Every install in <a href="install-and-restore.html">Chapter 5</a> quietly wrote
@@ -226,11 +157,8 @@
     is <a href="lifecycle.html">Chapter 7</a>.)
   </p>
 </aside>
-          </div>
-        </section>
-        <section class="chapter-section" data-section="in-apm">
-          <h2 id="in-apm"><a class="anchor-link" href="#in-apm" aria-label="Link to In APM section">In APM</a></h2>
-          <div class="section-content" data-content-slot="in-apm">
+
+<!-- SLOT: in-apm -->
 <h3>Inside <code>apm.lock.yaml</code></h3>
 <p>
   Here is the actual lockfile <code>apm install</code> wrote for Meridian v0.2.0, annotated field by
@@ -508,11 +436,8 @@ $ apm find .github/does-not-exist.md
     project and becomes a line in the pull request.
   </p>
 </aside>
-          </div>
-        </section>
-        <section class="chapter-section" data-section="when-to-use-pitfalls">
-          <h2 id="when-to-use-pitfalls"><a class="anchor-link" href="#when-to-use-pitfalls" aria-label="Link to When to use / pitfalls section">When to use / pitfalls</a></h2>
-          <div class="section-content" data-content-slot="when-to-use-pitfalls">
+
+<!-- SLOT: when-to-use-pitfalls -->
 <h3>Treat the lockfile as a contract</h3>
 <p>
   Four moves read or write that contract; reach for them by intent. Bare restore reproduces; the other
@@ -607,11 +532,8 @@ $ apm find .github/does-not-exist.md
     <code>apm_modules/</code> is auto-gitignored and rebuilt from the lockfile on every install.
   </p>
 </aside>
-          </div>
-        </section>
-        <section class="chapter-section" data-section="worked-example">
-          <h2 id="worked-example"><a class="anchor-link" href="#worked-example" aria-label="Link to Worked example section">Worked example</a></h2>
-          <div class="section-content" data-content-slot="worked-example">
+
+<!-- SLOT: worked-example -->
 <h3>The CI break, mechanically</h3>
 <p>
   Meridian shipped <strong>v0.2.0</strong> in <a href="install-and-restore.html">Chapter 5</a> with one
@@ -699,11 +621,8 @@ $ apm find .github/does-not-exist.md
   contract: generated, reviewed in the diff, and committed alongside the manifest that produced it. That
   is <span class="property property--reproducibility">Reproducibility</span>, enforced.
 </p>
-          </div>
-        </section>
-        <section class="chapter-section" data-section="recap-and-next">
-          <h2 id="recap-and-next"><a class="anchor-link" href="#recap-and-next" aria-label="Link to Recap &amp; next section">Recap &amp; next</a></h2>
-          <div class="section-content" data-content-slot="recap-and-next">
+
+<!-- SLOT: recap-and-next -->
 <h3>Recap</h3>
 <ul>
   <li>
@@ -749,19 +668,3 @@ $ apm find .github/does-not-exist.md
   and <code>apm audit</code> &mdash; the content-integrity companion to <code>--frozen</code> &mdash; to
   verify that the bytes on disk still match the bytes the lockfile promised.
 </p>
-          </div>
-        </section>
-
-        <nav class="pager" aria-label="Chapter pagination">
-          <a class="pager-link" rel="prev" href="install-and-restore.html">← Chapter 5: Install &amp; Restore</a>
-          <a class="pager-link" rel="next" href="lifecycle.html">Chapter 7: Lifecycle →</a>
-        </nav>
-      </main>
-
-      <footer class="site-footer chapter-footer">
-        <p>Generated from <code>content/toc.yml</code>. Replace only section content blocks when authoring.</p>
-      </footer>
-    </div>
-  </div>
-</body>
-</html>
