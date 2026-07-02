@@ -1,0 +1,24 @@
+# Chapter 10 producer package: Meridian's shared conventions extracted into an
+# installable APM package (instruction + review prompt + secure-payment skill).
+# Demonstrates the producer package SHAPE and `apm pack` plugin.json routing.
+# Verified against apm v0.23.1 (2026-07-02). See ../README.md for reproduction.
+name: meridian-standards
+version: 1.0.0
+description: Shared Meridian engineering instructions, prompts, and review skills.
+author: Meridian Platform Engineering
+license: MIT
+repository: https://github.com/meridian-finance/meridian-standards
+keywords: [meridian, checkout, fintech, ai-agents]
+# `type` is a REAL manifest enum (instructions | skill | hybrid | prompts) but is
+# RESERVED/INERT at v0.23.1 — package behaviour is inferred from content today,
+# and it is not carried into the synthesised plugin.json. Kept as forward-looking
+# metadata; it changes no behaviour on this CLI version.
+type: hybrid
+# `targets:` incl. copilot/claude routes `apm pack` to PLUGIN.JSON mode (no bundle).
+# A bundle (build/<pkg>/ + --archive .zip) would require a `dependencies:` block.
+targets:
+  - copilot
+  - claude
+  - cursor
+# `includes: auto` = consent to publish all .apm/ content (the `apm init` default).
+includes: auto

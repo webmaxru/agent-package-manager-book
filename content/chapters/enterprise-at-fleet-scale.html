@@ -1,87 +1,41 @@
-<!doctype html>
-<html lang="en">
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="description" content="Gate and govern APM usage across an organization without turning developer setup into a bottleneck.">
-  <title>Enterprise at Fleet Scale | The Missing Package Manager</title>
-  <link rel="preconnect" href="https://cdnjs.cloudflare.com">
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css" crossorigin="anonymous" referrerpolicy="no-referrer">
-  <link rel="stylesheet" href="../assets/style.css">
-  <script defer src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
-  <script defer src="../assets/app.js"></script>
-</head>
-<body class="chapter-page">
-  <a class="skip-link" href="#main-content">Skip to main content</a>
-  <button class="sidebar-toggle" type="button" aria-controls="chapter-sidebar" aria-expanded="false">☰ Chapters</button>
+<!--
+  Chapter 11 - Enterprise at Fleet Scale (authored content fragment).
+  Injected by site/generate.py into site/chapters/enterprise-at-fleet-scale.html at each
+  SLOT marker below. No page chrome, no h1/h2 (the shell renders those).
+  APM CLI referenced: v0.23.1. microsoft/apm-action: v1.10.0. Ground truth:
+    content/research/11-enterprise-at-fleet-scale-reference.md (+ backend/examples/ch11/).
+  Capstone chapter: introduces NO fifth property. It asks whether the four properties
+  (portability, reproducibility, provenance/security, governance) hold for EVERY repo,
+  enforced + operated at org scale. STAR property = Governance; reproducibility + security cues.
+  Load-bearing verified facts baked in here:
+    * RUNNABLE: `apm audit --ci` on a local project. Clean = 8 baseline checks + drift = 9,
+      "All 9 check(s) passed", exit 0. Block policy (enforcement: block +
+      require_pinned_constraint: true) vs an UNPINNED DIRECT dep -> dependency-pinned-constraint
+      fails, "1 of 18 check(s) failed", exit 1.
+    * NUANCE: require_pinned_constraint is DIRECT-ONLY. Pinned direct + unpinned transitive
+      PASSES ("All 29 check(s) passed", exit 0). The install-time "1 dependency unpinned"
+      warning is ADVISORY. Check counts vary with declared rules AND fail-fast (18 on failure,
+      29 on pass); --no-fail-fast enumerates all. Baseline (8+drift) is stable + NOT bypassable;
+      `--policy` is [experimental].
+    * SKIPPED-needs-network: microsoft/apm-action workflow YAML (a GitHub Action can't run
+      locally; the `apm audit --ci` gate it invokes IS verified). Pin @v1 + pin CLI via
+      apm-version. SARIF via -o *.sarif + github/codeql-action/upload-sarif@v3 with if: always().
+      Required/unbypassable via GitHub Rulesets. Vendor-neutral (Azure Pipelines/GitLab/Jenkins).
+      NEVER claim a locally-run Action result.
+    * SKIPPED-needs-network: registry proxy = ENV VARS, not `apm config` keys (verified: config
+      holds only auto-integrate, temp-dir, mcp-registry-url). HTTPS_PROXY/HTTP_PROXY/NO_PROXY;
+      PROXY_REGISTRY_URL; PROXY_REGISTRY_TOKEN; PROXY_REGISTRY_ONLY=1 (blocks direct-VCS fallback);
+      PROXY_REGISTRY_ALLOW_HTTP=1. Integrity anchored to lockfile content_hash (Ch6), NOT the proxy.
+      Coverage gaps: no ADO deps, no MCP servers, no apm-policy.yml fetch. Air-gapped = apm pack
+      (Ch10) restored offline. Proxy != dedicated registry (experimental, v0.2 API).
+    * SKIPPED-needs-network: org policy = Ch9 behavior relocated to <org>/.github/apm-policy.yml
+      (enforcement: block, fetch_failure: block). Org-remote discovery + extends: MERGE need infra
+      (local-file extends does NOT merge - Ch9).
+  Meridian author = "Meridian's platform team". Three product groups: Payments, Onboarding,
+  Merchant Dashboard. No real person names. Cite official docs.
+-->
 
-  <div class="page-shell">
-    <aside id="chapter-sidebar" class="sidebar" aria-label="Book chapters">
-      <div class="sidebar-inner">
-        <a class="site-title" href="../index.html">The Missing Package Manager</a>
-        <nav class="chapter-nav" aria-label="Chapter navigation">
-          <ol>
-          <li><a href="the-context-problem.html"><span class="chapter-number">01</span><span>The Context Problem</span></a></li>
-          <li><a href="lessons-from-package-managers.html"><span class="chapter-number">02</span><span>Lessons from Package Managers</span></a></li>
-          <li><a href="primitives-and-harnesses.html"><span class="chapter-number">03</span><span>Primitives &amp; Harnesses</span></a></li>
-          <li><a href="the-manifest-apm-yml.html"><span class="chapter-number">04</span><span>The Manifest: apm.yml</span></a></li>
-          <li><a href="install-and-restore.html"><span class="chapter-number">05</span><span>Install &amp; Restore</span></a></li>
-          <li><a href="the-lockfile-and-reproducibility.html"><span class="chapter-number">06</span><span>The Lockfile &amp; Reproducibility</span></a></li>
-          <li><a href="lifecycle.html"><span class="chapter-number">07</span><span>Lifecycle</span></a></li>
-          <li><a href="security-by-default.html"><span class="chapter-number">08</span><span>Security by Default</span></a></li>
-          <li><a href="governance-and-policy.html"><span class="chapter-number">09</span><span>Governance &amp; Policy</span></a></li>
-          <li><a href="becoming-a-producer.html"><span class="chapter-number">10</span><span>Becoming a Producer</span></a></li>
-          <li><a class="is-current" aria-current="page" href="enterprise-at-fleet-scale.html"><span class="chapter-number">11</span><span>Enterprise at Fleet Scale</span></a></li>
-          <li><a href="the-landscape-and-whats-next.html"><span class="chapter-number">12</span><span>The Landscape &amp; What&#x27;s Next</span></a></li>
-          </ol>
-        </nav>
-      </div>
-    </aside>
-
-    <div class="content-shell">
-      <header class="chapter-header">
-        <nav class="breadcrumb" aria-label="Breadcrumb"><a href="../index.html">Home</a> / Chapter 11</nav>
-        <p class="eyebrow">Chapter 11</p>
-        <h1>Enterprise at Fleet Scale</h1>
-        <p class="lead">Gate and govern APM usage across an organization without turning developer setup into a bottleneck.</p>
-      </header>
-
-      <main id="main-content" class="chapter-main" tabindex="-1">
-        <div class="chapter-meta">
-          <nav class="metadata-card" aria-labelledby="section-nav-heading">
-            <h2 id="section-nav-heading">On this page</h2>
-            <ol>
-              <li><a href="#objective">Objective</a></li>
-              <li><a href="#concept-theory">Concept/Theory</a></li>
-              <li><a href="#in-apm">In APM</a></li>
-              <li><a href="#when-to-use-pitfalls">When to use / pitfalls</a></li>
-              <li><a href="#worked-example">Worked example</a></li>
-              <li><a href="#recap-and-next">Recap &amp; next</a></li>
-            </ol>
-          </nav>
-          <aside class="metadata-card" aria-labelledby="features-heading">
-            <h2 id="features-heading">APM features</h2>
-            <ul class="tag-list">
-            <li>apm audit --ci</li>
-            <li>CI gating</li>
-            <li>registry proxy</li>
-            <li>air-gapped environments</li>
-            <li>adoption playbook</li>
-            <li>apm-policy.yml</li>
-            <li>microsoft/apm-action</li>
-            </ul>
-          </aside>
-          <aside class="metadata-card" aria-labelledby="depends-heading">
-            <h2 id="depends-heading">Prerequisites</h2>
-            <ul>
-            <li><a href="becoming-a-producer.html">Chapter 10: Becoming a Producer</a></li>
-            </ul>
-          </aside>
-        </div>
-
-        <section class="chapter-section" data-section="objective">
-          <h2 id="objective"><a class="anchor-link" href="#objective" aria-label="Link to Objective section">Objective</a></h2>
-          <div class="section-content" data-content-slot="objective">
+<!-- SLOT: objective -->
 <p>
   After this chapter you can operate APM across a whole organization &mdash; not one repo, but a
   <em>fleet</em>. You will wire <code>apm audit --ci</code> into branch protection as a
@@ -106,11 +60,8 @@
   is early preview &mdash; so pin the CLI (and <code>microsoft/apm-action</code>, latest
   <strong>v1.10.0</strong>) before you lean on any of them as a production gate.
 </p>
-          </div>
-        </section>
-        <section class="chapter-section" data-section="concept-theory">
-          <h2 id="concept-theory"><a class="anchor-link" href="#concept-theory" aria-label="Link to Concept/Theory section">Concept/Theory</a></h2>
-          <div class="section-content" data-content-slot="concept-theory">
+
+<!-- SLOT: concept-theory -->
 <h3>From &ldquo;can <em>this</em> repo install?&rdquo; to &ldquo;can <em>every</em> repo install?&rdquo;</h3>
 <p>
   A single team gets almost all of APM&rsquo;s value from three files and one habit:
@@ -184,11 +135,8 @@
     onboard themselves. The worked example runs those four moves.
   </p>
 </aside>
-          </div>
-        </section>
-        <section class="chapter-section" data-section="in-apm">
-          <h2 id="in-apm"><a class="anchor-link" href="#in-apm" aria-label="Link to In APM section">In APM</a></h2>
-          <div class="section-content" data-content-slot="in-apm">
+
+<!-- SLOT: in-apm -->
 <aside class="callout callout-info">
   <h3>Version note: what is stable vs. preview at v0.23.1</h3>
   <p>
@@ -447,11 +395,8 @@ jobs:
   <code>owner/repo</code> / <code>https://</code> ref). You author and test the file locally, then land it in
   <code>&lt;org&gt;/.github</code>.
 </p>
-          </div>
-        </section>
-        <section class="chapter-section" data-section="when-to-use-pitfalls">
-          <h2 id="when-to-use-pitfalls"><a class="anchor-link" href="#when-to-use-pitfalls" aria-label="Link to When to use / pitfalls section">When to use / pitfalls</a></h2>
-          <div class="section-content" data-content-slot="when-to-use-pitfalls">
+
+<!-- SLOT: when-to-use-pitfalls -->
 <h3>Roll out in phases, measure by leading indicators</h3>
 <p>
   Rolling APM out to a fleet is a <strong>staged program, not a switch</strong>. The official adoption
@@ -566,11 +511,8 @@ jobs:
     playbook</a>).
   </p>
 </aside>
-          </div>
-        </section>
-        <section class="chapter-section" data-section="worked-example">
-          <h2 id="worked-example"><a class="anchor-link" href="#worked-example" aria-label="Link to Worked example section">Worked example</a></h2>
-          <div class="section-content" data-content-slot="worked-example">
+
+<!-- SLOT: worked-example -->
 <p>
   Meridian&rsquo;s four moves, in order. Only the first is executable in a reader&rsquo;s sandbox &mdash;
   the CI gate itself &mdash; so it is shown running against a local project (offline, one public package,
@@ -726,11 +668,8 @@ compilation:
   pilot repo as the canary. Their status report to leadership is <em>audit pass rate</em> and <em>drift
   trend</em>, not &ldquo;repos with a manifest.&rdquo;
 </p>
-          </div>
-        </section>
-        <section class="chapter-section" data-section="recap-and-next">
-          <h2 id="recap-and-next"><a class="anchor-link" href="#recap-and-next" aria-label="Link to Recap &amp; next section">Recap &amp; next</a></h2>
-          <div class="section-content" data-content-slot="recap-and-next">
+
+<!-- SLOT: recap-and-next -->
 <h3>Recap</h3>
 <ul>
   <li>
@@ -777,19 +716,3 @@ compilation:
   v0.1) and the roadmap ahead &mdash; including the dedicated registry API this chapter flagged as
   experimental &mdash; so you can decide what to adopt, watch, or build around.
 </p>
-          </div>
-        </section>
-
-        <nav class="pager" aria-label="Chapter pagination">
-          <a class="pager-link" rel="prev" href="becoming-a-producer.html">← Chapter 10: Becoming a Producer</a>
-          <a class="pager-link" rel="next" href="the-landscape-and-whats-next.html">Chapter 12: The Landscape &amp; What&#x27;s Next →</a>
-        </nav>
-      </main>
-
-      <footer class="site-footer chapter-footer">
-        <p>Generated from <code>content/toc.yml</code>. Replace only section content blocks when authoring.</p>
-      </footer>
-    </div>
-  </div>
-</body>
-</html>

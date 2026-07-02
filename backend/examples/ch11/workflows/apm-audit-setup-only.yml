@@ -1,0 +1,31 @@
+# .github/workflows/apm-audit-setup-only.yml
+#
+# STATUS: SKIPPED-needs-network (documented; cannot run a GitHub Action locally).
+#   The `apm audit --ci --no-drift` gate IS verified live on apm v0.23.1. See ../README.md.
+#
+# Concept (Ch11 theory C2 — CI gating, tamper detection): the default action runs
+# `apm install` first, which OVERWRITES managed files with fresh copies and can hide
+# bytes that were hand-edited after the last install. `setup-only: true` puts the CLI
+# on PATH only (no install, no deploy), so the committed bytes are the ground truth.
+# `content-integrity` still verifies each deployed file's SHA-256 against the lockfile;
+# `--no-drift` is used because there is no warm cache to replay against.
+#
+# Source: https://microsoft.github.io/apm/enterprise/enforce-in-ci/ (Audit-only CI pattern)
+name: APM audit (setup-only / tamper detection)
+on:
+  pull_request:
+    paths: ['apm.yml', 'apm.lock.yaml', '.apm/**', '.github/**', '.claude/**', '.cursor/**']
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: microsoft/apm-action@v1
+        with:
+          setup-only: 'true'          # install CLI only; do NOT read apm.yml, install, or deploy
+          apm-version: '0.23.1'
+      - run: apm audit --ci --no-drift  # CLI only; audits committed bytes as ground truth
+        env:
+          GITHUB_APM_PAT: ${{ secrets.APM_PAT }}

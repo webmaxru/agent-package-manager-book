@@ -1,0 +1,38 @@
+# .github/workflows/apm-audit-sarif.yml
+#
+# STATUS: SKIPPED-needs-network (documented; cannot run a GitHub Action locally).
+#   The `apm audit --ci -o *.sarif` gate IS verified live on apm v0.23.1 (exit 0/1);
+#   only the SARIF upload step needs GitHub. See ../README.md.
+#
+# Concept (Ch11 theory C2 — CI gating): emit SARIF and upload it so each violation
+# appears inline on the PR diff and in the repo's Security tab (Code Scanning).
+#
+# `if: always()` is load-bearing: SARIF must upload even when the audit step exits 1,
+# otherwise the failing run produces no Code Scanning entry.
+#
+# Source: https://microsoft.github.io/apm/enterprise/enforce-in-ci/
+name: APM audit (SARIF)
+on:
+  pull_request:
+    paths: ['apm.yml', 'apm.lock.yaml', '.apm/**', '.github/**', '.claude/**', '.cursor/**']
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write          # required to upload SARIF to Code Scanning
+    steps:
+      - uses: actions/checkout@v4
+      - uses: microsoft/apm-action@v1
+        with:
+          apm-version: '0.23.1'
+      - name: Audit
+        run: apm audit --ci --no-cache -o apm-audit.sarif   # -f/format inferred from .sarif extension
+        env:
+          GITHUB_APM_PAT: ${{ secrets.APM_PAT }}
+      - name: Upload SARIF
+        if: always()                  # upload even on exit 1
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: apm-audit.sarif
+          category: apm-audit

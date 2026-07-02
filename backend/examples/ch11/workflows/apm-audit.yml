@@ -1,0 +1,33 @@
+# .github/workflows/apm-audit.yml
+#
+# STATUS: SKIPPED-needs-network (documented; cannot run a GitHub Action locally).
+#   The `apm audit --ci` gate this invokes IS verified live on apm v0.23.1 — see
+#   ../README.md and content/research/11-enterprise-at-fleet-scale-reference.md (Feature 1).
+#
+# Concept (Ch11 theory C2 — CI gating): the smallest job that fails a PR on any APM
+# violation. Make it a REQUIRED status check via GitHub Rulesets and a violating PR
+# cannot merge. `microsoft/apm-action@v1` runs `apm install` first, so the lockfile
+# and deployed files are present before `apm audit --ci` reads them.
+#
+# Source: https://microsoft.github.io/apm/enterprise/enforce-in-ci/
+name: APM audit
+on:
+  pull_request:
+    paths:
+      - 'apm.yml'
+      - 'apm.lock.yaml'
+      - '.apm/**'
+      - '.github/**'
+      - '.claude/**'
+      - '.cursor/**'
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: microsoft/apm-action@v1        # pin to the major tag; installs CLI + runs `apm install`
+        with:
+          apm-version: '0.23.1'              # pin the CLI version for reproducible CI
+      - run: apm audit --ci --no-cache       # verified gate: exit 0 clean / 1 on violation
+        env:
+          GITHUB_APM_PAT: ${{ secrets.APM_PAT }}   # same-org private repos work with zero config

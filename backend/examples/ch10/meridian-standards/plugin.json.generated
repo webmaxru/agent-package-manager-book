@@ -1,0 +1,16 @@
+{
+  "name": "meridian-standards",
+  "version": "1.0.0",
+  "description": "Shared Meridian engineering instructions, prompts, and review skills.",
+  "author": {
+    "name": "Meridian Platform Engineering"
+  },
+  "license": "MIT",
+  "repository": "https://github.com/meridian-finance/meridian-standards",
+  "keywords": [
+    "meridian",
+    "checkout",
+    "fintech",
+    "ai-agents"
+  ]
+}
