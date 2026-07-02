@@ -234,9 +234,9 @@
   is an <code>apm outdated</code>/<code>apm update</code>/<code>apm audit</code> trio, and
   <code>apm view &lt;pkg&gt; versions</code> lists the refs you can pin to. This chapter only
   <em>names</em> them so the analogy feels complete;
-  <a href="lifecycle.html">Chapter 7</a> puts the lifecycle to work, and
-  <a href="security-by-default.html">Chapter 8</a> goes deep on what <code>apm audit</code> does and
-  does not check.
+  <a href="lifecycle.html">Chapter 7</a> puts the lifecycle to work &mdash; including what
+  <code>apm audit</code> does and does not check &mdash; and
+  <a href="security-by-default.html">Chapter 8</a> covers the install-time security scan.
 </p>
 
 <!-- SLOT: when-to-use-pitfalls -->
@@ -333,7 +333,7 @@
     dependency resolves from (a git repo at a ref); a <em>registry</em> is a central catalog with an
     HTTP API. APM has robust sources and pinning today, but no central registry &mdash; the registry
     HTTP API is explicitly deferred to v0.2 by
-    <a href="https://microsoft.github.io/apm/specs/openapm-v0.1.md" rel="noreferrer">the OpenAPM v0.1 spec</a>.
+    <a href="https://microsoft.github.io/apm/specs/openapm-v01/" rel="noreferrer">the OpenAPM v0.1 spec</a>.
     So when this book says &ldquo;registry,&rdquo; the honest mapping today is <strong>git servers</strong>.
     This is a discovery/UX gap, not a correctness gap: reproducibility comes from the lockfile (a pinned
     commit plus a content hash), which delivers byte-for-byte restores <em>without</em> a central index.
@@ -348,7 +348,8 @@
     with <code>--ci</code>, checks lockfile integrity. It is <em>not</em> a CVE vulnerability feed like
     <code>npm audit</code> or <code>pip-audit</code>. Promise a teammate an integrity and
     hidden-character check, not a security-advisory scan.
-    <a href="security-by-default.html">Chapter 8</a> covers exactly what it does and doesn't catch.
+    <a href="lifecycle.html">Chapter 7</a> covers exactly what it does and doesn't catch (and
+    <a href="security-by-default.html">Chapter 8</a> the install-time security scan).
   </p>
 </aside>
 

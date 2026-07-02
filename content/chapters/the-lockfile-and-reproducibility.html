@@ -544,7 +544,8 @@ $ apm find .github/does-not-exist.md
 <figure class="code-example">
   <figcaption>
     The <code>apm.yml</code> change Priya committed &mdash; a new branch-pinned dependency
-    (<code>acme/checkout-guardrails</code> is illustrative). The regenerated lockfile was
+    (<code>acme/checkout-guardrails</code> is a throwaway illustration for this CI-break scenario, not a
+    dependency Meridian adds to its canonical manifest). The regenerated lockfile was
     <em>not</em> committed alongside it. <span class="apm-version">apm v0.23.1</span>
   </figcaption>
   <pre><code class="language-yaml">dependencies:

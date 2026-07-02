@@ -540,7 +540,12 @@ unmanaged_files:
 </aside>
 <p>
   Here is the pilot policy the team ships. Note the corrected target rule under
-  <code>compilation.target.allow</code> &mdash; the one field an earlier draft got wrong:
+  <code>compilation.target.allow</code> &mdash; the one field an earlier draft got wrong. Its
+  <code>require:</code> rule names <code>meridian-finance/meridian-standards</code>, the org's shared
+  standards package that Meridian actually authors and publishes in
+  <a href="becoming-a-producer.html">Chapter&nbsp;10</a> &mdash; it is foreshadowed here at the pilot's
+  <code>v0.1.0</code>, and the enforcement build later bumps that pin to the released
+  <code>v1.0.0</code>:
 </p>
 <figure class="code-example">
   <figcaption>

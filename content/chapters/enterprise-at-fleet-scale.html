@@ -131,7 +131,7 @@
     check via <code>microsoft/apm-action</code>; (2)&nbsp;route all APM dependency traffic through the
     security org&rsquo;s <strong>approved registry proxy</strong>; (3)&nbsp;publish an org
     <code>apm-policy.yml</code> baseline at <code>enforcement: block</code>, owned in
-    <code>meridian/.github</code>; and (4)&nbsp;ship an <strong>adoption checklist</strong> so new repos
+    <code>meridian-finance/.github</code>; and (4)&nbsp;ship an <strong>adoption checklist</strong> so new repos
     onboard themselves. The worked example runs those four moves.
   </p>
 </aside>
@@ -632,7 +632,7 @@ apm install                                        # every archive fetched via t
 
 <h3>Move 4 &mdash; publish and own the org baseline (SKIPPED-needs-network)</h3>
 <p>
-  Finally the platform team lands the org <code>apm-policy.yml</code> in <code>meridian/.github</code>,
+  Finally the platform team lands the org <code>apm-policy.yml</code> in <code>meridian-finance/.github</code>,
   behind branch protection. This is the <a href="governance-and-policy.html">Chapter&nbsp;9</a> schema,
   relocated and set to fail closed; the three product-group repos <em>consume</em> it from their git remote.
   Authoring and testing happen locally; the org-remote discovery and tighten-only <code>extends:</code>
@@ -640,11 +640,11 @@ apm install                                        # every archive fetched via t
 </p>
 <figure class="code-example">
   <figcaption>
-    <code>meridian/.github/apm-policy.yml</code> &mdash; the fleet baseline, owned behind CODEOWNERS +
+    <code>meridian-finance/.github/apm-policy.yml</code> &mdash; the fleet baseline, owned behind CODEOWNERS +
     branch protection; consuming repos only consume it. Org-remote discovery + <code>extends:</code> merge
     need infrastructure. <span class="needs-network">needs network</span><span class="apm-version">apm v0.23.1</span>
   </figcaption>
-  <pre><code class="language-yaml"># meridian/.github/apm-policy.yml   -- SKIPPED-needs-network (org-remote discovery + extends: merge)
+  <pre><code class="language-yaml"># meridian-finance/.github/apm-policy.yml   -- SKIPPED-needs-network (org-remote discovery + extends: merge)
 name: meridian-org-baseline
 version: "1.0.0"
 enforcement: block               # past the pilot: fail closed on violations
