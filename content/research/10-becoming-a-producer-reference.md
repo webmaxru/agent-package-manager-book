@@ -247,7 +247,7 @@ failed (`--check-versions`) · `4` marketplace working-tree drift (`--check-clea
   name: pluginprobe
   version: 0.1.0
   description: APM project for pluginprobe
-  author: Maxim Salnikov          # auto-filled from git/system identity
+  author: Ravi Sharma          # auto-filled from git/system identity
   targets: [copilot]
   dependencies: { apm: [], mcp: [] }
   includes: auto

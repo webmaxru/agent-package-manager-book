@@ -254,7 +254,7 @@ manifest, so the clean hand-authored formatting is preserved on disk:
 name: meridian-checkout-agent-context
 version: 0.2.0
 description: Shared AI-agent context for the Meridian checkout service.
-author: Maxim Salnikov
+author: Ravi Sharma
 targets:
   - copilot
   - claude

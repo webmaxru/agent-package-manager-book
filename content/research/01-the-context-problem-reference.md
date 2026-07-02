@@ -36,7 +36,7 @@ author should show as "the empty manifest":
 name: apm-ch01
 version: 1.0.0
 description: APM project for apm-ch01
-author: Maxim Salnikov
+author: Ravi Sharma
 # Which agent platforms to deploy to (uncomment to pin):
 # targets:
 #   - copilot

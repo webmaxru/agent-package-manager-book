@@ -42,7 +42,7 @@ produced **exactly** this — the canonical key set the chapter must teach:
 name: apm-ch04
 version: 1.0.0
 description: APM project for apm-ch04
-author: Maxim Salnikov
+author: Ravi Sharma
 # Which agent platforms to deploy to (uncomment to pin):
 # targets:
 #   - copilot
@@ -67,7 +67,7 @@ scripts: {}
 | `name` | string | dir name (`apm-ch04`) | Package identity (used when this repo is consumed as a dependency). | P1 | Use a stable, descriptive slug (`meridian-checkout-agent-context`). Changing it later is a rename. |
 | `version` | string (semver) | `1.0.0` | The package's own version. | P1 | Start Meridian at `0.1.0` (pre-1.0, one instruction). Advances one beat per chapter. |
 | `description` | string | `APM project for <name>` | Human summary shown in listings. | P1 | One sentence. Replace the boilerplate. |
-| `author` | string | git `user.name` (`Maxim Salnikov`) | Optional attribution metadata. | P1 | Auto-detected. Set to the team/org for a shared repo. Not required for install to work. |
+| `author` | string | git `user.name` (`Ravi Sharma`) | Optional attribution metadata. | P1 | Auto-detected. Set to the team/org for a shared repo. Not required for install to work. |
 | `targets` | list (**commented**) | *(absent/commented)* | Which harnesses to deploy to. When **absent**, APM **auto-detects** from the repo. | P2, P3 | **Uncomment and pin** for a shared repo so everyone deploys the same set. Values: `copilot, claude, cursor, opencode, codex, gemini, windsurf, kiro` (+ `agent-skills`, `antigravity`). |
 | `dependencies.apm` | list | `[]` | APM package dependencies (git-sourced primitives). | P4 | Items are `owner/repo[/subpath][#ref]`. **Pin the ref.** Empty is valid. Live install → Ch5. |
 | `dependencies.mcp` | list of objects | `[]` | MCP server declarations (external tools). | P4 | **List of objects, not a name→map** (see §"Dependency shapes"). Undeclared transitive MCP is blocked (Ch8). |
@@ -92,7 +92,7 @@ it is `apm init`'s output with `name`/`version`/`description` set and `targets:`
 name: meridian-checkout-agent-context
 version: 0.1.0
 description: Shared AI-agent context for the Meridian checkout service.
-author: Maxim Salnikov
+author: Ravi Sharma
 targets:
   - copilot
   - claude
