@@ -1,3 +1,13 @@
+<p align="center">
+  <a href="https://webmaxru.github.io/agent-package-manager-book/">
+    <img src="assets/cover.svg" alt="The Missing Package Manager — Managing AI Agent Context with APM" width="100%">
+  </a>
+</p>
+
+<p align="center">
+  <strong><a href="https://webmaxru.github.io/agent-package-manager-book/">Read the live interactive book&nbsp;→</a></strong>
+</p>
+
 # Agent Package Manager — Interactive Book
 
 An interactive, multi-page HTML book that teaches **Agent Package Manager (APM)** — starting from
