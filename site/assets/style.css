@@ -656,12 +656,23 @@ h4 { font-size: 1.06rem; font-weight: 600; letter-spacing: -0.01em; }
 .section-content thead th { background: var(--surface-2); font-family: var(--font-display); font-weight: 600; font-size: 0.9rem; }
 .section-content tbody tr:nth-child(even) { background: color-mix(in srgb, var(--surface-2) 55%, transparent); }
 .section-content blockquote {
-  margin: 1.5rem 0;
-  padding: 0.4rem 0 0.4rem 1.15rem;
-  border-left: 3px solid var(--indigo);
+  position: relative;
+  margin: 1.6rem 0;
+  padding: 0.15rem 0 0.15rem 2.15rem;
   color: var(--muted);
   font-style: italic;
 }
+.section-content blockquote::before {
+  content: "\201C";
+  position: absolute;
+  left: 0;
+  top: 0.3rem;
+  font-family: var(--font-display);
+  font-size: 2.3rem;
+  line-height: 1;
+  color: color-mix(in srgb, var(--indigo) 42%, transparent);
+}
+.section-content blockquote > :last-child { margin-bottom: 0; }
 
 /* ------------------------------------------------- code as artifact cards */
 pre {
@@ -773,11 +784,10 @@ pre code { font-family: var(--font-mono); }
 .hljs-strong { font-weight: 700; }
 
 /* --------------------------------------------------------------- callouts */
-/* Leader aside — quiet, indigo top rule (a margin note for leaders) */
+/* Leader aside — a quiet indigo-tinted margin note for leaders */
 .leader-callout {
-  background: var(--surface-2);
-  border: 1px solid var(--border);
-  border-top: 3px solid var(--indigo);
+  background: color-mix(in srgb, var(--indigo) 5%, var(--surface-2));
+  border: 1px solid color-mix(in srgb, var(--indigo) 30%, var(--border));
   border-radius: var(--radius);
   margin: 1.9rem 0;
   padding: 1.15rem 1.35rem;
@@ -802,10 +812,9 @@ pre code { font-family: var(--font-mono); }
   position: relative;
   background: color-mix(in srgb, var(--indigo) 6%, var(--surface));
   border: 1px solid color-mix(in srgb, var(--indigo) 26%, var(--border));
-  border-left: 3px solid var(--indigo);
   border-radius: var(--radius);
   margin: 1.9rem 0;
-  padding: 1.15rem 1.35rem 1.15rem 1.5rem;
+  padding: 1.15rem 1.35rem;
 }
 .meridian-beat::before {
   content: "";
@@ -835,17 +844,16 @@ pre code { font-family: var(--font-mono); }
 .callout {
   background: var(--surface);
   border: 1px solid var(--border);
-  border-left: 3px solid var(--muted);
   border-radius: var(--radius);
   margin: 1.6rem 0;
   padding: 1rem 1.25rem;
 }
 .callout > h3 { font-family: var(--font-display); font-size: 1.02rem; margin: 0 0 0.5rem; display: flex; align-items: center; gap: 0.5rem; }
 .callout > :last-child { margin-bottom: 0; }
-.callout-info { background: color-mix(in srgb, var(--indigo) 6%, var(--surface)); border-left-color: var(--indigo); }
+.callout-info { background: color-mix(in srgb, var(--indigo) 6%, var(--surface)); border-color: color-mix(in srgb, var(--indigo) 32%, var(--border)); }
 .callout-info > h3 { color: var(--indigo); }
 .callout-info > h3::before { content: "\24d8"; font-weight: 700; }
-.callout-warn { background: color-mix(in srgb, var(--amber) 9%, var(--surface)); border-left-color: var(--amber); }
+.callout-warn { background: color-mix(in srgb, var(--amber) 9%, var(--surface)); border-color: color-mix(in srgb, var(--amber) 40%, var(--border)); }
 .callout-warn > h3 { color: var(--amber-strong); }
 .callout-warn > h3::before { content: "\26a0"; }
 

@@ -197,7 +197,7 @@
     <div class="container">
       <p class="eyebrow">Behind the scenes</p>
       <h1>How a fleet of agents built this book</h1>
-      <p class="lead">An interactive wireframe of the orchestration pipeline. Press <strong>Run the fleet</strong> to watch the squad of GitHub Copilot primitives move through the waves — design, research, author, verify, review — exactly as it happened.</p>
+      <p class="lead">An interactive wireframe of the orchestration pipeline. Press <strong>Run the fleet</strong> to watch the squad of GitHub Copilot primitives move through the waves (design, research, author, verify, review) exactly as it happened.</p>
       <nav class="crumbs">
         <a href="index.html">← Back to the book</a>
         <a href="https://github.com/webmaxru/agent-package-manager-book" target="_blank" rel="noopener">View the repo ↗</a>
@@ -209,7 +209,7 @@
     <div class="controls">
       <button class="btn" id="run">▶ Run the fleet</button>
       <button class="btn ghost" id="reset">Reset</button>
-      <span class="status" id="status">Idle — press “Run the fleet” to start the orchestration.</span>
+      <span class="status" id="status">Idle. Press “Run the fleet” to start the orchestration.</span>
     </div>
 
     <div class="pipeline" id="pipeline">
@@ -243,7 +243,7 @@
       <!-- Wave 0 -->
       <div class="stage">
         <div class="wave" data-wave="w0">
-          <p class="wave-title">Wave 0 — Design &amp; scaffold</p>
+          <p class="wave-title">Wave 0: Design &amp; scaffold</p>
           <div class="wave-row two">
             <div class="node sm" data-step="3">
               <div class="role"><span class="ico">🏛️</span> Architect</div>
@@ -261,11 +261,11 @@
       <!-- Waves 1..N -->
       <div class="stage">
         <div class="wave" data-wave="wN">
-          <p class="wave-title">Waves 1…N — per chapter group</p>
+          <p class="wave-title">Waves 1…N: per chapter group</p>
           <div class="wave-row two">
             <div class="node sm" data-step="5">
               <div class="role"><span class="ico">🔍</span> CLI explorer</div>
-              <p>Introspects the <em>real</em> apm CLI surface — no hallucinated commands.</p>
+              <p>Introspects the <em>real</em> apm CLI surface. No hallucinated commands.</p>
             </div>
             <div class="node sm" data-step="6">
               <div class="role"><span class="ico">📚</span> Theory researcher</div>
@@ -283,7 +283,7 @@
           <div class="wave-row">
             <div class="node sm" data-step="8">
               <div class="role"><span class="ico">✅</span> Code verifier</div>
-              <p>Runs every example in a scratch project — must exit 0 with no network.</p>
+              <p>Runs every example in a scratch project; each must exit 0 with no network.</p>
             </div>
           </div>
           <div class="connector" data-conn="x3" style="height:1.6rem"></div>
@@ -335,7 +335,7 @@
       <div class="card"><h3>📚 Theory researcher <span class="tag">agent</span></h3><p>Explains concepts grounded in the official APM documentation.</p></div>
       <div class="card"><h3>🔍 CLI explorer <span class="tag">agent</span></h3><p>Introspects the installed APM CLI for the exact, real command and manifest surface.</p></div>
       <div class="card"><h3>✍️ Chapter author <span class="tag">agent</span></h3><p>Writes chapter prose and example code into the page slots.</p></div>
-      <div class="card"><h3>✅ Code verifier <span class="tag">agent</span></h3><p>Runs every example until it provably exits clean — no network required.</p></div>
+      <div class="card"><h3>✅ Code verifier <span class="tag">agent</span></h3><p>Runs every example until it provably exits clean, with no network required.</p></div>
       <div class="card"><h3>🧐 Chapter reviewer <span class="tag">agent</span></h3><p>Critiques for accuracy and consistency; routes fixes back to the author.</p></div>
       <div class="card"><h3>🎨 Frontend builder <span class="tag">agent</span></h3><p>Scaffolds and finalizes the HTML shell, navigation, and styling.</p></div>
       <div class="card"><h3>⚙️ Environment setup <span class="tag">skill</span></h3><p>Reproducible recipe to install the APM CLI and prepare a scratch workspace.</p></div>
@@ -346,24 +346,24 @@
   <footer>
     <div class="container">
       Inspired by <a href="https://danielmeppiel.github.io/agentic-sdlc-handbook/handbook/ch01-the-agentic-sdlc-thesis.html" target="_blank" rel="noopener">The Agentic SDLC Handbook</a>.
-      Built with a squad of GitHub Copilot primitives — agents · prompts · skills · instructions.
+      Built with a squad of GitHub Copilot primitives: agents · prompts · skills · instructions.
     </div>
   </footer>
 
   <script>
     const order = [
-      { step: 0,  msg: "Reading the brief — scope and intent locked in." },
+      { step: 0,  msg: "Reading the brief. Scope and intent locked in." },
       { step: 1,  msg: "Orchestrator boots and plans the waves." },
-      { step: 2,  msg: "Environment ready — apm CLI installed, commands introspectable." },
-      { wave: "w0", steps: [3, 4], msg: "Wave 0 — Architect drafts the TOC while the Frontend builder scaffolds the site." },
-      { wave: "wN", steps: [5, 6], msg: "Waves 1…N — Explorer extracts the real CLI surface; Researcher gathers concepts." },
+      { step: 2,  msg: "Environment ready: apm CLI installed, commands introspectable." },
+      { wave: "w0", steps: [3, 4], msg: "Wave 0: Architect drafts the TOC while the Frontend builder scaffolds the site." },
+      { wave: "wN", steps: [5, 6], msg: "Waves 1…N: Explorer extracts the real CLI surface; Researcher gathers concepts." },
       { wave: "wN", steps: [7], msg: "Author fills the chapter slots and writes runnable examples." },
-      { wave: "wN", steps: [8], msg: "Verifier runs every example — checking for EXIT 0 with no network." },
+      { wave: "wN", steps: [8], msg: "Verifier runs every example, checking for EXIT 0 with no network." },
       { wave: "wN", steps: [9], revise: true, msg: "Reviewer evaluates… one chapter needs work → REVISE back to the author." },
       { wave: "wN", steps: [7], msg: "Author applies the fixes from the reviewer." },
       { wave: "wN", steps: [9], msg: "Reviewer re-checks → ACCEPT ✓" },
-      { step: 10, msg: "Wave committed to git — clean, auditable history." },
-      { step: 11, msg: "Integration pass — cross-chapter consistency confirmed CLEAN." },
+      { step: 10, msg: "Wave committed to git. Clean, auditable history." },
+      { step: 11, msg: "Integration pass. Cross-chapter consistency confirmed CLEAN." },
       { step: 12, done: true, msg: "Published: verified chapters live as an interactive book. 🎉" }
     ];
 
@@ -392,7 +392,7 @@
       clearAll();
       runBtn.disabled = false;
       runBtn.textContent = '▶ Run the fleet';
-      statusEl.innerHTML = 'Idle — press “Run the fleet” to start the orchestration.';
+      statusEl.innerHTML = 'Idle. Press “Run the fleet” to start the orchestration.';
     }
 
     function activate(item, connIndex) {
