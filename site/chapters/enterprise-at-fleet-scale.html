@@ -435,6 +435,25 @@ jobs:
   <code>microsoft/apm-action</code> is just the GitHub-shaped convenience.
 </p>
 
+<aside class="callout callout-info">
+  <h3>Beyond CI gating: <code>gh-aw</code> runs the same action</h3>
+  <p>
+    The same <code>microsoft/apm-action</code> is also how <strong>GitHub Agentic Workflows</strong>
+    (<code>gh-aw</code>) consumes APM at <em>runtime</em>. A gh-aw workflow adds a
+    <code>shared/apm.md</code> import that runs the action to pack the declared packages into a bundle,
+    then restores it before the agent job starts &mdash; so the manifest, the <code>apm.lock.yaml</code>
+    SHA pins (<a href="the-lockfile-and-reproducibility.html">Chapter&nbsp;6</a>), and the org
+    <code>apm-policy.yml</code> baseline you own here carry straight into an agent&rsquo;s execution
+    environment (<a href="https://github.github.com/gh-aw/reference/dependencies/" rel="noreferrer">gh-aw
+    APM dependencies</a>). Pairing APM&rsquo;s install-time governance with gh-aw&rsquo;s sandboxed
+    runtime &mdash; where the model holds no write token &mdash; is documented as an enterprise pattern in
+    GitHub&rsquo;s Well-Architected guidance
+    (<a href="https://learn.github.com/well-architected/governance/recommendations/governing-agentic-workflows" rel="noreferrer">Governing
+    agentic workflows with gh-aw and APM</a>). <a href="the-landscape-and-whats-next.html">Chapter&nbsp;12</a>
+    places gh-aw on the wider map as a <em>consumer</em> of APM, not a rival.
+  </p>
+</aside>
+
 <h3>Registry strategy: proxy and air-gapped</h3>
 <p>
   Because &ldquo;enterprise networks rarely allow agents to reach <code>github.com</code> directly,&rdquo;

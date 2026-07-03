@@ -166,6 +166,17 @@ this is **documented, not executed** — the underlying `apm audit --ci` gate it
 (Feature 1). Source: [microsoft/apm-action README](https://github.com/microsoft/apm-action) (v1.10.0) +
 [Enforce in CI](https://microsoft.github.io/apm/enterprise/enforce-in-ci/).
 
+**Downstream consumer (documented cross-reference, `SKIPPED-needs-network`).** The same
+`microsoft/apm-action` is how **GitHub Agentic Workflows (`gh-aw`)** consumes APM at runtime: a gh-aw
+workflow adds a `shared/apm.md` import that runs the action to pack the declared packages into a bundle,
+then restores it before the agent job starts — so the manifest, the `apm.lock.yaml` SHA pins (Ch6), and
+the org `apm-policy.yml` baseline carry straight into the agent's execution environment. Pairing APM's
+install-time governance with gh-aw's sandboxed runtime (the model holds no write token) is documented as
+an enterprise pattern in GitHub's Well-Architected guidance. Cite the docs; never claim a locally-run
+Action result. Sources: [gh-aw APM dependencies](https://github.github.com/gh-aw/reference/dependencies/) ·
+[Governing agentic workflows with gh-aw and APM](https://learn.github.com/well-architected/governance/recommendations/governing-agentic-workflows).
+Chapter 12 places gh-aw on the wider map as a *consumer* of APM, not a rival.
+
 **Key inputs (README, pin to `@v1`):** `apm-version` (**pin a specific CLI version**), `setup-only`
 (install CLI, then exit — no `apm.yml` read, no deploy), `audit-report` (generate SARIF + a
 `$GITHUB_STEP_SUMMARY` markdown table), `compile`, `pack` / `bundle-format` (`apm`|`plugin`) / `target` /

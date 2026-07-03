@@ -192,6 +192,19 @@ each optimizes a *subset* of the four properties over a *narrower* primitive set
   the **MCP Registry** ([modelcontextprotocol/registry](https://github.com/modelcontextprotocol/registry))
   and **Smithery** ([smithery.ai](https://smithery.ai)) are MCP-server indexes APM can *consume*
   rather than replace.
+- *(Complementary consumer — a host/runtime, not a rival.)* **GitHub Agentic Workflows (`gh-aw`)** is a
+  GitHub Next / Microsoft Research framework that compiles markdown workflows into deterministic GitHub
+  Actions runs and **consumes APM**: a workflow adds a `shared/apm.md` import that runs
+  `microsoft/apm-action` to pack + restore the declared packages before the agent starts. It answers the
+  downstream question "once context is managed, who *runs* it?" — layering a sandboxed runtime (the LLM
+  holds no write token, separated from the deterministic step that can write) on top of APM's portability,
+  reproducibility (`apm.lock` SHA pins, PR-reviewable diffs), provenance, and governance. **Author framing:**
+  gh-aw makes the "context layer" positioning concrete — APM is not the whole stack, it is the layer other
+  runtimes build on; frame it as complementary, never as a competitor in the comparison table. The pairing
+  is documented as an enterprise pattern in GitHub's *Well-Architected* guidance
+  ([gh-aw APM dependencies](https://github.github.com/gh-aw/reference/dependencies/) ·
+  [APM · gh-aw integration](https://microsoft.github.io/apm/integrations/gh-aw/) ·
+  [Governing agentic workflows with gh-aw and APM](https://learn.github.com/well-architected/governance/recommendations/governing-agentic-workflows)).
 
 **The honest positioning.** APM's distinction, per the landscape research, is that it is the **only**
 tool covering the full primitive breadth (skills + prompts + instructions + agents + plugins + MCP +
@@ -367,6 +380,13 @@ Adjacent & competing tools (primary competitor sources):
 Adjacent registries (complementary, APM can consume):
 - MCP Registry — <https://github.com/modelcontextprotocol/registry>
 - Smithery (MCP-server index) — <https://smithery.ai>
+
+Consumers / runtimes that host APM (complementary — gh-aw consumes APM, it does not compete with it):
+- GitHub Agentic Workflows (`gh-aw`) — APM dependencies reference (the `shared/apm.md` import running
+  `microsoft/apm-action` to pack/restore packages) — <https://github.github.com/gh-aw/reference/dependencies/>
+- APM · gh-aw integration guide — <https://microsoft.github.io/apm/integrations/gh-aw/>
+- "Governing agentic workflows with gh-aw and APM" (GitHub Well-Architected; capability separation +
+  APM governance layer) — <https://learn.github.com/well-architected/governance/recommendations/governing-agentic-workflows>
 
 Name-collision reinforcement (Chapter 2 callback):
 - Issoh tech team — APM explainer with multi-way "APM" disambiguation —

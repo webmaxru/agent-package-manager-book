@@ -516,6 +516,43 @@
   <a href="https://smithery.ai" rel="noreferrer">Smithery</a> are MCP-server indexes APM can
   <em>consume</em> rather than replace.
 </p>
+
+<h3>A different relationship: tools that <em>consume</em> APM</h3>
+<p>
+  Not every neighbour on the map is a rival. The most consequential one is a <em>consumer</em>:
+  <a href="https://github.github.com/gh-aw/" rel="noreferrer">GitHub Agentic Workflows</a>
+  (<code>gh-aw</code>), a GitHub&nbsp;Next / Microsoft&nbsp;Research framework that compiles a markdown
+  workflow file into a deterministic GitHub Actions run. The rivals above answer &ldquo;should I use APM
+  or something else to <em>manage</em> context?&rdquo; <code>gh-aw</code> answers the question that comes
+  <em>after</em> that one: once context is managed, <strong>who runs it?</strong> It does not reimplement
+  packaging &mdash; it <strong>imports APM</strong>. A workflow adds a <code>shared/apm.md</code> import
+  that runs <code>microsoft/apm-action</code> (the turnkey action from
+  <a href="enterprise-at-fleet-scale.html">Chapter&nbsp;11</a>) to pack the declared packages into a
+  bundle, then restores that bundle before the agent starts
+  (<a href="https://github.github.com/gh-aw/reference/dependencies/" rel="noreferrer">gh-aw APM
+  dependencies</a>; <a href="https://microsoft.github.io/apm/integrations/gh-aw/" rel="noreferrer">the
+  APM&nbsp;&middot;&nbsp;gh-aw integration guide</a>).
+</p>
+<p>
+  Through the four properties, the division of labour is clean &mdash; and it is why a consumer belongs on
+  this map at all. APM supplies <span class="property property--portability">Portability</span>,
+  <span class="property property--reproducibility">Reproducibility</span> (the same
+  <code>apm.lock.yaml</code> SHA pins from <a href="the-lockfile-and-reproducibility.html">Chapter&nbsp;6</a>,
+  whose diffs are reviewable in the pull request), install-time
+  <span class="property property--security">Provenance / security</span>
+  (<a href="security-by-default.html">Chapter&nbsp;8</a>), and org
+  <span class="property property--governance">Governance</span> via <code>apm-policy.yml</code>
+  (<a href="governance-and-policy.html">Chapter&nbsp;9</a>). <code>gh-aw</code> contributes the one thing
+  APM deliberately does <em>not</em> own: a <strong>sandboxed runtime</strong> that separates the model
+  &mdash; which reads untrusted input and holds no write token &mdash; from the deterministic step that is
+  allowed to write, so a prompt-injection payload cannot become a pushed commit. GitHub documents the
+  pairing as an enterprise pattern in its Well-Architected guidance
+  (<a href="https://learn.github.com/well-architected/governance/recommendations/governing-agentic-workflows" rel="noreferrer">Governing
+  agentic workflows with gh-aw and APM</a>), including the integration&rsquo;s <code>isolated</code>
+  import mode, which hides repo-level config from a consumed skill so its <em>publisher</em> &mdash; not a
+  compromised repo &mdash; controls what the agent is told to do. This is the honest shape of the
+  category: APM is not the whole stack, it is the <em>context layer</em> other runtimes build on.
+</p>
           </div>
         </section>
         <section class="chapter-section" data-section="worked-example">
