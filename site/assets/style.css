@@ -56,8 +56,37 @@
   font-family: var(--font-body);
 }
 
+/* Dark theme tokens.
+   Two entry points that MUST stay in sync:
+   1. Explicit choice — :root[data-theme="dark"] wins regardless of system.
+   2. System default — applied only when the visitor has NOT chosen a theme
+      (:root:not([data-theme])), so an explicit light choice is respected and
+      no-JS visitors still get their OS preference. */
+:root[data-theme="dark"] {
+  --bg: #0D1017;
+  --surface: #141926;
+  --surface-2: #1A2130;
+  --text: #EAEEF7;
+  --muted: #97A1B6;
+  --border: #232C3E;
+
+  --indigo: #8B84FF;
+  --indigo-strong: #ADA7FF;
+  --amber: #E7B23D;
+  --amber-strong: #F3C766;
+  --on-indigo: #0D1017;
+
+  --prop-portability: #8B84FF;
+  --prop-reproducibility: #2FD4C6;
+  --prop-security: #E7B23D;
+  --prop-governance: #E67CB5;
+
+  --shadow: 0 28px 64px -30px rgba(0, 0, 0, 0.62);
+  --shadow-sm: 0 12px 30px -18px rgba(0, 0, 0, 0.55);
+}
+
 @media (prefers-color-scheme: dark) {
-  :root {
+  :root:not([data-theme]) {
     --bg: #0D1017;
     --surface: #141926;
     --surface-2: #1A2130;
@@ -195,6 +224,41 @@ h4 { font-size: 1.06rem; font-weight: 600; letter-spacing: -0.01em; }
 .btn-secondary { background: transparent; color: var(--text); border-color: var(--border); }
 .btn-secondary:hover { border-color: var(--indigo); color: var(--indigo-strong); transform: translateY(-2px); }
 .btn-secondary::after { content: " \2197"; }
+
+/* ------------------------------------------------------- theme toggle */
+/* A fixed, always-available control that flips the explicit [data-theme].
+   The visible icon is the theme you will switch TO (moon in light, sun in
+   dark); theme-toggle.js sets data-active + the aria label. */
+.theme-toggle {
+  position: fixed;
+  top: 0.9rem;
+  right: 0.9rem;
+  z-index: 60;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.6rem;
+  height: 2.6rem;
+  padding: 0;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: color-mix(in srgb, var(--surface) 82%, transparent);
+  color: var(--text);
+  cursor: pointer;
+  box-shadow: var(--shadow-sm);
+  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px);
+  transition: transform 140ms ease, border-color 140ms ease, color 140ms ease, background 140ms ease;
+}
+.theme-toggle:hover { transform: translateY(-1px); border-color: var(--indigo); color: var(--indigo); }
+.theme-toggle:focus-visible { outline: 2px solid var(--indigo); outline-offset: 2px; }
+.theme-toggle__icon { width: 1.25rem; height: 1.25rem; display: none; }
+.theme-toggle__sun { fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
+.theme-toggle__moon { fill: currentColor; }
+/* Dark active -> show sun; light active (or pre-JS default) -> show moon. */
+.theme-toggle[data-active="dark"] .theme-toggle__sun,
+.theme-toggle[data-active="light"] .theme-toggle__moon,
+.theme-toggle:not([data-active]) .theme-toggle__moon { display: block; }
 
 /* =========================================================== INDEX: hero */
 .site-header {

@@ -47,6 +47,15 @@ THEME_LIGHT = "#F6F7FB"
 THEME_DARK = "#10141F"
 THEME_INDIGO = "#5A54F0"
 
+# Blocking, inline anti-FOUC snippet: reflect an explicit stored theme choice
+# onto <html> before first paint so a forced theme never flashes. Absence of a
+# stored choice leaves the attribute off, so CSS falls back to the OS preference.
+THEME_HEAD_SCRIPT = (
+    "<script>(function(){try{var t=localStorage.getItem('apm-theme');"
+    "if(t==='light'||t==='dark')document.documentElement.setAttribute('data-theme',t);}"
+    "catch(e){}})();</script>"
+)
+
 # ── Analytics (cookieless Application Insights RUM) ──────────────────────────
 # One-line kill switch: set to False to disable ALL telemetry site-wide on the
 # next build/deploy (no beacon, no events). The client is also a safe no-op when
@@ -155,6 +164,27 @@ def icon_links(prefix: str) -> str:
   <link rel=\"manifest\" href=\"{prefix}site.webmanifest\">"""
 
 
+def theme_toggle() -> str:
+    """A fixed light/dark switch shared by every page.
+
+    The button is ``position: fixed``, so its place in the DOM is irrelevant to
+    layout; ``assets/theme-toggle.js`` owns the behaviour, the visible icon
+    (moon in light, sun in dark), and the aria label.
+    """
+    return (
+        '<button class="theme-toggle" type="button" data-theme-toggle '
+        'aria-label="Switch color theme" aria-pressed="false">\n'
+        '    <svg class="theme-toggle__icon theme-toggle__sun" viewBox="0 0 24 24" aria-hidden="true" focusable="false">\n'
+        '      <circle cx="12" cy="12" r="4.2"></circle>\n'
+        '      <path d="M12 2.4v2.6M12 19v2.6M4.5 4.5l1.9 1.9M17.6 17.6l1.9 1.9M2.4 12H5M19 12h2.6M4.5 19.5l1.9-1.9M17.6 6.4l1.9-1.9"></path>\n'
+        '    </svg>\n'
+        '    <svg class="theme-toggle__icon theme-toggle__moon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">\n'
+        '      <path d="M20.6 14.3A8.2 8.2 0 0 1 9.7 3.4 8.2 8.2 0 1 0 20.6 14.3z"></path>\n'
+        '    </svg>\n'
+        '  </button>'
+    )
+
+
 def root_head(
     title: str,
     description: str,
@@ -167,6 +197,7 @@ def root_head(
     jsonld_block = f"\n  {jsonld}" if jsonld else ""
     return f"""<meta charset=\"utf-8\">
   <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">
+  {THEME_HEAD_SCRIPT}
   <meta name=\"description\" content=\"{esc(description)}\">
   <title>{esc(full_title)}</title>
 {social_meta(full_title, description, path, og_type)}
@@ -178,6 +209,7 @@ def root_head(
   <link rel=\"stylesheet\" href=\"{prefix}assets/style.css\">
   <script defer src=\"https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js\" crossorigin=\"anonymous\" referrerpolicy=\"no-referrer\"></script>
   <script defer src=\"{prefix}assets/app.js\"></script>
+  <script defer src=\"{prefix}assets/theme-toggle.js\"></script>
   <script defer src=\"{prefix}assets/analytics-config.js\"></script>
   <script defer src=\"{prefix}assets/analytics.js\"></script>{jsonld_block}"""
 
@@ -337,6 +369,7 @@ def render_index(chapters: list[dict[str, Any]]) -> str:
 </head>
 <body>
   <a class="skip-link" href="#main-content">Skip to main content</a>
+  {theme_toggle()}
   <header class="site-header" role="banner">
     <div class="container">
       <div class="hero">
@@ -480,6 +513,7 @@ def render_chapter(chapters: list[dict[str, Any]], index: int) -> str:
 </head>
 <body class="chapter-page">
   <a class="skip-link" href="#main-content">Skip to main content</a>
+  {theme_toggle()}
   <button class="sidebar-toggle" type="button" aria-controls="chapter-sidebar" aria-expanded="false">☰ Chapters</button>
 
   <div class="page-shell">
