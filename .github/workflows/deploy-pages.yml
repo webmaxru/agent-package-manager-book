@@ -36,6 +36,12 @@ jobs:
 
       - name: Generate site from content/toc.yml
         run: python site/generate.py
+        env:
+          # Public, write-only Application Insights client key — injected at build
+          # time as a repo *variable* (not a secret). Set with:
+          #   gh variable set APPINSIGHTS_CONNECTION_STRING --body "InstrumentationKey=...".
+          # If unset, the cookieless beacon is a safe no-op (no telemetry).
+          APPINSIGHTS_CONNECTION_STRING: ${{ vars.APPINSIGHTS_CONNECTION_STRING }}
 
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3

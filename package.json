@@ -1,0 +1,17 @@
+{
+  "name": "agent-package-manager-book",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Build tooling for the APM interactive book static site (cookieless Application Insights RUM).",
+  "scripts": {
+    "build:analytics": "esbuild analytics/entry.js --bundle --format=iife --minify --target=es2019 --legal-comments=none --outfile=site/assets/analytics.js",
+    "report": "cookieless-insights report --resource-group is-ai-native-rg --app-insights apm-book-ai --dashboard apm-book-dashboard --days 30 --open"
+  },
+  "dependencies": {
+    "@webmaxru/cookieless-insights": "^0.1.2"
+  },
+  "devDependencies": {
+    "esbuild": "^0.24.0"
+  }
+}
