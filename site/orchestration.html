@@ -245,6 +245,10 @@
     footer { border-top: 1px solid var(--border); padding: 2rem 0; color: var(--muted); font-size: 0.9rem; }
     .reduced-hint { font-size: 0.82rem; color: var(--muted); margin-top: 0.4rem; }
   </style>
+  <!-- Cookieless Application Insights RUM (beacon). analytics-config.js is written
+       by site/generate.py at build time; analytics.js is built from analytics/entry.js. -->
+  <script defer src="assets/analytics-config.js"></script>
+  <script defer src="assets/analytics.js"></script>
 </head>
 <body>
   <header class="hero">
