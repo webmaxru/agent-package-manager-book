@@ -3,6 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
+  <script>(function(){try{var t=localStorage.getItem('apm-theme');if(t==='light'||t==='dark')document.documentElement.setAttribute('data-theme',t);}catch(e){}})();</script>
   <meta name="description" content="Author a valid apm.yml that declares Meridian&#x27;s first shared agent-context dependencies.">
   <title>The Manifest: apm.yml | The Missing Package Manager</title>
   <link rel="canonical" href="https://apm.isainative.dev/chapters/the-manifest-apm-yml.html">
@@ -38,6 +39,7 @@
   <link rel="stylesheet" href="../assets/style.css">
   <script defer src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
   <script defer src="../assets/app.js"></script>
+  <script defer src="../assets/theme-toggle.js"></script>
   <script defer src="../assets/analytics-config.js"></script>
   <script defer src="../assets/analytics.js"></script>
   <script type="application/ld+json">
@@ -90,6 +92,15 @@
 </head>
 <body class="chapter-page">
   <a class="skip-link" href="#main-content">Skip to main content</a>
+  <button class="theme-toggle" type="button" data-theme-toggle aria-label="Switch color theme" aria-pressed="false">
+    <svg class="theme-toggle__icon theme-toggle__sun" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+      <circle cx="12" cy="12" r="4.2"></circle>
+      <path d="M12 2.4v2.6M12 19v2.6M4.5 4.5l1.9 1.9M17.6 17.6l1.9 1.9M2.4 12H5M19 12h2.6M4.5 19.5l1.9-1.9M17.6 6.4l1.9-1.9"></path>
+    </svg>
+    <svg class="theme-toggle__icon theme-toggle__moon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+      <path d="M20.6 14.3A8.2 8.2 0 0 1 9.7 3.4 8.2 8.2 0 1 0 20.6 14.3z"></path>
+    </svg>
+  </button>
   <button class="sidebar-toggle" type="button" aria-controls="chapter-sidebar" aria-expanded="false">☰ Chapters</button>
 
   <div class="page-shell">
