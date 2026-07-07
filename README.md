@@ -158,9 +158,12 @@ content/
 backend/
   samples/            # example apm.yml projects (+ apm.lock.yaml)
 site/
+  generate.py         # renders the HTML site + the downloadable PDF from content/
+  generate_pdf.py     # assembles + renders site/apm-book.pdf (Playwright/Chromium)
   index.html
   chapters/*.html     # chapter subpages
   assets/             # style.css + app.js
+  apm-book.pdf        # generated: full-book PDF (rebuilt on every build)
 scripts/
   run-fleet.ps1       # convenience launcher
 ```
@@ -175,6 +178,30 @@ cd site
 python -m http.server
 # then open http://localhost:8000
 ```
+
+### Rebuild the site + downloadable PDF
+
+The site (and the single-file **[Download the book (PDF)](https://apm.isainative.dev/apm-book.pdf)**
+offered on every page) is generated from the same source of truth — `content/toc.yml` plus the
+`content/chapters/*.html` fragments — so the PDF never drifts from the book:
+
+```powershell
+# from the repository root — rebuilds every HTML page AND site/apm-book.pdf
+python site/generate.py
+```
+
+The PDF is rendered with headless Chromium via Playwright. Install the toolchain once:
+
+```powershell
+pip install playwright
+python -m playwright install chromium
+```
+
+If Playwright/Chromium isn't installed, `generate.py` still builds the HTML and prints an
+actionable notice instead of failing. On deploy, the GitHub Pages workflow installs the toolchain
+and sets `APM_PDF_REQUIRED=1`, so **the PDF is regenerated on every book change** and a broken PDF
+build fails the deploy rather than shipping a stale file. The generated `site/apm-book.pdf` is
+gitignored and rebuilt fresh each time.
 
 To install the `apm` CLI (needed for exploration/verification, not for viewing the site):
 

@@ -38,6 +38,9 @@ BOOK_AUTHOR = "Maxim Salnikov"
 AUTHOR_URL = "https://www.linkedin.com/in/webmaxru/"
 REPO_URL = "https://github.com/webmaxru/agent-package-manager-book"
 APM_DOCS_URL = "https://microsoft.github.io/apm/"
+# Single-file, printable PDF of the whole book. Built by generate_pdf.py into
+# site/ and offered as a download from the site; regenerated on every build.
+PDF_FILENAME = "apm-book.pdf"
 LOCALE = "en_US"
 OG_IMAGE_PATH = "assets/og-cover.png"
 OG_IMAGE_ALT = "The Missing Package Manager \u2014 Managing AI Agent Context with APM"
@@ -379,6 +382,7 @@ def render_index(chapters: list[dict[str, Any]]) -> str:
           <p class="hero-sub">{esc(BOOK_INTRO)}</p>
           <div class="hero-actions">
             <a class="btn btn-primary" href="{esc(start_href)}">Start reading</a>
+            <a class="btn btn-secondary" href="{PDF_FILENAME}" download>Download PDF</a>
             <a class="btn btn-secondary" href="https://github.com/microsoft/apm" rel="noreferrer">View microsoft/apm</a>
           </div>
         </div>
@@ -425,7 +429,7 @@ def render_index(chapters: list[dict[str, Any]]) -> str:
 
   <footer class="site-footer">
     <div class="container">
-      <p>By <a href="https://www.linkedin.com/in/webmaxru/" rel="noreferrer">Maxim Salnikov</a> &middot; <a href="https://github.com/webmaxru/agent-package-manager-book" rel="noreferrer">Source on GitHub</a></p>
+      <p>By <a href="https://www.linkedin.com/in/webmaxru/" rel="noreferrer">Maxim Salnikov</a> &middot; <a href="https://github.com/webmaxru/agent-package-manager-book" rel="noreferrer">Source on GitHub</a> &middot; <a href="{PDF_FILENAME}" download>Download the book (PDF)</a></p>
     </div>
   </footer>
 </body>
@@ -556,7 +560,7 @@ def render_chapter(chapters: list[dict[str, Any]], index: int) -> str:
       </main>
 
       <footer class="site-footer chapter-footer">
-        <p>By <a href="https://www.linkedin.com/in/webmaxru/" rel="noreferrer">Maxim Salnikov</a> &middot; <a href="https://github.com/webmaxru/agent-package-manager-book" rel="noreferrer">Source on GitHub</a></p>
+        <p>By <a href="https://www.linkedin.com/in/webmaxru/" rel="noreferrer">Maxim Salnikov</a> &middot; <a href="https://github.com/webmaxru/agent-package-manager-book" rel="noreferrer">Source on GitHub</a> &middot; <a href="../{PDF_FILENAME}" download>Download the book (PDF)</a></p>
       </footer>
     </div>
   </div>
@@ -686,6 +690,7 @@ def render_sitemap(chapters: list[dict[str, Any]]) -> str:
     today = datetime.date.today().isoformat()
     entries: list[tuple[str, str]] = [(abs_url(), "1.0")]
     entries += [(abs_url(chapter_url(chapter)), "0.8") for chapter in chapters]
+    entries.append((abs_url(PDF_FILENAME), "0.6"))
     entries.append((abs_url("orchestration.html"), "0.5"))
     rows = "\n".join(
         "  <url>\n"
@@ -753,6 +758,7 @@ def render_llms(chapters: list[dict[str, Any]]) -> str:
         "## About",
         "",
         f"- [Home]({abs_url()}): overview, reading paths, and the full table of contents.",
+        f"- [Download the full book (PDF)]({abs_url(PDF_FILENAME)}): the entire book as one printable, offline PDF.",
         f"- [How the fleet built this]({abs_url('orchestration.html')}): the agent-orchestration pipeline that produced the book.",
         "",
         "## Reference",
@@ -837,6 +843,29 @@ def write_analytics_config() -> None:
     (assets_dir / "analytics-config.js").write_text(body, encoding="utf-8")
 
 
+def build_pdf_artifact(chapters: list[dict[str, Any]]) -> None:
+    """Regenerate the downloadable book PDF as part of the site build.
+
+    This keeps the PDF in lock-step with the book: any change to the HTML site
+    (which is driven by content/toc.yml + content/chapters/*) rebuilds the PDF
+    from the same sources in the same run. Building the PDF needs Playwright +
+    Chromium, so it is optional by default: a plain HTML build still works
+    without that toolchain and only prints an actionable skip notice. CI sets
+    APM_PDF_REQUIRED=1 to make a missing/broken toolchain a hard failure, so the
+    published site never ships without a fresh PDF.
+    """
+    required = os.environ.get("APM_PDF_REQUIRED", "").strip().lower() in {"1", "true", "yes"}
+    try:
+        import generate_pdf  # local module in site/; imported lazily to avoid a cycle
+    except ImportError as exc:
+        message = "generate: generate_pdf module unavailable; skipping apm-book.pdf."
+        if required:
+            raise RuntimeError(message) from exc
+        print(message)
+        return
+    generate_pdf.build_pdf(chapters, required=required)
+
+
 def main() -> None:
     chapters = load_chapters()
     CHAPTERS_DIR.mkdir(parents=True, exist_ok=True)
@@ -853,6 +882,7 @@ def main() -> None:
     print(f"Wrote assets/analytics-config.js (enabled={bool(ANALYTICS_ENABLED)}, connection string {connection_present})")
     if removed:
         print(f"Removed {len(removed)} stale chapter file(s): {', '.join(removed)}")
+    build_pdf_artifact(chapters)
 
 
 if __name__ == "__main__":

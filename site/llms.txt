@@ -22,6 +22,7 @@ An interactive, multi-page HTML book. Chapters build in order, concept before co
 ## About
 
 - [Home](https://apm.isainative.dev/): overview, reading paths, and the full table of contents.
+- [Download the full book (PDF)](https://apm.isainative.dev/apm-book.pdf): the entire book as one printable, offline PDF.
 - [How the fleet built this](https://apm.isainative.dev/orchestration.html): the agent-orchestration pipeline that produced the book.
 
 ## Reference
