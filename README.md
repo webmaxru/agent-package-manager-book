@@ -151,19 +151,23 @@ current one) and batches reviews to cut dispatch overhead.
   skills/         # environment setup + orchestration pipeline
   instructions/   # auto-applied content & example rules
   prompts/        # run-book driver + new-chapter helper
+  workflows/      # deploy-pages (site) + release-content (versioned releases)
 content/
-  playbook-brief.md       # scope / intent
+  playbook-brief.md   # scope / intent
   toc.yml             # chapter spec (source of truth)
+  version.yml         # content edition (major.minor) — drives the version on site + PDF
+  CHANGELOG.md        # what changed in each content edition
   research/           # per-chapter theory + reference notes
 backend/
   samples/            # example apm.yml projects (+ apm.lock.yaml)
 site/
-  generate.py         # renders the HTML site + the downloadable PDF from content/
-  generate_pdf.py     # assembles + renders site/apm-book.pdf (Playwright/Chromium)
+  generate.py             # renders the HTML site + the downloadable PDF from content/
+  generate_pdf.py         # assembles + renders site/apm-book.pdf (Playwright/Chromium)
+  extract_release_notes.py # turns a CHANGELOG section into GitHub Release notes
   index.html
-  chapters/*.html     # chapter subpages
-  assets/             # style.css + app.js
-  apm-book.pdf        # generated: full-book PDF (rebuilt on every build)
+  chapters/*.html         # chapter subpages
+  assets/                 # style.css + app.js
+  apm-book.pdf            # generated: full-book PDF (rebuilt on every build)
 scripts/
   run-fleet.ps1       # convenience launcher
 ```
@@ -212,6 +216,45 @@ apm --version
 
 > **Note:** example manifests and commands are verified against the installed `apm` CLI. Record the
 > inspected version in research/verification artifacts — APM moves fast.
+
+---
+
+## Versioning & releases
+
+This is a **living book**, so the *content* is versioned — independently of the site tooling. A
+version bump means the chapters you read changed; build-script, analytics, or other infrastructure
+changes never move the number.
+
+- **Source of truth:** [`content/version.yml`](content/version.yml) holds the current edition
+  (`major.minor`) and its date; [`content/CHANGELOG.md`](content/CHANGELOG.md) records what changed
+  in each one.
+- **Where it shows:** the edition and its "updated" date render on the home hero, every page footer,
+  the JSON-LD (`bookEdition`), `llms.txt`, and on the PDF cover + page footer — all generated from
+  the same source, so the online edition and the PDF can never disagree.
+- **GitHub Releases:** each edition maps to a `vX.Y` tag. Pushing the tag runs
+  [`release-content.yml`](.github/workflows/release-content.yml), which builds the site + PDF, turns
+  the matching changelog section into the release notes, and attaches a per-edition
+  `apm-book-vX.Y.pdf`.
+
+### Cut a new edition
+
+```powershell
+# 1. Bump the content edition + add a changelog entry:
+#      content/version.yml  ->  version: "1.2"   (and the date)
+#      content/CHANGELOG.md  ->  new "## [1.2] — <date>" section at the top
+
+# 2. Preview the release notes that will be published
+python site/extract_release_notes.py 1.2
+
+# 3. Commit, then tag and push — the release workflow does the rest
+git commit -am "content: v1.2 — <summary>"
+git tag v1.2
+git push origin main --tags
+```
+
+The current edition is **v1.1** (added GitHub Agentic Workflows as an APM consumer to Chapters 11 &
+12); **v1.0** was the initial 12-chapter edition. Browse the
+[releases](https://github.com/webmaxru/agent-package-manager-book/releases) for downloadable PDFs.
 
 ---
 

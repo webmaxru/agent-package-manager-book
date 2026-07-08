@@ -293,6 +293,7 @@ thead, tr { break-inside: avoid; }
   padding-top: 1rem;
 }
 .cover-meta strong { color: var(--text); font-weight: 600; }
+.cover-meta .cover-version { color: var(--indigo-strong); font-weight: 600; }
 .cover-meta .cover-props { display: block; margin-top: 0.4rem; }
 
 /* Table of contents */
@@ -404,6 +405,7 @@ def build_book_html(chapters: list[dict[str, Any]]) -> str:
     <div class="cover-meta">
       <div><strong>{generate.esc(generate.BOOK_TITLE)}</strong> &mdash; {generate.esc(generate.BOOK_SUBTITLE)}</div>
       <div>By {generate.esc(generate.BOOK_AUTHOR)} &middot; Read online at {generate.esc(generate.SITE_URL.replace("https://", ""))}</div>
+      <div class="cover-version">{generate.esc(generate.edition_label())}</div>
       <div>Free interactive edition &middot; Full-book PDF &middot; Generated {generate.esc(today)}</div>
       <span class="cover-props">Portability &middot; Reproducibility &middot; Security &middot; Governance</span>
     </div>
@@ -483,7 +485,7 @@ def _footer_template() -> str:
         '<div style="width:100%;font-size:8px;color:#8A93A8;'
         'padding:0 16mm;display:flex;justify-content:space-between;'
         'font-family:Georgia,serif;">'
-        '<span>apm.isainative.dev</span>'
+        f'<span>apm.isainative.dev &middot; Edition v{generate.esc(generate.CONTENT_VERSION)}</span>'
         '<span>Page <span class="pageNumber"></span> of <span class="totalPages"></span></span>'
         '</div>'
     )

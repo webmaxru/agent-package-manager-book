@@ -1,0 +1,16 @@
+# Content edition — the version of the BOOK CONTENT (the chapters you read).
+#
+# This is deliberately scoped to *content only*: site tooling, build scripts,
+# analytics, and other infrastructure changes do NOT bump this number. It is the
+# single source of truth for the edition shown on the site and in the downloadable
+# PDF, and it matches the `vX.Y` GitHub Release tag (see content/CHANGELOG.md).
+#
+# Scheme: major.minor
+#   major  — a substantial restructuring or rewrite of the book.
+#   minor  — new or revised chapter content (additions, corrections, expansions).
+#
+# To cut a new edition: bump `version` + `date` here, add a matching entry at the
+# top of content/CHANGELOG.md, commit, then tag `vX.Y` and push — the
+# `release-content` workflow builds the site + PDF and publishes the GitHub Release.
+version: "1.1"
+date: "2026-07-08"
