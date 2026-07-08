@@ -1,7 +1,8 @@
 name: Deploy book to GitHub Pages
 
 # Builds the static APM book from content/toc.yml + content/chapters/ fragments
-# via site/generate.py, then publishes site/ to GitHub Pages.
+# via site/generate.py (which also renders the downloadable site/apm-book.pdf),
+# then publishes site/ to GitHub Pages.
 
 on:
   push:
@@ -32,9 +33,12 @@ jobs:
           python-version: "3.12"
 
       - name: Install dependencies
-        run: python -m pip install --upgrade pip pyyaml
+        run: python -m pip install --upgrade pip pyyaml playwright
 
-      - name: Generate site from content/toc.yml
+      - name: Install Chromium for PDF rendering
+        run: python -m playwright install --with-deps chromium
+
+      - name: Generate site + PDF from content/toc.yml
         run: python site/generate.py
         env:
           # Public, write-only Application Insights client key — injected at build
@@ -42,6 +46,10 @@ jobs:
           #   gh variable set APPINSIGHTS_CONNECTION_STRING --body "InstrumentationKey=...".
           # If unset, the cookieless beacon is a safe no-op (no telemetry).
           APPINSIGHTS_CONNECTION_STRING: ${{ vars.APPINSIGHTS_CONNECTION_STRING }}
+          # Rebuild the downloadable PDF on every deploy and fail loudly if the
+          # PDF toolchain (Playwright + Chromium, installed above) is unavailable,
+          # so the published site never ships a stale or missing PDF.
+          APM_PDF_REQUIRED: "1"
 
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3
