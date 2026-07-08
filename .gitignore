@@ -17,6 +17,8 @@ build/
 site/assets/analytics-config.js
 # Generated downloadable book PDF (rebuilt from content on every site build)
 site/apm-book.pdf
+# Per-edition PDF copies produced when cutting a release (apm-book-v1.1.pdf, ...)
+apm-book-v*.pdf
 
 # Private research working notes (not part of the published book)
 .source-docs/

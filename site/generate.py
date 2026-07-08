@@ -69,6 +69,52 @@ ANALYTICS_ENABLED = True
 ANALYTICS_ENV_VAR = "APPINSIGHTS_CONNECTION_STRING"
 
 
+# ── Content edition (version) ────────────────────────────────────────────────
+# The BOOK CONTENT is versioned independently of the site tooling: content/version.yml
+# is the single source of truth (major.minor) and content/CHANGELOG.md records each
+# edition. The edition + its date are surfaced on the site and in the PDF, and every
+# edition maps to a `vX.Y` GitHub Release (see .github/workflows/release-content.yml).
+VERSION_PATH = ROOT / "content" / "version.yml"
+CHANGELOG_URL = f"{REPO_URL}/blob/main/content/CHANGELOG.md"
+RELEASES_URL = f"{REPO_URL}/releases"
+
+
+def load_content_edition() -> tuple[str, str]:
+    """Return ``(version, iso_date)`` for the current book content edition.
+
+    Falls back to a safe ``("0.0.0", "")`` when version.yml is missing or malformed
+    so a build never fails purely because the edition metadata is absent.
+    """
+    try:
+        with VERSION_PATH.open("r", encoding="utf-8") as handle:
+            data = yaml.safe_load(handle) or {}
+    except (OSError, yaml.YAMLError):
+        data = {}
+    version = str(data.get("version", "0.0.0")).strip() or "0.0.0"
+    date = str(data.get("date", "")).strip()
+    return version, date
+
+
+CONTENT_VERSION, CONTENT_DATE = load_content_edition()
+
+
+def human_date(iso: str) -> str:
+    """Render an ISO date (YYYY-MM-DD) as e.g. 'July 8, 2026'; pass through on error."""
+    try:
+        parsed = datetime.date.fromisoformat(iso)
+    except ValueError:
+        return iso
+    return f"{parsed:%B} {parsed.day}, {parsed.year}"
+
+
+def edition_label() -> str:
+    """Short human edition string, e.g. 'Edition v1.1 \u00b7 Updated July 8, 2026'."""
+    label = f"Edition v{CONTENT_VERSION}"
+    if CONTENT_DATE:
+        label += f" \u00b7 Updated {human_date(CONTENT_DATE)}"
+    return label
+
+
 def esc(value: Any) -> str:
     return html.escape(str(value), quote=True)
 
@@ -385,6 +431,7 @@ def render_index(chapters: list[dict[str, Any]]) -> str:
             <a class="btn btn-secondary" href="{PDF_FILENAME}" download>Download PDF</a>
             <a class="btn btn-secondary" href="https://github.com/microsoft/apm" rel="noreferrer">View microsoft/apm</a>
           </div>
+          <p class="hero-edition"><a href="{RELEASES_URL}" rel="noreferrer">{esc(edition_label())}</a></p>
         </div>
         <figure class="manifest-artifact" aria-label="An apm.yml manifest, resolved">
           <figcaption class="artifact-bar">
@@ -430,6 +477,7 @@ def render_index(chapters: list[dict[str, Any]]) -> str:
   <footer class="site-footer">
     <div class="container">
       <p>By <a href="https://www.linkedin.com/in/webmaxru/" rel="noreferrer">Maxim Salnikov</a> &middot; <a href="https://github.com/webmaxru/agent-package-manager-book" rel="noreferrer">Source on GitHub</a> &middot; <a href="{PDF_FILENAME}" download>Download the book (PDF)</a></p>
+      <p class="footer-edition"><a href="{RELEASES_URL}" rel="noreferrer">{esc(edition_label())}</a></p>
     </div>
   </footer>
 </body>
@@ -561,6 +609,7 @@ def render_chapter(chapters: list[dict[str, Any]], index: int) -> str:
 
       <footer class="site-footer chapter-footer">
         <p>By <a href="https://www.linkedin.com/in/webmaxru/" rel="noreferrer">Maxim Salnikov</a> &middot; <a href="https://github.com/webmaxru/agent-package-manager-book" rel="noreferrer">Source on GitHub</a> &middot; <a href="../{PDF_FILENAME}" download>Download the book (PDF)</a></p>
+        <p class="footer-edition"><a href="{RELEASES_URL}" rel="noreferrer">{esc(edition_label())}</a></p>
       </footer>
     </div>
   </div>
@@ -610,6 +659,9 @@ def index_jsonld(chapters: list[dict[str, Any]]) -> str:
             "bookFormat": "https://schema.org/EBook",
             "numberOfPages": len(chapters),
             "genre": "Technology",
+            "bookEdition": f"v{CONTENT_VERSION}",
+            "version": CONTENT_VERSION,
+            "dateModified": CONTENT_DATE,
             "author": author,
             "publisher": author,
             "image": abs_url(OG_IMAGE_PATH),
@@ -741,6 +793,10 @@ def render_llms(chapters: list[dict[str, Any]]) -> str:
         "",
         f"> {BOOK_SUBTITLE}. {BOOK_INTRO}",
         "",
+        f"Edition v{CONTENT_VERSION}"
+        + (f" \u00b7 updated {human_date(CONTENT_DATE)}" if CONTENT_DATE else "")
+        + f" \u00b7 changelog: {CHANGELOG_URL}",
+        "",
         "An interactive, multi-page HTML book. Chapters build in order, concept before "
         "command. Every APM feature is introduced as the implementation of one of four "
         "properties \u2014 portability, reproducibility, security, and governance \u2014 and every "
@@ -766,6 +822,8 @@ def render_llms(chapters: list[dict[str, Any]]) -> str:
         f"- [APM documentation]({APM_DOCS_URL}): official Agent Package Manager docs.",
         "- [microsoft/apm](https://github.com/microsoft/apm): the APM source repository and samples.",
         f"- [Book source]({REPO_URL}): source for this book.",
+        f"- [Changelog]({CHANGELOG_URL}): what changed in each content edition.",
+        f"- [Releases]({RELEASES_URL}): versioned editions, each with a downloadable PDF.",
         "",
     ]
     return "\n".join(lines)

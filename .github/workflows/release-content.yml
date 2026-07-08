@@ -1,0 +1,90 @@
+name: Publish content release
+
+# Cuts a versioned GitHub Release for a **content edition** of the book.
+#
+# The book content is versioned independently of the site tooling (see
+# content/version.yml + content/CHANGELOG.md). Pushing a `vX.Y` tag builds the
+# site + the downloadable PDF from that content and publishes a GitHub Release
+# whose notes come straight from the changelog, with a per-edition PDF attached
+# (apm-book-vX.Y.pdf). Re-running for an existing tag updates it in place.
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Existing tag to (re)build the release for, e.g. v1.1"
+        required: true
+
+# Needed to create/update Releases and upload the PDF asset.
+permissions:
+  contents: write
+
+concurrency:
+  group: release-${{ github.event.inputs.tag || github.ref_name }}
+  cancel-in-progress: false
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout (full history for changelog + tags)
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: ${{ github.event.inputs.tag || github.ref_name }}
+
+      - name: Resolve tag and version
+        id: meta
+        run: |
+          TAG="${{ github.event.inputs.tag || github.ref_name }}"
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+          echo "version=${TAG#v}" >> "$GITHUB_OUTPUT"
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: python -m pip install --upgrade pip pyyaml playwright
+
+      - name: Install Chromium for PDF rendering
+        run: python -m playwright install --with-deps chromium
+
+      - name: Check the tag matches content/version.yml
+        run: |
+          FILE_VERSION="$(python -c "import yaml; print(yaml.safe_load(open('content/version.yml'))['version'])")"
+          if [ "$FILE_VERSION" != "${{ steps.meta.outputs.version }}" ]; then
+            echo "::warning::Tag ${{ steps.meta.outputs.tag }} does not match content/version.yml (v$FILE_VERSION). Bump content/version.yml + content/CHANGELOG.md before tagging."
+          fi
+
+      - name: Build the site + PDF from content/toc.yml
+        run: python site/generate.py
+        env:
+          # Public, write-only Application Insights client key (repo variable). If
+          # unset the cookieless beacon is a safe no-op.
+          APPINSIGHTS_CONNECTION_STRING: ${{ vars.APPINSIGHTS_CONNECTION_STRING }}
+          # Fail loudly if the PDF toolchain is unavailable so a release never
+          # ships without its downloadable edition.
+          APM_PDF_REQUIRED: "1"
+
+      - name: Name the PDF for this edition
+        run: cp site/apm-book.pdf "apm-book-${{ steps.meta.outputs.tag }}.pdf"
+
+      - name: Build release notes from the changelog
+        run: python site/extract_release_notes.py "${{ steps.meta.outputs.version }}" > RELEASE_NOTES.md
+
+      - name: Publish or update the GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          TAG="${{ steps.meta.outputs.tag }}"
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            gh release edit "$TAG" --title "Book $TAG" --notes-file RELEASE_NOTES.md
+          else
+            gh release create "$TAG" --title "Book $TAG" --notes-file RELEASE_NOTES.md
+          fi
+          gh release upload "$TAG" "apm-book-$TAG.pdf" --clobber
