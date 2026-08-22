@@ -207,6 +207,24 @@ and sets `APM_PDF_REQUIRED=1`, so **the PDF is regenerated on every book change*
 build fails the deploy rather than shipping a stale file. The generated `site/apm-book.pdf` is
 gitignored and rebuilt fresh each time.
 
+### Free-tier Application Insights
+
+The published site uses the cookieless Application Insights beacon in `analytics/entry.js`.
+Provision an isolated workspace-based component with 30-day retention and a `0.16 GB/day`
+ingestion cap:
+
+```powershell
+pwsh scripts/setup.ps1 -Name apm-book -Location eastus2
+```
+
+The setup script prints the public, write-only connection string. Store it as the
+`APPINSIGHTS_CONNECTION_STRING` GitHub repository variable so the Pages and release builds inject
+telemetry at build time; do not commit it or put it in a secret. To inspect the last 30 days:
+
+```powershell
+npm run report
+```
+
 To install the `apm` CLI (needed for exploration/verification, not for viewing the site):
 
 ```powershell
