@@ -6,7 +6,7 @@
   "description": "Build tooling for the APM interactive book static site (cookieless Application Insights RUM).",
   "scripts": {
     "build:analytics": "esbuild analytics/entry.js --bundle --format=iife --minify --target=es2019 --legal-comments=none --outfile=site/assets/analytics.js",
-    "report": "cookieless-insights report --resource-group is-ai-native-rg --app-insights apm-book-ai --dashboard apm-book-dashboard --days 30 --open"
+    "report": "cookieless-insights report --resource-group apm-book-rg --app-insights apm-book-ai --dashboard apm-book-dashboard --days 30 --open"
   },
   "dependencies": {
     "@webmaxru/cookieless-insights": "^0.1.2"
