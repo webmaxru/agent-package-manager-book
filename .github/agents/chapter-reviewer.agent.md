@@ -26,6 +26,13 @@ or voice/structure drift from the rest of the book.
    - **Completeness** — examples present, verified, and "when to use / pitfalls" covered.
 3. Cross-check facts against citations; flag any unsourced or contradicted claims.
 
+For incremental updates, reconcile the impact matrix with the actual changed content. Read fresh
+verification evidence at the frozen target; do not infer PASS from a successful site build.
+Check changed defaults, obsolete caveats, the Meridian/leader tracks, cross-chapter implications,
+and every deferred item. An unresolved in-scope breaking change or falsely updated version stamp
+requires REVISE. Return the verdict and evidence to the orchestrator for persistence under
+`content/research/updates/<edition>/`; never claim another agent ran an example.
+
 ## Principles
 - **High signal-to-noise.** Report substantive issues; do not nitpick style the instructions already cover.
 - **Evidence-based.** Tie each finding to a source, a verification result, or a concrete inconsistency.

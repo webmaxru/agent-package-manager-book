@@ -12,6 +12,8 @@ from typing import Any
 
 import yaml
 
+from release_metadata import read_edition
+
 ROOT = Path(__file__).resolve().parents[1]
 SITE = ROOT / "site"
 CHAPTERS_DIR = SITE / "chapters"
@@ -80,19 +82,9 @@ RELEASES_URL = f"{REPO_URL}/releases"
 
 
 def load_content_edition() -> tuple[str, str]:
-    """Return ``(version, iso_date)`` for the current book content edition.
-
-    Falls back to a safe ``("0.0.0", "")`` when version.yml is missing or malformed
-    so a build never fails purely because the edition metadata is absent.
-    """
-    try:
-        with VERSION_PATH.open("r", encoding="utf-8") as handle:
-            data = yaml.safe_load(handle) or {}
-    except (OSError, yaml.YAMLError):
-        data = {}
-    version = str(data.get("version", "0.0.0")).strip() or "0.0.0"
-    date = str(data.get("date", "")).strip()
-    return version, date
+    """Return the validated content edition; never build an unversioned fallback."""
+    edition = read_edition(VERSION_PATH)
+    return edition.version, edition.date
 
 
 CONTENT_VERSION, CONTENT_DATE = load_content_edition()
@@ -739,7 +731,6 @@ def render_robots() -> str:
 
 def render_sitemap(chapters: list[dict[str, Any]]) -> str:
     """XML sitemap for the home page, chapters, and the orchestration page."""
-    today = datetime.date.today().isoformat()
     entries: list[tuple[str, str]] = [(abs_url(), "1.0")]
     entries += [(abs_url(chapter_url(chapter)), "0.8") for chapter in chapters]
     entries.append((abs_url(PDF_FILENAME), "0.6"))
@@ -747,7 +738,7 @@ def render_sitemap(chapters: list[dict[str, Any]]) -> str:
     rows = "\n".join(
         "  <url>\n"
         f"    <loc>{esc(loc)}</loc>\n"
-        f"    <lastmod>{today}</lastmod>\n"
+        f"    <lastmod>{CONTENT_DATE}</lastmod>\n"
         "    <changefreq>monthly</changefreq>\n"
         f"    <priority>{priority}</priority>\n"
         "  </url>"

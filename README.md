@@ -77,7 +77,9 @@ All primitives live under [`.github/`](.github/) following GitHub Copilot conven
 | `book-orchestration` | skill | The wave-based pipeline definition the orchestrator follows. |
 | `book-content` | instructions | Auto-applied content/style rules for every chapter. |
 | `apm-examples` | instructions | Auto-applied rules for writing valid, verifiable manifest/command examples. |
-| `run-book` | prompt | The master driver prompt that boots and coordinates the whole fleet. |
+| `run-playbook` | prompt | The from-scratch driver that boots and coordinates the whole fleet. |
+| `update-book` | prompt | Checks the complete upstream release gap and prepares targeted chapter updates. |
+| `release-content` | prompt | Prepares an edition, or explicitly publishes its exact merged revision. |
 
 **Inputs that steer the fleet:** [`content/playbook-brief.md`](content/playbook-brief.md) (scope) and
 [`content/toc.yml`](content/toc.yml) (chapter spec / source of truth).
@@ -91,7 +93,7 @@ flowchart TD
     Brief["content/playbook-brief.md<br/>(scope + intent)"] --> Orchestrator
 
     subgraph Driver["Orchestrator (manager)"]
-        Orchestrator["run-book prompt<br/>dispatches agents in waves<br/>tracks state on todo board"]
+        Orchestrator["run-playbook prompt<br/>dispatches agents in waves<br/>tracks state on todo board"]
     end
 
     Orchestrator --> Env["apm-environment-setup skill<br/>installs the apm CLI + sample repo"]
@@ -150,26 +152,30 @@ current one) and batches reviews to cut dispatch overhead.
   agents/         # 7 specialist custom agents
   skills/         # environment setup + orchestration pipeline
   instructions/   # auto-applied content & example rules
-  prompts/        # run-book driver + new-chapter helper
-  workflows/      # deploy-pages (site) + release-content (versioned releases)
+  prompts/        # run-playbook, update-book, new-chapter, release-content
+  workflows/      # check-book (PR checks), deploy-pages, release-content
 content/
   playbook-brief.md   # scope / intent
   toc.yml             # chapter spec (source of truth)
-  version.yml         # content edition (major.minor) — drives the version on site + PDF
+  version.yml         # content edition/date + reviewed upstream APM version
   CHANGELOG.md        # what changed in each content edition
   research/           # per-chapter theory + reference notes
 backend/
-  samples/            # example apm.yml projects (+ apm.lock.yaml)
+  examples/           # example apm.yml projects (+ apm.lock.yaml)
 site/
   generate.py             # renders the HTML site + the downloadable PDF from content/
   generate_pdf.py         # assembles + renders site/apm-book.pdf (Playwright/Chromium)
   extract_release_notes.py # turns a CHANGELOG section into GitHub Release notes
+  release_metadata.py     # shared strict edition/changelog parsing
+  validate_release.py     # content-delta and merged-tag preflight
   index.html
   chapters/*.html         # chapter subpages
   assets/                 # style.css + app.js
   apm-book.pdf            # generated: full-book PDF (rebuilt on every build)
 scripts/
-  run-fleet.ps1       # convenience launcher
+  run-fleet.ps1       # bootstrap/update launcher, with dry-run and check-only modes
+  check_upstream.py   # read-only, complete stable APM release-gap discovery
+tests/               # offline regression tests for update/release tooling
 ```
 
 ---
@@ -191,13 +197,13 @@ offered on every page) is generated from the same source of truth — `content/t
 
 ```powershell
 # from the repository root — rebuilds every HTML page AND site/apm-book.pdf
-python site/generate.py
+python .\site\generate.py
 ```
 
 The PDF is rendered with headless Chromium via Playwright. Install the toolchain once:
 
 ```powershell
-pip install playwright
+python -m pip install pyyaml playwright
 python -m playwright install chromium
 ```
 
@@ -225,15 +231,12 @@ telemetry at build time; do not commit it or put it in a secret. To inspect the 
 npm run report
 ```
 
-To install the `apm` CLI (needed for exploration/verification, not for viewing the site):
-
-```powershell
-irm https://aka.ms/apm-windows | iex   # Unix: curl -sSL https://aka.ms/apm-unix | sh
-apm --version
-```
-
-> **Note:** example manifests and commands are verified against the installed `apm` CLI. Record the
-> inspected version in research/verification artifacts — APM moves fast.
+For CLI exploration/verification, use the
+[`apm-environment-setup`](.github/skills/apm-environment-setup/SKILL.md) skill. It prepares an
+**exact-version CLI in a separate venv or checksum-verified release directory**, with scratch
+projects and an absolute executable path shared by the agents. It does not upgrade your global CLI
+or the book's installed authoring skills.
+APM is not needed to view or build the site.
 
 ---
 
@@ -244,34 +247,108 @@ version bump means the chapters you read changed; build-script, analytics, or ot
 changes never move the number.
 
 - **Source of truth:** [`content/version.yml`](content/version.yml) holds the current edition
-  (`major.minor`) and its date; [`content/CHANGELOG.md`](content/CHANGELOG.md) records what changed
-  in each one.
+  (`major.minor`), its date, and `apm_version` (the upstream release reviewed for that edition);
+  [`content/CHANGELOG.md`](content/CHANGELOG.md) records the reader-facing changes.
+  The root `apm.lock.yaml` tracks installed authoring skills, not this reviewed baseline.
 - **Where it shows:** the edition and its "updated" date render on the home hero, every page footer,
   the JSON-LD (`bookEdition`), `llms.txt`, and on the PDF cover + page footer — all generated from
   the same source, so the online edition and the PDF can never disagree.
+  Sitemap dates also use the edition date, so rebuilding an old tag does not claim fresh content.
 - **GitHub Releases:** each edition maps to a `vX.Y` tag. Pushing the tag runs
   [`release-content.yml`](.github/workflows/release-content.yml), which builds the site + PDF, turns
   the matching changelog section into the release notes, and attaches a per-edition
   `apm-book-vX.Y.pdf`.
 
-### Cut a new edition
+### Update from an APM release
+
+Invoke **`/update-book`** to prepare a targeted refresh, or give it **`Mode: check`** for a read-only
+impact assessment. It discovers the latest stable APM release, reads the **whole gap** since the
+book's reviewed baseline, maps changes to the TOC and chapter claims, and runs only affected
+chapters through the existing research -> author -> verify -> review -> integrate loop.
+It freezes one CLI target, preserves the structure/design and Meridian story, and stops with
+locally committed, review-ready changes. It does **not** push, merge, tag, or publish.
+
+Headless equivalents:
 
 ```powershell
-# 1. Bump the content edition + add a changelog entry:
-#      content/version.yml  ->  version: "1.2"   (and the date)
-#      content/CHANGELOG.md  ->  new "## [1.2] — <date>" section at the top
+# Print the intended invocation without starting agents
+pwsh .\scripts\run-fleet.ps1 -UpdateBook -CheckOnly -DryRun
 
-# 2. Preview the release notes that will be published
-python site/extract_release_notes.py 1.2
+# Research the release gap and report the impact, without edits or installs
+pwsh .\scripts\run-fleet.ps1 -UpdateBook -CheckOnly
 
-# 3. Commit, then tag and push — the release workflow does the rest
-git commit -am "content: v1.2 — <summary>"
-git tag v1.2
-git push origin main --tags
+# Prepare the update, optionally fixing the target rather than discovering latest
+pwsh .\scripts\run-fleet.ps1 -UpdateBook -ApmVersion 0.31.0
+```
+
+The lightweight discovery helper needs only Python + PyYAML, not Copilot or an installed APM:
+
+```powershell
+python .\scripts\check_upstream.py
+python .\scripts\check_upstream.py --target 0.31.0
+```
+
+It prints JSON with the baseline, frozen target, release dates/notes, and pinned changelog/compare
+links. It uses public GitHub metadata without forwarding tokens, excludes drafts/prereleases,
+and fails explicitly if discovery is unavailable or incomplete. Store working JSON in the
+session artifacts directory. If no reader-facing changes are needed, do not bump the edition.
+
+Actual verifier/reviewer reports are retained under `content/research/updates/<edition>/`.
+Every affected example must PASS or have a specific, visible `SKIPPED-needs-network` reason;
+each affected chapter and the integration pass must ACCEPT. CI validates metadata/provenance
+and builds the book, **not** the factual accuracy of prose or execution of agent examples.
+Never replace those gates with a green build or relabel old verification stamps without reruns.
+
+### Prepare, then publish
+
+Use **`/release-content`** after the content gates pass. Its default **prepare** mode updates
+`content/version.yml` and the matching changelog section, requires a fresh HTML/PDF build, and
+commits only the reviewed update locally. An incremental update after v1.1 is normally **v1.2**;
+APM's `0.31.0` and the book's `1.2` are independent version numbers.
+
+Before committing, with the real previous tag and proposed edition substituted:
+
+```powershell
+python .\site\validate_release.py --base-ref v1.1
+python .\site\extract_release_notes.py 1.2
+$env:APM_PDF_REQUIRED = "1"
+python .\site\generate.py
+```
+
+Stop on any failure. Missing/empty/duplicate notes, malformed metadata, edition/date mismatches,
+reader-content changes without an edition bump, and tooling-only bumps are hard errors.
+
+Publication is a separate explicit **`/release-content Mode: publish`** request, after review and
+merge. Use a clean checkout of the **exact reviewed merge commit**, with `origin/main` refreshed:
+
+```powershell
+git tag v1.2 HEAD
+python .\site\validate_release.py --tag v1.2
+if ($LASTEXITCODE -ne 0) { throw "Do not push: release tag preflight failed" }
+git push origin refs/tags/v1.2
+```
+
+The tag must equal the file edition, point at the checked-out commit, and be merged into
+`origin/main`. Push **only the intended tag**, never every local tag. The two publishing paths
+are separate: merging to `main` triggers **Deploy book to GitHub Pages**; pushing `vX.Y` triggers
+**Publish content release**, which attaches `apm-book-vX.Y.pdf`. Confirm both expected runs,
+the online edition, and the release notes/PDF before declaring publication complete.
+
+To retry a failed release build, manually run **Publish content release** with its existing tag.
+It rebuilds the **tag's inputs**, not later edits on `main`. Content corrections need a new edition
+and tag; do not move public tags. Historical v1.0/v1.1 predate the release metadata/tooling at
+their tags: keep their existing assets rather than attempting to reconstruct them with this flow.
+
+The **Check book update** PR workflow runs the tooling regressions and preflight on Windows/Linux,
+and builds the required PDF on Linux without deployment permissions. Run its offline checks locally:
+
+```powershell
+python -m unittest discover -s tests -v
+python .\site\validate_release.py
 ```
 
 The current edition is **v1.1** (added GitHub Agentic Workflows as an APM consumer to Chapters 11 &
-12); **v1.0** was the initial 12-chapter edition. Browse the
+12), with reviewed APM baseline **0.23.1**; **v1.0** was the initial 12-chapter edition. Browse the
 [releases](https://github.com/webmaxru/agent-package-manager-book/releases) for downloadable PDFs.
 
 ---

@@ -28,6 +28,12 @@ makes the concept→tool learning path obvious and pleasant to follow.
 5. Ensure **accessibility and responsiveness** (semantic HTML, keyboard nav, contrast, mobile layout)
    and verify the site builds/serves locally.
 
+For incremental updates, keep the existing shell/design and generate pages with
+`python site/generate.py` from the accepted fragments and TOC. Do not scaffold again or fix
+unrelated styling. Run release preflight before the final build, set `APM_PDF_REQUIRED=1`, and
+confirm the edition on the HTML and PDF, changed chapter navigation, and cross-links. A successful
+render does not replace example verification or editorial ACCEPT.
+
 ## Principles
 - **Content/presentation separation.** Don't bake chapter prose into templates; pull it in.
 - **Static-first & dependency-light.** Prefer a simple, portable stack; avoid heavy build chains

@@ -1,0 +1,65 @@
+name: Check book update
+
+on:
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: book-check-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  preflight:
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install metadata dependency
+        run: python -m pip install pyyaml
+
+      - name: Run workflow tooling tests
+        run: python -m unittest discover -s tests -v
+
+      - name: Validate proposed edition and content delta
+        shell: bash
+        env:
+          BASE_REF: ${{ github.event.pull_request.base.sha }}
+        run: |
+          if [[ -n "$BASE_REF" ]]; then
+            python site/validate_release.py --base-ref "$BASE_REF"
+          else
+            python site/validate_release.py
+          fi
+
+      - name: Check launcher entry points without starting agents
+        shell: pwsh
+        run: |
+          .\scripts\run-fleet.ps1 -DryRun
+          .\scripts\run-fleet.ps1 -UpdateBook -CheckOnly -DryRun
+
+      - name: Install PDF dependencies
+        if: runner.os == 'Linux'
+        run: |
+          python -m pip install playwright
+          python -m playwright install --with-deps chromium
+
+      - name: Build HTML and required PDF without publishing
+        if: runner.os == 'Linux'
+        env:
+          APM_PDF_REQUIRED: "1"
+        run: python site/generate.py

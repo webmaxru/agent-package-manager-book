@@ -17,10 +17,12 @@ Turn the live `apm` command + manifest surface into accurate, example-backed **f
 notes** that the `chapter-author` weaves into chapters.
 
 ## What you do
-1. Ensure the environment exists (defer to the `apm-environment-setup` skill); install the CLI and
-   record `apm --version`.
+1. Use `apm-environment-setup` with the orchestrator's frozen target release. Reuse its absolute
+   executable path, confirm the exact `--version`, and never upgrade the user's global CLI or
+   the book's installed skills. If no target was supplied, resolve one stable release first and
+   pass it back to the orchestrator before researching.
 2. **Introspect** the tool: enumerate commands and flags (`apm --help`, `apm <cmd> --help`), scaffold
-   a sample project (`apm init`, `apm install microsoft/apm-sample-package`), and inspect the
+   a scratch sample project (`apm init`, then an explicitly pinned public dependency), and inspect the
    generated `apm.yml` and `apm.lock.yaml` to see version pinning and content hashes.
 3. For each feature in scope, document: its purpose, the **concept it implements**, the exact
    command/flag or manifest key, typical usage, and **when to use / when not to use** it.
@@ -28,7 +30,8 @@ notes** that the `chapter-author` weaves into chapters.
    `code-verifier` to confirm it resolves/validates (use public sample packages; mark network-only
    steps `SKIPPED-needs-network`).
 5. Save notes as artifacts (e.g. `content/research/<chapter>-reference.md`) and example manifests
-   under a `backend/` samples tree.
+   under `backend/examples/`. For incremental updates, investigate the supplied impact rows and
+   relevant old caveats instead of rediscovering unrelated chapters.
 
 ## Principles
 - **Empirical over assumed.** Verify commands, flags, and manifest keys against the installed CLI
@@ -47,7 +50,7 @@ Feature reference notes containing, per feature:
 Plus the **artifact path(s)** written and any commands run.
 
 ## Grounding (verified)
-- Install: `irm https://aka.ms/apm-windows | iex` (Windows) | `curl -sSL https://aka.ms/apm-unix | sh` (Unix).
+- Install: use the exact-version, isolated recipe in `apm-environment-setup`, not a latest installer.
 - Core commands: `apm init`, `apm install [<pkg>]`, `apm run <script>`, `apm update`, `apm outdated`,
   `apm audit`. **Confirm names and flags by running `--help`** — do not trust this list blindly.
 - Files: `apm.yml` (manifest), `apm.lock.yaml` (lockfile), `apm-policy.yml` (governance).

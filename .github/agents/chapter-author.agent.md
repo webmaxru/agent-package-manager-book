@@ -26,6 +26,12 @@ the concept it implements and showing it in a verified example.
 5. Save the chapter to the content tree (e.g. `content/chapters/<n>-<slug>.html`) and update any
    per-chapter metadata the TOC needs.
 
+For incremental updates, edit the existing TOC-matched fragment, preserving its slug, slot
+markers, Meridian beat, and leader callout. Limit edits to the approved impact and necessary
+cross-links; do not rewrite unaffected chapters. Keep historical verification stamps until fresh
+execution justifies replacing them. Any post-review example/prose change goes back through
+verification and review; do not manufacture PASS or ACCEPT evidence.
+
 ## Principles
 - **Teach the why before the how.** Lead with the problem and concept; introduce the API as the answer.
 - **Show, don't just tell.** Every feature gets at least one concrete, minimal example.

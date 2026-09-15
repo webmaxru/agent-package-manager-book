@@ -8,50 +8,33 @@ never drift from the changelog. It is also handy locally to preview notes:
     python site/extract_release_notes.py 1.1
     python site/extract_release_notes.py v1.1   # a leading "v" is accepted
 
-Exit status is 0 even when the version is not found (a short placeholder is
-printed instead), so a release is never blocked purely on notes.
+Missing, empty, duplicate, or malformed changelog entries fail with exit status 1.
 """
 from __future__ import annotations
 
-import re
 import sys
 from pathlib import Path
 
-CHANGELOG = Path(__file__).resolve().parents[1] / "content" / "CHANGELOG.md"
+from release_metadata import ReleaseError, release_notes
 
-# A section header looks like: "## [1.1] — 2026-07-08"
-_HEADER_RE = re.compile(r"^##\s+\[([^\]]+)\]")
+CHANGELOG = Path(__file__).resolve().parents[1] / "content" / "CHANGELOG.md"
 
 
 def extract(version: str) -> str:
     """Return the changelog block for ``version`` (without the leading ``v``)."""
-    version = version.strip().lstrip("v").strip()
-    if not CHANGELOG.exists():
-        return f"Release v{version}.\n"
-    lines = CHANGELOG.read_text(encoding="utf-8").splitlines()
-
-    start: int | None = None
-    for i, line in enumerate(lines):
-        match = _HEADER_RE.match(line)
-        if match and match.group(1).strip() == version:
-            start = i
-            break
-    if start is None:
-        return f"Release v{version}.\n"
-
-    body = [lines[start]]
-    for line in lines[start + 1:]:
-        if _HEADER_RE.match(line):
-            break
-        body.append(line)
-    return "\n".join(body).strip() + "\n"
+    return release_notes(version.strip(), CHANGELOG)
 
 
 def main(argv: list[str]) -> int:
     if len(argv) != 2:
         print("usage: extract_release_notes.py <version>", file=sys.stderr)
         return 2
-    sys.stdout.write(extract(argv[1]))
+    try:
+        notes = extract(argv[1])
+    except ReleaseError as error:
+        print(f"release notes: {error}", file=sys.stderr)
+        return 1
+    sys.stdout.write(notes)
     return 0
 
 
