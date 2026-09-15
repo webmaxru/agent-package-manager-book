@@ -34,6 +34,10 @@ draft → verify → review → integrate.
 - `apm-examples.instructions.md` — APM manifest/command example conventions (`**/apm*.yml`).
 
 ### Prompts — `.github/prompts/`
+- `update-book.prompt.md` — check upstream releases and prepare a targeted, reviewed book update;
+  no publication by default.
+- `release-content.prompt.md` — prepare an edition or explicitly publish its merged commit.
+- `run-playbook.prompt.md` — bootstrap the whole book; not the incremental-update entry point.
 - `new-chapter.prompt.md` — kick off one chapter end-to-end through the team.
 
 ## How they work together
@@ -49,6 +53,11 @@ integrates. Work proceeds in waves (pilot chapter first), with a checkpoint comm
   `SKIPPED-needs-network`) and the reviewer returns ACCEPT.
 - **No secrets in code.** Host/registry tokens live in a gitignored `.env`; examples avoid live pushes.
 - **Version-aware.** Record the inspected `apm` CLI version in research/verification artifacts.
+- **Frozen update target.** `content/version.yml` records the book edition and reviewed
+  `apm_version`; the root skill lockfile is not the book's upstream baseline. Use one pinned
+  executable across an update, and advance the baseline only after the quality gates pass.
+- **Prepare before publish.** Updates commit reviewed content locally. Merge/tag/push/release
+  require an explicit publication request; never push every local tag.
 - **Content ⟂ presentation.** Authors write content; `frontend-builder` owns chrome/nav/theming.
 
 ## APM reference (verified)

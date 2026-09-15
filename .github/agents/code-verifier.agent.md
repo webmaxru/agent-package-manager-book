@@ -15,8 +15,10 @@ Guarantee that every example in the book works (or fails only for clearly-docume
 requiring network access to a private source), and surface precise, actionable errors when it doesn't.
 
 ## What you do
-1. Collect the example(s) under test from the chapter/content tree or the `backend/` samples tree.
-2. Validate them with the real `apm` CLI (see `apm-environment-setup` skill): confirm the `apm.yml`
+1. Collect the example(s) under test from the chapter/content tree or the `backend/examples/` tree.
+2. Use the orchestrator's absolute APM executable path and a separate scratch project (see
+`apm-environment-setup`). Confirm its `--version` equals the frozen target before every batch.
+Validate with that real CLI: confirm the `apm.yml`
    schema is valid, run `apm install` in a scratch project against **public** sample packages, and
    run `apm audit` for policy/security checks. For steps needing a private source or a live push,
    skip with a clear `SKIPPED-needs-network` marker — never hardcode tokens.
@@ -26,6 +28,13 @@ requiring network access to a private source), and surface precise, actionable e
    minimal fix to make the example work, then re-run. For design-level issues, hand back to
    `chapter-author` / `apm-cli-explorer` with the diagnosis.
 5. Tag each example with its verification status so authors can rely on it.
+
+For incremental updates, cover every affected example plus shared examples invalidated by the
+change. Persist the final report under `content/research/updates/<edition>/` with chapter and
+example IDs, paths, exact commands/exit codes, target version, and relevant output. Expected
+failures must assert the expected behavior. A behavioral regression is FAIL, never a network
+skip; a skip must name the unavailable service/permission and remain visible in the chapter.
+Do not relabel unexecuted examples with the new version or change unrelated user/global state.
 
 ## Principles
 - **Real execution, no assumptions.** "Looks right" is not verified — the manifest must resolve.

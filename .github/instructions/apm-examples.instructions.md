@@ -33,6 +33,9 @@ reproducible, and secret-free**.
   environment allows) `apm install` resolves it and `apm audit` passes. Reach **PASS** (or documented
   `SKIPPED-needs-network`) before it ships in a chapter.
 - Record the **`apm` CLI version** the example was verified against.
+- For an update, use the orchestrator's exact-version executable in a separate scratch project.
+  A new CLI release does not justify relabeling an unexecuted example. Real regressions are FAIL;
+  `SKIPPED-needs-network` needs a specific unavailable dependency/permission and a visible marker.
 - Commit the resulting `apm.lock.yaml` for any committed sample project for reproducibility.
 
 ## Versioning

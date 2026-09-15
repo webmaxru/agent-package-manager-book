@@ -3,18 +3,27 @@
 # Runs the master orchestrator prompt to completion via Copilot CLI, then exits.
 #
 # Usage:
-#   ./scripts/run-fleet.ps1                # run the full pipeline
-#   ./scripts/run-fleet.ps1 -DryRun        # print the command without running
+#   .\scripts\run-fleet.ps1                  # run the full pipeline
+#   .\scripts\run-fleet.ps1 -UpdateBook       # update the existing book
+#   .\scripts\run-fleet.ps1 -UpdateBook -DryRun
 #
 # Notes:
 #   - Run from the repo root (the script cd's there itself).
 #   - --allow-all-tools grants Copilot the same access you have. For isolation,
 #     run inside a sandbox/container, or use `copilot --cloud`.
 
-[CmdletBinding()]
+[CmdletBinding(DefaultParameterSetName = "Prompt")]
 param(
     [switch]$DryRun,
-    [string]$PromptPath = ".github/prompts/run-book.prompt.md"
+    [Parameter(ParameterSetName = "Prompt")]
+    [string]$PromptPath = ".github\prompts\run-playbook.prompt.md",
+    [Parameter(Mandatory, ParameterSetName = "Update")]
+    [switch]$UpdateBook,
+    [Parameter(ParameterSetName = "Update")]
+    [ValidatePattern('^v?(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$')]
+    [string]$ApmVersion,
+    [Parameter(ParameterSetName = "Update")]
+    [switch]$CheckOnly
 )
 
 $ErrorActionPreference = "Stop"
@@ -23,22 +32,36 @@ $ErrorActionPreference = "Stop"
 $repoRoot = Split-Path -Parent $PSScriptRoot
 Set-Location $repoRoot
 
-if (-not (Test-Path $PromptPath)) {
+if ($UpdateBook) {
+    $PromptPath = ".github\prompts\update-book.prompt.md"
+}
+
+if (-not (Test-Path -LiteralPath $PromptPath -PathType Leaf)) {
     throw "Orchestrator prompt not found: $PromptPath"
+}
+
+$prompt = Get-Content -LiteralPath $PromptPath -Raw
+if ($UpdateBook) {
+    $mode = if ($CheckOnly) { "check" } else { "prepare" }
+    $target = if ($ApmVersion) { $ApmVersion.TrimStart('v') } else { "latest stable at discovery" }
+    $prompt += "`n`nInvocation inputs:`nMode: $mode`nTarget APM: $target`nNever push, tag, merge, or publish in this run."
+}
+
+if ($DryRun) {
+    Write-Host "[DryRun] Prompt: $PromptPath"
+    if ($UpdateBook) {
+        Write-Host "[DryRun] Mode: $mode; target APM: $target; publication: disabled"
+    }
+    Write-Host "[DryRun] Would run: copilot -p <orchestrator-prompt> --allow-all-tools" -ForegroundColor Yellow
+    return
 }
 
 if (-not (Get-Command copilot -ErrorAction SilentlyContinue)) {
     throw "Copilot CLI ('copilot') not found on PATH. Install it first: https://docs.github.com/en/copilot/how-tos/set-up/install-copilot-cli"
 }
 
-$prompt = Get-Content -Raw $PromptPath
-
 Write-Host "Launching APM book fleet from '$PromptPath'..." -ForegroundColor Cyan
-
-if ($DryRun) {
-    Write-Host "[DryRun] Would run: copilot -p <orchestrator-prompt> --allow-all-tools" -ForegroundColor Yellow
-    return
-}
 
 # Headless run: orchestrator drives the whole fleet and exits when done.
 copilot -p $prompt --allow-all-tools
+exit $LASTEXITCODE

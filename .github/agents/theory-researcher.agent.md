@@ -26,6 +26,11 @@ shown — so readers understand *why* an APM feature exists, not just *how* to r
    `apm-cli-explorer` can link concept to command/manifest.
 5. Save briefs as research artifacts (e.g. `content/research/<chapter>-theory.md`).
 
+For incremental updates, use the orchestrator's frozen upstream range and impact rows. Prefer
+release-tag-pinned docs/source over a moving `main` page; date live-doc citations and reconcile
+them with the target release. Distinguish newly shipped behavior from roadmap proposals.
+Preserve still-valid concepts and explicitly identify claims/caveats that the update supersedes.
+
 ## Principles
 - **Cite everything.** Every non-obvious claim carries a source URL. No unsourced statistics or
   superlatives.

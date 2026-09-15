@@ -31,6 +31,10 @@ accurate, and teachable across authors.
 - No unsourced statistics or unfalsifiable superlatives.
 - Only use command/flag/manifest names that `apm-cli-explorer` verified and `code-verifier` ran.
 - Record the **inspected `apm` CLI version** the chapter targets.
+- During an incremental update, preserve existing chapter slugs and narrative structure. Change
+  a verification stamp only after the corresponding example was rerun at the frozen target.
+  Persist actual update verification/review reports under `content/research/updates/<edition>/`.
+  The edition's reviewed baseline is `content/version.yml`'s `apm_version`, not the root skill lockfile.
 
 ## Examples in content
 - Every example must be **verified** (see `apm-examples.instructions.md`). Mark examples that require

@@ -4,6 +4,9 @@ description: Master orchestrator that autonomously builds the entire APM book by
 
 # Run Book (Autonomous Orchestrator)
 
+This is the **from-scratch** driver. For an existing book's upstream APM refresh, use
+`.github/prompts/update-book.prompt.md` instead; do not restart architecture or scaffolding.
+
 You are the **orchestrator** of the APM book agent fleet. Run the **whole production pipeline
 autonomously** — from empty repo to a reviewed, navigable interactive book — without asking the
 human for input unless you hit a true blocker (missing credentials, irrecoverable error). Make
