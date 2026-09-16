@@ -156,9 +156,11 @@
             <li>prompts</li>
             <li>plugins</li>
             <li>apm pack</li>
+            <li>local-only bundles</li>
+            <li>Agent Plugins 1.0</li>
             <li>apm plugin init</li>
             <li>apm marketplace init</li>
-            <li>apm marketplace add</li>
+            <li>apm pack --check-clean</li>
             </ul>
           </aside>
           <aside class="metadata-card" aria-labelledby="depends-heading">
@@ -184,6 +186,12 @@
   <span class="property property--reproducibility">Reproducibility</span>,
   <span class="property property--security">Provenance</span>, and
   <span class="property property--governance">Governance</span> for everyone downstream.
+</p>
+<p>
+  <strong>Edition 1.2 &mdash; inspected CLI: exactly APM 0.31.0.</strong> The current worked example uses a
+  <a href="#ch10-ex13-local-bundle">separate local-bundle fixture</a>; it does not silently change the
+  original Meridian manifest. Clearly labelled v0.23.1 snapshots preserve the earlier package and
+  private-Git story, not a claim that their historical outputs were produced by this release.
 </p>
           </div>
         </section>
@@ -218,21 +226,18 @@
   <p>
     Copying <em>is</em> the anti-pattern, not the solution &mdash; it is the Chapter 1 drift problem
     with a friendly face. Reuse only becomes <em>governed</em> reuse when it flows through a versioned
-    package: one name, one version, one reviewable source that every consumer restores byte-for-byte
-    instead of forking.
+    package: one name, one version, one reviewable source that consumers restore for their supported
+    targets instead of maintaining independent forks.
   </p>
 </aside>
 
-<h3>A package is just a directory with <code>apm.yml</code> + <code>.apm/</code></h3>
+<h3>Meridian can keep <code>apm.yml</code> + <code>.apm/</code></h3>
 <p>
-  Here is the part that removes the intimidation. There is no packaging tool, no build config, no
-  artifact type you have not already met. &ldquo;An APM package is a directory with two things: an
-  <code>apm.yml</code> manifest and a <code>.apm/</code> source tree. Everything else &hellip; is
-  generated, optional, or both&rdquo;
-  (<a href="https://microsoft.github.io/apm/concepts/package-anatomy/" rel="noreferrer">package
-  anatomy</a>). The producer mental model is identical: &ldquo;a producer package is just a directory
-  with <code>apm.yml</code> &hellip; <code>.apm/</code> &hellip; <code>README.md</code>&rdquo;
-  (<a href="https://microsoft.github.io/apm/producer/" rel="noreferrer">Producer overview</a>).
+  Here is the part that removes the intimidation: Meridian needs no separate packaging language.
+  Its producer package is a directory with <code>apm.yml</code>, a <code>.apm/</code> source tree,
+  and a README for consumers. That remains a good authoring layout, but it is <em>not the only
+  installable shape</em>: root skills, skill collections, and plugins have their own intake rules
+  (<a href="https://github.com/microsoft/apm/blob/8fd10ac5eafee7ca77d41cc34ba139d812fdacd5/docs/src/content/docs/reference/package-types.md" rel="noreferrer">APM 0.31.0 package types</a>).
 </p>
 <p>
   You already know this shape from both sides. In <a href="primitives-and-harnesses.html">Chapter 3</a>
@@ -241,8 +246,10 @@
   <a href="install-and-restore.html">Chapter 5</a> you <em>consumed</em> other people's packages that
   had exactly those directories. Producing is not new authoring &mdash; it is <strong>relocation into a
   package shape</strong>. The same source-vs-build split from Chapter 3 is now your responsibility:
-  <code>.apm/</code> is what you write and commit; <code>.github/</code>, <code>.claude/</code>,
-  <code>.cursor/</code>, and <code>apm.lock.yaml</code> are generated. &ldquo;Edit the source under
+  <code>.apm/</code> is what you author; APM-managed files under <code>.github/</code>,
+  <code>.claude/</code>, <code>.cursor/</code>, and shared <code>.agents/</code> are deployment output.
+  The generated lockfile is still a reviewable record to commit when sharing a reproducible project
+  (<a href="the-lockfile-and-reproducibility.html">Chapter 6</a>). &ldquo;Edit the source under
   <code>.apm/</code> and re-run <code>apm install</code> &mdash; never edit the deployed copy&rdquo;
   (<a href="https://microsoft.github.io/apm/concepts/package-anatomy/" rel="noreferrer">package
   anatomy</a>).
@@ -257,14 +264,13 @@
 <ul>
   <li>
     <span class="property property--portability">Portability</span> &mdash; one manifest compiles the
-    same primitives onto Copilot, Claude Code, and Cursor
+    same supported intent onto Copilot, Claude Code, and Cursor, not necessarily identical native bytes
     (<a href="install-and-restore.html">Chapter 5</a>);
   </li>
   <li>
-    <span class="property property--reproducibility">Reproducibility</span> &mdash; a lockfile that
-    pins each dependency by <code>resolved_commit</code> and fingerprints its source tree by
-    <code>content_hash</code>, so a bare <code>apm install</code> restores the same bytes; and, <em>when
-    a package is packed as a bundle</em>, an extra per-file SHA-256 map on top
+    <span class="property property--reproducibility">Reproducibility</span> &mdash; declared Git
+    dependencies get a <code>resolved_commit</code> and <code>content_hash</code>, so unchanged
+    intent and its lock can be replayed; a packed bundle also records a per-payload-file SHA-256 map
     (<a href="the-lockfile-and-reproducibility.html">Chapter 6</a>);
   </li>
   <li>
@@ -275,8 +281,8 @@
   <li>
     <span class="property property--governance">Governance</span> &mdash; the package installs through
     the same <code>apm-policy.yml</code> gate from <a href="governance-and-policy.html">Chapter 9</a>;
-    a policy can even <em>require</em> it, exactly as Meridian's
-    <code>require: meridian-finance/meridian-standards</code> rule did.
+    a policy can even <em>require</em> it, as Meridian plans to do with
+    <code>require: meridian-finance/meridian-standards</code> once the package is available.
   </li>
 </ul>
 <p>
@@ -290,6 +296,16 @@
   <strong>author the package</strong>, and <strong>pack it</strong>, then closes the loop by installing
   the result back into a scratch repo. &ldquo;You don't need a marketplace to start&rdquo;
   (<a href="https://microsoft.github.io/apm/producer/" rel="noreferrer">Producer overview</a>).
+</p>
+
+<h3 id="ch10-distribution-contract">Choose a contract that preserves what you are sharing</h3>
+<p>
+  A package name, a distribution format, and a harness are different things. Putting a prompt in a
+  ZIP does not make it a skill; adding a schema URL does not make every harness able to load it.
+  <strong>Portability is bounded by the components the format carries and the consumer supports.</strong>
+  The <a href="#ch10-formats">format choice below</a> implements that boundary. Meridian must keep
+  its engineering instructions, checkout-review prompt, and review skill together; a skill-only
+  format is not an upgrade for that package.
 </p>
 
 <aside class="meridian-beat">
@@ -311,6 +327,14 @@
         <section class="chapter-section" data-section="in-apm">
           <h2 id="in-apm"><a class="anchor-link" href="#in-apm" aria-label="Link to In APM section">In APM</a></h2>
           <div class="section-content" data-content-slot="in-apm">
+<p id="ch10-current-setup">
+  For current commands, <code>$Apm</code> means the <strong>absolute path to the checksum-checked
+  0.31.0 executable</strong> from <a href="install-and-restore.html#ch5-current-setup">Chapter 5's
+  setup</a>, not whichever <code>apm</code> is on PATH. Use short, disposable copies outside the book
+  checkout, with isolated user/config/cache directories. Fixture names below are relative to
+  <code>backend/examples/updates/1.2/producer/</code>; copy the whole fixture, including hidden
+  source directories and its genuine lockfile. No example needs a live agent session.
+</p>
 <h3>A producer package is a directory you already know how to read</h3>
 <p>
   Here is <code>meridian-standards</code> as a plain directory. Nothing is scaffolded by a special
@@ -318,13 +342,15 @@
   <code>.apm/</code>. Read it and you will recognise every file from earlier chapters.
 </p>
 
-<figure class="code-example">
+<!-- Example ch10-ex01-source-tree: Historical authored tree, 0.23.1 snapshot.
+     ProducerFixtures/local-bundle reuses these three primitive files, not this README or manifest. -->
+<figure class="code-example" id="ch10-ex01-source-tree">
   <figcaption>
-    The authored <code>meridian-standards</code> tree &mdash; manifest, README, and three primitives
-    under <code>.apm/&lt;type&gt;/</code>. <code>plugin.json</code> is <em>not</em> here: it is generated
-    by <code>apm pack</code>, not hand-written. <span class="apm-version">apm v0.23.1</span>
+    Historical Meridian source tree &mdash; manifest, README, and all three primitives.
+    <code>plugin.json</code> is generated, not authored here.
+    <span class="apm-version">apm v0.23.1 snapshot</span>
   </figcaption>
-  <pre><code class="language-text">meridian-standards/
+  <pre tabindex="0"><code class="language-text">meridian-standards/
 ├── apm.yml                                      # producer manifest (identity + distribution metadata)
 ├── README.md                                    # what the package is and how to install it
 └── .apm/                                        # the SOURCE tree — one directory per primitive type
@@ -338,36 +364,36 @@
 </figure>
 
 <p>
-  Two precisions keep you out of trouble later. First, <strong>author under
-  <code>.apm/&lt;type&gt;/</code></strong>, not root convention directories: <code>apm pack</code> is
-  liberal and will also collect a root <code>skills/</code> or <code>instructions/</code> folder, but
-  <code>apm install</code> is stricter and may <em>not</em> discover those on the consumer side &mdash; so
-  a file that shows up in the bundle can be silently skipped on install, &ldquo;silently removing those
-  guardrails from consumer environments&rdquo;
-  (<a href="https://microsoft.github.io/apm/producer/pack-a-bundle/" rel="noreferrer">pack a
-  bundle</a>). Second, <strong>commands ship as prompts</strong> &mdash; there is no
-  <code>.apm/commands/</code> directory; a slash-command is authored as a
-  <code>.apm/prompts/*.prompt.md</code>
+  Keep Meridian's primitives under <code>.apm/&lt;type&gt;/</code>; do not mix in extra root
+  directories expecting APM to union every possible layout. <a href="#ch10-source-authority">Source
+  authority</a> determines which files count. In this APM layout, <strong>commands are authored as
+  prompts</strong>: <code>.apm/prompts/*.prompt.md</code>, not a new <code>.apm/commands/</code>
+  directory
   (<a href="https://microsoft.github.io/apm/producer/author-primitives/" rel="noreferrer">author
   primitives</a>).
 </p>
 
-<h3>The producer manifest: identity + type + distribution metadata</h3>
+<h3>The producer manifest: identity + distribution intent</h3>
 <p>
   A consumer manifest answers &ldquo;what does <em>my</em> repo need?&rdquo; A producer manifest also
   answers &ldquo;<em>who</em> is this package, where does it come from, and what is it for?&rdquo; so
   other people can evaluate and discover it. It is the <em>same</em> <code>apm.yml</code> schema you
   wrote in <a href="the-manifest-apm-yml.html">Chapter 4</a> &mdash; producers simply fill in the
-  optional distribution fields a private consumer manifest can leave out. Here is Meridian's:
+  optional distribution fields a private consumer manifest can leave out. Keep the original
+  Meridian manifest visible: its <em>omitted</em> dependency mapping explains its output mode.
 </p>
 
-<figure class="code-example">
+<!-- Example ch10-ex02-manifest-history: Historical/apm.yml values and original annotated
+     0.23.1 snapshot. Current routing separately observed by meridian-install,
+     meridian-preview, meridian-pack-routing; this input still has no dependencies mapping. -->
+<figure class="code-example" id="ch10-ex02-manifest-history">
   <figcaption>
-    <code>backend/examples/ch10/meridian-standards/apm.yml</code> &mdash; the same schema as a consumer
-    manifest, with the distribution fields filled in. Verified against a fresh <code>apm init</code>
-    template + the synthesised <code>plugin.json</code>. <span class="apm-version">apm v0.23.1</span>
+    Historical <code>backend/examples/ch10/meridian-standards/apm.yml</code>, without
+    <code>dependencies</code>. Original verification: fresh init template and generated plugin
+    metadata. This is <em>not</em> the new local-bundle manifest.
+    <span class="apm-version">apm v0.23.1 snapshot</span>
   </figcaption>
-  <pre><code class="language-yaml">name: meridian-standards          # REQUIRED — package identity (its slug when others depend on it)
+  <pre tabindex="0"><code class="language-yaml">name: meridian-standards          # REQUIRED — package identity (its slug when others depend on it)
 version: 1.0.0                    # REQUIRED — semver
 description: Shared Meridian engineering instructions, prompts, and review skills.
 author: Meridian Platform Engineering   # string -> { name: "…" } in the generated plugin.json
@@ -383,96 +409,29 @@ includes: auto                    # consent to publish everything under .apm/ (t
 </figure>
 
 <p>
-  Only two fields are required to parse &mdash; <code>name</code> and <code>version</code>. Everything
-  else is optional, and unknown top-level keys are <em>preserved but ignored</em>
-  (<a href="https://microsoft.github.io/apm/reference/manifest-schema/" rel="noreferrer">manifest
-  schema &sect;2</a>). The distribution fields are the package's business card: <code>repository</code>
-  gives provenance, <code>license</code> sets reuse terms, <code>keywords</code> feed discovery, and
-  <code>author</code> records ownership.
+  In 0.31.0, <code>name</code> and <code>version</code> remain the required identity fields.
+  <code>description</code>, <code>author</code>, <code>license</code>, <code>repository</code>, and
+  <code>keywords</code> are optional distribution metadata. A string author becomes a
+  <code>{ "name": &hellip; }</code> object in generated plugin metadata; repository and keywords
+  also survive synthesis. These fields help consumers review ownership and reuse terms; a repository
+  URL is not publisher authentication, and the producer's MIT license does not license every
+  dependency. <code>targets</code> names the supported destinations; it is not decorative metadata
+  (<a href="https://github.com/microsoft/apm/blob/8fd10ac5eafee7ca77d41cc34ba139d812fdacd5/docs/src/content/docs/reference/manifest-schema.md" rel="noreferrer">0.31.0 manifest reference</a>).
 </p>
 
-<table>
-  <caption>
-    Which keys <code>apm</code> accepts in a producer manifest, and what each one does for a shared
-    package. Verdicts checked against <code>apm init</code>, the synthesised <code>plugin.json</code>,
-    and the SBOM warnings. <span class="apm-version">apm v0.23.1</span>
-  </caption>
-  <thead>
-    <tr>
-      <th scope="col">Key</th>
-      <th scope="col">Verdict</th>
-      <th scope="col">What it does for a shared package</th>
-    </tr>
-  </thead>
-  <tbody>
-    <tr>
-      <td><code>name</code></td>
-      <td><strong>required</strong></td>
-      <td>Package identity &mdash; the slug other repos depend on.</td>
-    </tr>
-    <tr>
-      <td><code>version</code></td>
-      <td><strong>required</strong> (semver)</td>
-      <td>The version consumers pin. Meridian ships <code>1.0.0</code>.</td>
-    </tr>
-    <tr>
-      <td><code>description</code></td>
-      <td>optional, read</td>
-      <td>One-line summary; flows into <code>plugin.json</code>; <code>apm pack</code> warns if missing.</td>
-    </tr>
-    <tr>
-      <td><code>author</code></td>
-      <td>optional, read</td>
-      <td>Attribution. A string becomes <code>{ "name": &hellip; }</code> in <code>plugin.json</code>.</td>
-    </tr>
-    <tr>
-      <td><code>license</code></td>
-      <td>optional, read</td>
-      <td>SPDX id. Recorded in the lockfile and SBOM; omitting it records <code>NOASSERTION</code>.</td>
-    </tr>
-    <tr>
-      <td><code>repository</code></td>
-      <td>optional, read</td>
-      <td>Provenance; mapped into <code>plugin.json</code>.</td>
-    </tr>
-    <tr>
-      <td><code>keywords</code></td>
-      <td>optional, read</td>
-      <td>Discovery tags; mapped into <code>plugin.json</code> (and marketplace tags).</td>
-    </tr>
-    <tr>
-      <td><code>targets</code></td>
-      <td>optional, <strong>validated</strong></td>
-      <td>Harnesses to compile for. Unknown target values are a <em>parse error</em>; also routes <code>apm pack</code>.</td>
-    </tr>
-    <tr>
-      <td><code>includes: auto</code></td>
-      <td>optional (the default)</td>
-      <td>Consent to publish everything under <code>.apm/</code>.</td>
-    </tr>
-    <tr>
-      <td><code>type</code></td>
-      <td><strong>real enum, but inert</strong></td>
-      <td><code>instructions</code>&nbsp;|&nbsp;<code>skill</code>&nbsp;|&nbsp;<code>hybrid</code>&nbsp;|&nbsp;<code>prompts</code>. Reserved for future overrides; no effect at v0.23.1.</td>
-    </tr>
-    <tr>
-      <td><em>(unknown key)</em></td>
-      <td>silently preserved</td>
-      <td>No error, no warning &mdash; kept in the file, ignored by the CLI.</td>
-    </tr>
-  </tbody>
-</table>
-
+<!-- Boundary evidence: reserved-type-install / reserved-type-pack (0.31.0);
+     HYBRID layout is documented separately in the pinned package-types reference. -->
 <aside class="callout callout-info">
-  <h3>Two harmless keys, for opposite reasons</h3>
+  <h3>HYBRID layout is not the <code>type: hybrid</code> switch</h3>
   <p>
-    <code>type: hybrid</code> is a <strong>real, documented enum value</strong> that is simply
-    <em>reserved</em> at v0.23.1 &mdash; package behaviour is inferred from content (the presence of a
-    <code>SKILL.md</code>, the <code>.apm/&lt;type&gt;/</code> folders), and <code>type</code> is not even
-    carried into <code>plugin.json</code>. An <em>unknown</em> key is the opposite: unrecognised but
-    preserved. The honest one-liner: <strong><code>type</code> is recognised-but-inert; an unknown key
-    is unrecognised-but-preserved &mdash; both are no-ops today, for different reasons.</strong> Keep
-    <code>type</code> as forward-looking metadata, but do not claim it changes any behaviour now.
+    A root <code>SKILL.md</code> alongside <code>apm.yml</code> is a supported <strong>HYBRID
+    layout</strong>, with separate human-facing and runtime descriptions. That does not activate the
+    manifest's <code>type</code> key. The 0.31.0 reference still reserves that field; changing
+    Meridian's value to <code>prompts</code> in a control did not suppress its instruction or skill.
+    Keep <code>type: hybrid</code> as metadata, not a content filter or permission to bypass a
+    distribution format's restrictions
+    (<a href="https://github.com/microsoft/apm/blob/8fd10ac5eafee7ca77d41cc34ba139d812fdacd5/docs/src/content/docs/reference/package-types.md" rel="noreferrer">layouts</a>;
+    <a href="https://github.com/microsoft/apm/blob/8fd10ac5eafee7ca77d41cc34ba139d812fdacd5/docs/src/content/docs/reference/manifest-schema.md" rel="noreferrer">reserved field</a>).
   </p>
 </aside>
 
@@ -484,13 +443,15 @@ includes: auto                    # consent to publish everything under .apm/ (t
   bundle</a>):
 </p>
 
-<figure class="code-example">
+<!-- Example ch10-ex03-plugin-json-history: Historical/plugin.json.generated, unchanged
+     0.23.1 snapshot. meridian-pack-routing produced JSON-equivalent metadata on 0.31.0. -->
+<figure class="code-example" id="ch10-ex03-plugin-json-history">
   <figcaption>
-    The <code>plugin.json</code> that <code>apm pack</code> generates for <code>meridian-standards</code>
-    &mdash; mapped straight from the manifest. Note <code>type</code> is absent.
-    <span class="apm-version">apm v0.23.1</span>
+    Historical <code>plugin.json.generated</code>, mapped from the original manifest;
+    <code>type</code> is absent. The 0.31.0 routing probe produced equivalent JSON metadata.
+    <span class="apm-version">apm v0.23.1 snapshot</span>
   </figcaption>
-  <pre><code class="language-json">{
+  <pre tabindex="0"><code class="language-json">{
   "name": "meridian-standards",
   "version": "1.0.0",
   "description": "Shared Meridian engineering instructions, prompts, and review skills.",
@@ -501,27 +462,18 @@ includes: auto                    # consent to publish everything under .apm/ (t
 }</code></pre>
 </figure>
 
-<h3><code>apm pack</code> &mdash; snapshot the package into a distributable artifact</h3>
+<h3 id="ch10-pack-routing"><code>apm pack</code> &mdash; declaration decides the output</h3>
 <p>
-  <code>apm pack</code> is the pack rung of the ladder: it turns your authored primitives into something
-  you can hand off. The one rule to internalise before you run it: <strong><code>apm pack</code> packs
-  the files your last <code>apm install</code> deployed &mdash; not the raw <code>.apm/</code> tree.</strong>
-  So you always <code>apm install</code> first. &ldquo;If <code>apm pack</code> reports &lsquo;No deployed
-  files found&rsquo;, your <code>apm.lock.yaml</code> has no <code>deployed_files</code> entries. Run
-  <code>apm install</code> first&rdquo;
-  (<a href="https://microsoft.github.io/apm/producer/pack-a-bundle/" rel="noreferrer">pack a
-  bundle</a>).
-</p>
-<p>
-  What <code>apm pack</code> <em>produces</em> is decided by which blocks your <code>apm.yml</code>
-  declares. This routing table is the thing to memorise &mdash; it explains why the same command behaves
-  very differently across packages:
+  Packing turns reviewed context into a handoff artifact. First ask <em>which output your manifest
+  requests</em>, then inspect its contents. In 0.31.0 these output branches can coexist; a successful
+  command is not, by itself, proof that an archive was created
+  (<a href="https://github.com/microsoft/apm/blob/8fd10ac5eafee7ca77d41cc34ba139d812fdacd5/docs/src/content/docs/reference/cli/pack.md" rel="noreferrer">pack routing</a>).
 </p>
 
-<table>
+<div class="table-scroll" role="region" aria-label="Scrollable table" tabindex="0"><table>
   <caption>
-    <code>apm pack</code> routing, decided by manifest content (confirmed via the &ldquo;Nothing to
-    pack&rdquo; error). <span class="apm-version">apm v0.23.1</span>
+    Manifest-driven outputs; the default bundle format remains Claude-compatible.
+    <span class="apm-version">apm 0.31.0</span>
   </caption>
   <thead>
     <tr>
@@ -532,18 +484,18 @@ includes: auto                    # consent to publish everything under .apm/ (t
   </thead>
   <tbody>
     <tr>
-      <td>a <code>dependencies:</code> block</td>
+      <td>a <code>dependencies</code> mapping, including <code>{}</code></td>
       <td>a <strong>bundle</strong> (plugin.json + primitive dirs + embedded lockfile)</td>
-      <td><code>./build/&lt;pkg&gt;/</code>, or a <code>.zip</code> with <code>--archive</code></td>
+      <td><code>build/&lt;name&gt;-&lt;version&gt;/</code>; <code>--archive -o dist</code> selects a ZIP in <code>dist/</code></td>
     </tr>
     <tr>
       <td>a <code>marketplace:</code> block</td>
-      <td><strong>marketplace</strong> artifact(s)</td>
-      <td><code>.claude-plugin/marketplace.json</code></td>
+      <td>configured <strong>marketplace catalog</strong> artifact(s)</td>
+      <td>profile defaults or <code>marketplace.outputs</code> paths</td>
     </tr>
     <tr>
       <td><code>targets:</code> including <code>claude</code> or <code>copilot</code></td>
-      <td><strong>plugin.json</strong> manifest(s), no bundle</td>
+      <td>ecosystem <strong>plugin.json</strong> manifests, alongside other applicable outputs</td>
       <td>in-tree: <code>.github/plugin/</code>, <code>.claude-plugin/</code></td>
     </tr>
     <tr>
@@ -552,134 +504,414 @@ includes: auto                    # consent to publish everything under .apm/ (t
       <td>exit <code>1</code></td>
     </tr>
   </tbody>
-</table>
+</table></div>
 
 <p>
-  <code>meridian-standards</code> has <code>targets:</code> (including <code>copilot</code> and
-  <code>claude</code>) but <strong>no <code>dependencies:</code> block</strong>, so it lands in row 3
-  &mdash; <strong>plugin.json mode</strong>, not a bundle. The safe pre-flight is
-  <code>apm pack --dry-run --verbose</code>: it reports exactly what <em>would</em> be written and
-  touches nothing on disk. It runs entirely offline:
+  The <a href="#ch10-ex02-manifest-history">original Meridian manifest</a> still has targets but
+  <strong>no <code>dependencies</code> mapping</strong>, so it writes only in-tree plugin manifests.
+  Omission and <code>dependencies: null</code> do not trigger bundling. The dry-run below previews
+  that manifest-only route without changing project files:
 </p>
 
-<figure class="code-example">
+<!-- Example ch10-ex04-manifest-only-pack: Historical copied to scratch.
+     producer probes meridian-install, meridian-preview, meridian-pack-routing: all exit 0,
+     offline, 0.31.0. Preview preserved hashes/mtimes; archive invocation created no ZIP. -->
+<figure class="code-example" id="ch10-ex04-manifest-only-pack">
   <figcaption>
-    Install first, then dry-run the pack. For <code>meridian-standards</code> that is plugin.json mode:
-    two manifests <em>would</em> be written, no bundle. Both commands are offline, exit&nbsp;<code>0</code>.
-    <span class="apm-version">apm v0.23.1</span>
+    Current commands on the unchanged historical package. All returned <code>0</code> offline;
+    the last command wrote two plugin manifests, <em>not</em> a ZIP.
+    <span class="apm-version">apm 0.31.0</span>
   </figcaption>
-  <pre><code class="language-bash">$ apm install                     # STEP 1 — pack packs what install DEPLOYS, so install first
-  [i] Targets: claude, copilot, cursor  (source: apm.yml)
-    [+] &lt;project root&gt; (local)
-    |-- 1 prompts integrated -&gt; .github/prompts/
-    |-- 2 commands integrated -&gt; .claude/commands/, .cursor/commands/
-    |-- 3 rule(s) integrated -&gt; 3 targets
-    |-- 1 skill(s) integrated -&gt; .agents/skills/, .claude/skills/
-  [*] Installed 1 APM dependency in 1.8s.                        # exit 0
-
-$ apm pack --dry-run --verbose    # STEP 2 — pre-flight: what WOULD pack write? (writes nothing)
-  Would write plugin manifest to  .github/plugin/plugin.json     # copilot target
-  Would write plugin manifest to  .claude-plugin/plugin.json     # claude target
-  # cursor is in targets: but gets NO plugin.json — the plugin contract is claude/copilot only</code></pre>
+  <pre tabindex="0"><code class="language-powershell"># In a disposable copy of backend/examples/ch10/meridian-standards:
+&amp; $Apm install
+&amp; $Apm pack --dry-run --verbose
+&amp; $Apm pack --archive -o dist --verbose
+# Outputs: .github/plugin/plugin.json and .claude-plugin/plugin.json.
+# No archive in dist; Cursor does not get an ecosystem plugin.json.</code></pre>
 </figure>
 
+<!-- Routing boundary: local-bundle-archive=0; pack-local-dependency-rejected=1. -->
 <aside class="callout callout-warn">
-  <h3>Correction: <code>apm pack --archive -o dist</code> writes nothing to <code>dist</code></h3>
+  <h3>An empty dependency closure is not a local-path dependency</h3>
   <p>
-    A tempting-but-wrong line is <code>apm pack --archive -o dist</code> &ldquo;to create a shareable
-    archive.&rdquo; For <code>meridian-standards</code> it produces <strong>no archive at all</strong>:
-    with no <code>dependencies:</code> block, <code>apm pack</code> is in plugin.json mode, so
-    <code>--archive</code> and <code>-o</code> are inert &mdash; it writes the two manifests in-tree and
-    leaves <code>dist/</code> empty. And the default output directory is <strong><code>./build</code>,
-    not <code>dist</code></strong> in any case. Verified on <span class="apm-version">apm v0.23.1</span>:
-  </p>
-  <pre><code class="language-bash">$ apm pack --archive -o dist --verbose
-  [+] Generated plugin manifest:  .github/plugin/plugin.json
-  [+] Generated plugin manifest:  .claude-plugin/plugin.json
-  # dist/ : EMPTY. No bundle, no .zip. --archive / -o only apply in bundle mode.</code></pre>
-  <p>
-    To get a real <code>.zip</code> bundle a package needs a <code>dependencies:</code> closure (with
-    <em>remote</em> refs &mdash; local paths are rejected at pack time). For a primitives-only package
-    like this one, the real distribution channel is a <strong>git ref</strong>, shown in the worked
-    example.
+    The separate <a href="#ch10-ex13-local-bundle">local-bundle fixture</a> explicitly declares
+    <code>dependencies: {}</code>. It contains only Meridian-owned primitives, yet produces a real
+    directory and ZIP without fetching anything. Runtime <em>local-path dependencies</em> are a
+    different case: pack still rejects them with exit <code>1</code>. Remote dependencies are not a
+    prerequisite for every bundle; an empty mapping is enough to select the bundle route.
   </p>
 </aside>
 
-<h4>Scaffolds: <code>apm plugin init</code> and <code>apm marketplace init</code></h4>
+<h3 id="ch10-source-authority">Publication authority: local source versus attested dependencies</h3>
 <p>
-  You do not have to hand-write the shape. <code>apm plugin init</code> scaffolds a fresh producer
-  package &mdash; it writes an <code>apm.yml</code> plus a <code>plugin.json</code>, and adds a
-  <code>devDependencies:</code> block (dev-only dependencies that are <em>excluded</em> from what
-  <code>apm pack</code> ships &mdash; the right home for test-only tooling). It is fully offline:
+  <a href="the-manifest-apm-yml.html">Chapter 4</a>'s declaration principle applies at publication,
+  too: a directory's existence does not automatically authorize shipping it. For local plugin
+  packing, <code>.apm/</code> selects Meridian's source layout; an explicit <code>includes</code>
+  list is exhaustive. This is <strong>not the same operation as install discovery</strong>
+  (<a href="https://github.com/microsoft/apm/blob/8fd10ac5eafee7ca77d41cc34ba139d812fdacd5/docs/src/content/docs/producer/pack-a-bundle.md" rel="noreferrer">pack source selection</a>).
 </p>
 
-<figure class="code-example">
+<!-- Selection evidence: local-source-authority, pack-includes-exhaustive, pack-includes-missing;
+     core-probes/ch4-includes-not-install-filter. Inputs l, il, ix remain in producer materialized/.
+     Plugin declarations: ProducerFixtures/marketplace/plugins/review/plugin.json and
+     core probes ch3-plugin-legacy-declarations / ch3-plugin-empty-declaration. -->
+<div class="table-scroll" role="region" aria-label="Scrollable table" tabindex="0"><table>
+  <caption>Same declaration, different operation. <span class="apm-version">apm 0.31.0</span></caption>
+  <thead>
+    <tr><th scope="col">Input</th><th scope="col">Observed boundary</th></tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><code>.apm/</code> plus root <code>skills/</code>, with <code>includes: auto</code></td>
+      <td>Local pack selected <code>.apm/</code>; the extra root skill was omitted with a warning.</td>
+    </tr>
+    <tr>
+      <td><code>includes: [skills/unlisted]</code></td>
+      <td>Pack shipped only that explicitly listed root skill, not the unlisted .apm primitives.
+        A missing listed path failed before writes.</td>
+    </tr>
+    <tr>
+      <td>An includes list naming only one instruction, followed by <code>apm install</code></td>
+      <td>The unlisted instruction still installed. Includes is advisory for install, not a discovery allowlist.</td>
+    </tr>
+  </tbody>
+</table></div>
+<p>
+  Intake also respects declarations: an eligible APM manifest, backed by <code>.apm/</code> or
+  APM/MCP dependencies, takes precedence over a co-located plugin marker. Metadata-only
+  <code>apm.yml</code> does not automatically override a plugin; root skills and collections remain
+  distinct supported layouts. For a plugin, <code>"skills": ["./skills/review"]</code> declares the
+  complete skill set, <code>"skills": []</code> means none, and omission permits conventional
+  discovery. Extra undeclared directories cannot expand an explicit list
+  (<a href="https://github.com/microsoft/apm/blob/8fd10ac5eafee7ca77d41cc34ba139d812fdacd5/docs/src/content/docs/reference/package-types.md" rel="noreferrer">package and component authority</a>).
+</p>
+<p>
+  <strong>Your own source and someone else's dependency have different authority.</strong> A local
+  prompt edited after install was packed with its new source content, not the older deployed copy.
+  Dependency input, by contrast, is limited to the lock's <code>deployed_files</code>. For files
+  selected for export, a missing file or a mismatch against recorded
+  <code>deployed_file_hashes</code> fails packing; extra or edited cache content cannot become the
+  publishing source. Older locks may lack recorded hashes;
+  compatibility with those locks is not retroactive attestation of every file
+  (<a href="https://github.com/microsoft/apm/blob/8fd10ac5eafee7ca77d41cc34ba139d812fdacd5/docs/src/content/docs/producer/pack-a-bundle.md" rel="noreferrer">dependency attestation</a>).
+  Install and audit before packing as a validation habit, not because every local file is read from
+  the last deployment.
+</p>
+<p>
+  Author-only tooling belongs in <code>devDependencies</code>. It can be installed for the producer
+  without becoming part of the consumer's bundle:
+</p>
+
+<!-- Example ch10-ex05-dev-only: ProducerFixtures/dev-only/apm.yml (complete manifest below)
+     and its tool/ source. fixture-dev-install, fixture-dev-audit, fixture-dev-pack: exit 0.
+     Evidence assertion dev-content-excluded; the installed dev-only skill is absent from the bundle. -->
+<figure class="code-example" id="ch10-ex05-dev-only">
   <figcaption>
-    <code>apm plugin init</code> scaffolds rung 1 of the ladder &mdash; a valid producer skeleton, no
-    network. <span class="apm-version">apm v0.23.1</span>
+    <code>dev-only/apm.yml</code> and its pack commands: local author tooling installs but does not
+    ship. Use the whole fixture, including <code>tool/</code>. Offline, observed exits <code>0</code>.
+    <span class="apm-version">apm 0.31.0</span>
   </figcaption>
-  <pre><code class="language-bash">$ apm plugin init -y --target copilot     # scaffold a brand-new producer package (offline)
-  [+] Created apm.yml                     # standard template + a devDependencies: block
-  [+] Created plugin.json                 # exit 0</code></pre>
+  <pre tabindex="0"><code class="language-yaml"># Installed author tooling is not part of the published dependency closure.
+name: dev-boundary
+version: 1.0.0
+description: A producer's development tooling must not ship.
+license: MIT
+targets: [copilot]
+dependencies: {}
+devDependencies:
+  apm:
+    - path: ./tool
+includes: auto</code></pre>
+  <pre tabindex="0"><code class="language-powershell"># In the disposable dev-only fixture:
+&amp; $Apm install
+&amp; $Apm pack</code></pre>
 </figure>
 
+<h3 id="ch10-formats">Scaffold deliberately; do not confuse the two plugin families</h3>
 <p>
-  <code>apm marketplace init</code> is the discovery side. It adds a <code>marketplace:</code> block to
-  <code>apm.yml</code>; <code>apm pack</code> then builds a <code>.claude-plugin/marketplace.json</code>
-  that consumers register with <code>apm marketplace add &lt;owner&gt;/&lt;repo&gt;</code>. A
-  <strong>marketplace is a discovery index over git, not a hosted registry</strong> &mdash; &ldquo;a
-  curated index of packages that one repo publishes and many repos install from&rdquo;
-  (<a href="https://microsoft.github.io/apm/producer/publish-to-a-marketplace/" rel="noreferrer">publish
-  to a marketplace</a>). One trap worth knowing: unknown keys <em>inside</em> the
-  <code>marketplace:</code> block are rejected at parse time &mdash; stricter than the top-level
-  manifest, which silently ignores unknowns.
+  The <a href="#ch10-distribution-contract">distribution contract</a> is a choice, not a filename
+  heuristic. <code>apm plugin init</code> without a format flag still creates <code>apm.yml</code>
+  plus a Claude-compatible root <code>plugin.json</code>. Strict Agent Plugins 1.0 is opt-in and also
+  creates <code>mcp.json</code>, with pinned schema URLs. Both scaffolds start at version
+  <code>0.1.0</code>, include empty runtime/dev dependency sections, and create neither a skill nor a
+  lockfile
+  (<a href="https://github.com/microsoft/apm/blob/8fd10ac5eafee7ca77d41cc34ba139d812fdacd5/docs/src/content/docs/reference/cli/plugin.md" rel="noreferrer">plugin scaffolding</a>).
 </p>
 
-<figure class="code-example">
+<!-- Example ch10-ex06-plugin-init: init-legacy-plugin and init-portable-plugin, each exit 0
+     in a DIFFERENT empty directory; generated scaffolds in producer-probes/materialized/initial/. -->
+<figure class="code-example" id="ch10-ex06-plugin-init">
   <figcaption>
-    <code>apm marketplace init</code> scaffolds a <code>marketplace:</code> block (offline). Consumers
-    later reach it with <code>apm marketplace add</code>. <span class="apm-version">apm v0.23.1</span>
+    Two alternative scaffolds, not a migration of Meridian. Run each in a different empty scratch
+    directory. Offline, observed exits <code>0</code>. <span class="apm-version">apm 0.31.0</span>
   </figcaption>
-  <pre><code class="language-yaml">$ apm marketplace init --name meridian-marketplace --owner meridian-finance   # offline, exit 0
+  <pre tabindex="0"><code class="language-powershell"># In one empty directory: the Claude-compatible default.
+&amp; $Apm plugin init --yes --target copilot
 
-# appended to apm.yml:
+# In a DIFFERENT empty directory: strict Agent Plugins 1.0.
+&amp; $Apm plugin init --yes --target copilot --format agent-plugin</code></pre>
+</figure>
+
+<!-- Format evidence: local-bundle-directory, portable-default-alias, portable-pack;
+     legacy pack/restore inventory limits are mapped in the pitfalls slot. -->
+<div class="table-scroll" role="region" aria-label="Scrollable table" tabindex="0"><table>
+  <caption>Output formats are not interchangeable. <span class="apm-version">apm 0.31.0</span></caption>
+  <thead>
+    <tr><th scope="col">Pack format</th><th scope="col">Use and boundary</th></tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>Default Claude-compatible; <code>plugin</code> is a compatibility alias</td>
+      <td>Preserves Meridian's instructions, prompt/command, and skill. The worked example uses this family.</td>
+    </tr>
+    <tr>
+      <td><code>agent-plugin</code></td>
+      <td>Strict Agent Plugins 1.0: skills and MCP, with a pinned schema. Native Copilot registration
+        is distinct from loose-file deployment and from runtime loading.</td>
+    </tr>
+    <tr>
+      <td><code>apm</code></td>
+      <td>Legacy tooling format, not the default plugin-bundle install contract. Check the actual
+        workflow's pack/restore support and inventory before choosing it.</td>
+    </tr>
+  </tbody>
+</table></div>
+<p>
+  The skill-only <code>portable-plugin</code> fixture demonstrates strict output without changing
+  Meridian. Its bundle has root <code>plugin.json</code> with
+  <code>$schema: https://agent-plugins.org/schemas/1.0.0/plugin.schema.json</code>,
+  <code>mcp.json</code> even with no servers, <code>skills/review/SKILL.md</code>, and an embedded
+  lock recording <code>pack.format: agent-plugin</code>. APM 0.31.0, Agent Plugins 1.0.0, and
+  <a href="the-landscape-and-whats-next.html">OpenAPM's draft specification</a> are separate version
+  domains, not equivalent claims of support
+  (<a href="https://github.com/microsoft/apm/blob/8fd10ac5eafee7ca77d41cc34ba139d812fdacd5/docs/src/content/docs/reference/cli/pack.md" rel="noreferrer">format contract</a>).
+</p>
+
+<!-- Example ch10-ex07-agent-plugin-pack: ProducerFixtures/portable-plugin, root skills/review.
+     portable-lock and portable-pack: exit 0; exact strict pack includes verbose.
+     Its empty-source-graph audit is NOT evidence about the native consumer. -->
+<figure class="code-example" id="ch10-ex07-agent-plugin-pack">
+  <figcaption>
+    Strict output from the separate <code>portable-plugin</code> fixture. Offline, observed exits
+    <code>0</code>; this tests packing, not consumer audit or harness loading.
+    <span class="apm-version">apm 0.31.0</span>
+  </figcaption>
+  <pre tabindex="0"><code class="language-powershell"># In a disposable copy of portable-plugin:
+&amp; $Apm lock
+&amp; $Apm pack --format agent-plugin --verbose
+# Output: build/portable-review-1.0.0/</code></pre>
+</figure>
+
+<!-- Boundary evidence: meridian-portable-rejected, exit 1, no writes/mtime changes. -->
+<aside class="callout callout-warn">
+  <h3>Keep Meridian Claude-compatible</h3>
+  <p>
+    On the local Meridian bundle, <code>apm pack --format agent-plugin -o rejected</code> exited
+    <code>1</code> before writes: <samp>Cannot pack Agent Plugin: non-portable primitives would be
+    discarded (commands, instructions).</samp> Agents, hooks, extensions, and LSP are also outside
+    this strict output contract. Do not delete Meridian's instructions and prompt just to make a
+    different format accept it.
+  </p>
+</aside>
+
+<p>
+  To test native registration, copy the <em>unchanged generated</em>
+  <code>build/portable-review-1.0.0/</code> directory to <code>pkg/</code> in a separate consumer,
+  then declare it. The imperative <code>install &lt;bundle&gt;</code> route rejects this native
+  package; it needs a dependency row
+  (<a href="https://github.com/microsoft/apm/blob/8fd10ac5eafee7ca77d41cc34ba139d812fdacd5/docs/src/content/docs/consumer/copilot-agent-plugins.md" rel="noreferrer">native Copilot intake</a>).
+</p>
+
+<!-- Example ch10-ex08-native-registration: producer materialized/n/apm.yml, copied generated
+     strict bundle in pkg/. native-bundle-declared-install=0; native-bundle-audit=1.
+     native-bundle-imperative-rejected=1. Core control ch3-portable-metadata-audit also=1.
+     Runtime loading SKIPPED-needs-network: no configured Copilot CLI session was run. -->
+<figure class="code-example" id="ch10-ex08-native-registration">
+  <figcaption>
+    Native consumer manifest and diagnostic commands: registration succeeds, but CI audit has a
+    known failure. Offline observations, not an audit-clean recipe.
+    <span class="apm-version">apm 0.31.0</span>
+  </figcaption>
+  <pre tabindex="0"><code class="language-yaml">name: native-consumer
+version: 1.0.0
+targets: [copilot]
+dependencies:
+  apm:
+    - path: ./pkg</code></pre>
+  <pre tabindex="0"><code class="language-powershell"># In the separate native consumer, with the generated bundle at ./pkg:
+&amp; $Apm install      # observed exit 0: whole-plugin Copilot registration
+&amp; $Apm audit --ci   # observed exit 1: native canonical-IR replay failure</code></pre>
+</figure>
+<p>
+  Registration wrote APM's Copilot marketplace/settings, not a loose duplicate skill, and did not
+  locate or launch Copilot. Audit reported <samp>Native Agent Plugin canonical IR is missing</samp>;
+  a separate source control with a legitimate metadata-only manifest removed the additional
+  consistency complaint, not that replay failure. This is a real 0.31.0 limitation,
+  <strong>not a network skip</strong> and not evidence that registration is unsupported. Do not add
+  unattested files, edit the packed lock, or disable drift to hide it.
+  Actual loading requires <strong>Copilot CLI &gt;=1.0.81</strong> and is
+  <code>SKIPPED-needs-network</code> here because no configured harness/runtime session was run.
+</p>
+
+<h3 id="ch10-catalog-gates">Catalog generation and release checking are different operations</h3>
+<p>
+  A <strong>marketplace is a curated discovery index</strong>, commonly hosted in Git, not the REST
+  package server. Use it when teams need to find several approved packages; one shared package can
+  simply use a Git ref. <code>apm marketplace init</code> scaffolds the index declaration;
+  <code>apm pack</code> generates its catalog. Consumers register a reachable Git-hosted catalog
+  through <code>apm marketplace add</code>
+  (<a href="https://microsoft.github.io/apm/producer/publish-to-a-marketplace/" rel="noreferrer">marketplace producer flow</a>).
+</p>
+
+<!-- Example ch10-ex09-marketplace-init: init-marketplace, exit 0, offline, 0.31.0.
+     Generates an example remote package declaration; neither resolves nor publishes it.
+     This scaffold is separate from the contained-local marketplace fixture below. -->
+<figure class="code-example" id="ch10-ex09-marketplace-init">
+  <figcaption>
+    Scaffold discovery metadata in an empty scratch directory. Offline, exit <code>0</code>;
+    the generated example source is a placeholder, not a published Meridian package.
+    <span class="apm-version">apm 0.31.0</span>
+  </figcaption>
+  <pre tabindex="0"><code class="language-powershell"># Author an index declaration; do not resolve or publish its placeholder.
+&amp; $Apm marketplace init --name meridian-marketplace --owner meridian-finance</code></pre>
+</figure>
+<p>
+  A release check answers a different question: <em>does the reviewed catalog match what these
+  declarations and available metadata would generate?</em> The <code>marketplace</code> fixture
+  makes that question network-independent by keeping its single plugin under
+  <code>plugins/review/</code>. Its plugin manifest explicitly declares only
+  <code>skills/review</code>.
+</p>
+
+<!-- Example ch10-ex10-marketplace-gates: ProducerFixtures/marketplace/apm.yml, plugins/review/,
+     and genuine catalog/marketplace.json. fixture-marketplace-pack / fixture-marketplace-check=0.
+     Negative/read-only evidence: marketplace-drift-readonly=4, mixed-override-readonly=4,
+     mixed-readonly-clean=0, mixed-readonly-missing-bundle=0; hashes and mtimes unchanged. -->
+<figure class="code-example" id="ch10-ex10-marketplace-gates">
+  <figcaption>
+    Complete <code>marketplace/apm.yml</code> and two distinct operations: generate with complete
+    local metadata, then check without rewriting. Both returned <code>0</code> offline.
+    <span class="apm-version">apm 0.31.0</span>
+  </figcaption>
+  <pre tabindex="0"><code class="language-yaml"># The package source is contained in this fixture.
+name: book-marketplace
+version: 1.0.0
+description: A minimal reviewed package index.
+targets: [copilot]
 marketplace:
-  owner: { name: meridian-finance, url: https://github.com/meridian-finance }
-  build: { tagPattern: "v{version}" }
-  outputs: { claude: {} }          # codex optional; each output writes its profile-default path
+  owner:
+    name: Book Fixtures
+  outputs:
+    claude:
+      path: catalog/marketplace.json
   packages:
-    - name: example-package        # placeholder the scaffold writes; edit to meridian-standards
-      description: Human-readable description of the package
-      source: meridian-finance/example-package
-      version: "^1.0.0"</code></pre>
+    - name: review
+      source: ./plugins/review
+      description: A minimal review skill.
+      version: 1.0.0</code></pre>
+  <pre tabindex="0"><code class="language-powershell"># In the disposable marketplace fixture:
+&amp; $Apm pack --offline --strict-metadata
+&amp; $Apm pack --offline --check-clean</code></pre>
 </figure>
-
-<h4><code>apm publish</code> &mdash; the registry path (experimental)</h4>
 <p>
-  APM also has an <code>apm publish</code> verb that uploads to a REST registry &mdash; but it is
-  <strong>gated behind an experimental feature that is disabled by default</strong>, and publishing
-  itself pushes over the network. For this book it is <code>SKIPPED-needs-network</code>. The gate check
-  is verifiable offline, and it tells you exactly what is going on:
+  <code>--check-clean</code> is <strong>read-only for project files, including modification
+  times</strong>. A changed catalog returned <code>4</code> and was not repaired. A missing effective
+  output path also returned <code>4</code>; an override such as
+  <code>--marketplace-path claude=alternate/marketplace.json</code> changes what is compared, not
+  permission to create it. Use <code>catalog/marketplace.json</code> for the output path: the tested
+  parser rejected a leading <code>./</code> there as traversal
+  (<a href="https://github.com/microsoft/apm/blob/8fd10ac5eafee7ca77d41cc34ba139d812fdacd5/docs/src/content/docs/reference/cli/pack.md" rel="noreferrer">release gates and effective paths</a>).
 </p>
 
-<figure class="code-example">
+<!-- Example ch10-ex11-metadata-gates: ProducerFixtures/metadata-offline/apm.yml.
+     Pinned public catalog source fb2851683be0e0e7711421d518bd8dba23b0b1f6, no obtained metadata.
+     metadata-offline-preview=0, metadata-offline-strict=5, metadata-offline-clean=4,
+     metadata-strict-clean=5. No network request; gates preserve project hashes/mtimes. -->
+<div class="table-scroll" role="region" aria-label="Scrollable table" tabindex="0"><table id="ch10-ex11-metadata-gates">
+  <caption>
+    Run in a disposable <code>metadata-offline</code> fixture with an initially empty isolated
+    metadata cache. Its pinned public source has no obtained metadata: offline does not mean
+    certifiable. <span class="apm-version">apm 0.31.0</span>
+  </caption>
+  <thead>
+    <tr><th scope="col">Command</th><th scope="col">Exit</th><th scope="col">Meaning</th></tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><code>&amp; $Apm pack --offline --dry-run --json</code></td>
+      <td><code>0</code></td>
+      <td>Preview can proceed with <code>certifiable: false</code>, status <code>offline</code>.</td>
+    </tr>
+    <tr>
+      <td><code>&amp; $Apm pack --offline --strict-metadata --json</code></td>
+      <td><code>5</code></td>
+      <td><code>metadata_incomplete</code>; no output writes.</td>
+    </tr>
+    <tr>
+      <td><code>&amp; $Apm pack --offline --check-clean --json</code></td>
+      <td><code>4</code></td>
+      <td><code>marketplace_metadata_uncertifiable</code>, not a clean catalog.</td>
+    </tr>
+    <tr>
+      <td><code>&amp; $Apm pack --offline --strict-metadata --check-clean --json</code></td>
+      <td><code>5</code></td>
+      <td>Strict metadata fails first; combining the gates does not turn this into exit 4.</td>
+    </tr>
+  </tbody>
+</table></div>
+<aside class="callout callout-warn">
+  <h3>A clean catalog is not a verified bundle</h3>
+  <p>
+    In a project requesting both bundle and marketplace output, <code>--check-clean</code> suppressed
+    normal writes even with <code>--force --archive</code>. Deleting that project's ZIP still left
+    the clean catalog check at exit <code>0</code>: it neither rebuilt nor certified the bundle.
+    Use the <a href="#ch10-ex14-zip-consumer">actual archive-to-consumer test</a> for that boundary,
+    not a marketplace comparison.
+  </p>
+</aside>
+
+<h3>The registry client exists; a public hosted hub is a separate claim</h3>
+<p>
+  APM 0.31.0 ships an <strong>experimental REST registry client and an implementable HTTP API
+  v1</strong>, including version-list, archive-download, and publication operations. That is not
+  evidence of a Microsoft-operated public searchable hub, nor is a Git transport proxy the same
+  service. Real use needs a compatible backend and authorized access. Git remains the default
+  distribution route
+  (<a href="https://github.com/microsoft/apm/blob/8fd10ac5eafee7ca77d41cc34ba139d812fdacd5/docs/src/content/docs/guides/registries.md" rel="noreferrer">experimental registries</a>;
+  <a href="https://github.com/microsoft/apm/blob/8fd10ac5eafee7ca77d41cc34ba139d812fdacd5/docs/src/content/docs/reference/registry-http-api.md" rel="noreferrer">HTTP API v1</a>).
+</p>
+<p>
+  The <code>registries</code> feature is disabled by default; both gated manifest parsing and
+  publish preview fail until it is enabled. This local-only preview demonstrates the separate
+  <em>registry archive contract</em>, without uploading:
+</p>
+
+<!-- Example ch10-ex12-registry-preview: ProducerFixtures/registry-preview, isolated home only.
+     registry-enable-isolated, fixture-registry-install, fixture-registry-preview,
+     registry-disable-isolated: exit 0. registry-manifest-gate / registry-publish-gate=1.
+     Dry-run creates registry-boundary-1.0.0.zip; no compatible registry service was contacted. -->
+<figure class="code-example" id="ch10-ex12-registry-preview">
   <figcaption>
-    <code>apm publish</code> is gated behind the disabled <code>registries</code> feature. The gate is
-    verified offline; the actual upload is <code>SKIPPED-needs-network</code>.
-    <span class="apm-version">apm v0.23.1</span>
+    <code>registry-preview</code> in an isolated scratch APM home: observed exits <code>0</code>,
+    no upload. The fixture's reserved <code>registry.example.com</code> address is not a working
+    service. <span class="apm-version">apm 0.31.0</span>
   </figcaption>
-  <pre><code class="language-bash">$ apm publish --package meridian-finance/meridian-standards --dry-run
-  Error: apm publish requires the experimental registries feature.
-  Enable with: apm experimental enable registries.              # disabled by default</code></pre>
+  <pre tabindex="0"><code class="language-powershell"># Only in the disposable registry-preview fixture and isolated APM home:
+&amp; $Apm experimental enable registries
+&amp; $Apm install
+&amp; $Apm publish --package book-fixtures/review --dry-run
+&amp; $Apm experimental disable registries</code></pre>
 </figure>
 
 <p>
-  Even once enabled, <code>publish</code> uploads via
-  <code>PUT /v1/packages/{owner}/{repo}/versions/{version}</code> &mdash; a network operation against a
-  registry API that is still a <em>v0.2 working draft</em>. Most teams never need it: a
-  <strong>git ref is the zero-infrastructure distribution channel</strong>, and it is enough for
-  everything this chapter does. The registry route belongs to the enterprise story in
-  <a href="enterprise-at-fleet-scale.html">Chapter 11</a>.
+  Here <code>--dry-run</code> means <strong>no upload, not no writes</strong>. It creates
+  <code>registry-boundary-1.0.0.zip</code> locally, with root <code>apm.yml</code> and
+  <code>.apm/</code>, not the plugin wrapper produced by <code>apm pack</code>. Do not interchange
+  the two ZIP contracts
+  (<a href="https://github.com/microsoft/apm/blob/8fd10ac5eafee7ca77d41cc34ba139d812fdacd5/src/apm_cli/commands/publish.py" rel="noreferrer">publish preview behavior</a>).
+  Actual registry consumption/publication is <code>SKIPPED-needs-network</code>: no authorized
+  compatible server or live publication was supplied or permitted. No credentials belong in the
+  package manifest.
 </p>
 
 <aside class="leader-callout">
@@ -704,12 +936,12 @@ marketplace:
           <div class="section-content" data-content-slot="when-to-use-pitfalls">
 <h3>How to hand a package off</h3>
 <p>
-  Producing the package is one thing; getting it to consumers is another. APM distribution is
-  <strong>git-based</strong> today &mdash; there is no central public registry &mdash; so pick the
-  channel by reach, not habit. For internal reuse, a pinned git ref is almost always the right answer.
+  Pick the channel by the consumer's needs, not by the word &ldquo;publish.&rdquo; For normal
+  versioned internal reuse, a declared Git ref is the simplest default. A hand-carried artifact and
+  a replayable dependency are different contracts.
 </p>
 
-<table>
+<div class="table-scroll" role="region" aria-label="Scrollable table" tabindex="0"><table>
   <caption>Choosing a distribution channel for a produced package.</caption>
   <thead>
     <tr>
@@ -721,67 +953,75 @@ marketplace:
   <tbody>
     <tr>
       <td><strong>git ref</strong> (<code>owner/repo#&lt;ref&gt;</code>)</td>
-      <td>The primary APM channel &mdash; zero infrastructure, pinned + hashed by the lockfile.</td>
+      <td>Declared source, pinned and hashed by the lockfile; no central APM service required.</td>
       <td>the consumer can reach your git host. <em>Default choice for internal reuse.</em></td>
     </tr>
     <tr>
       <td><strong>bundle</strong> (<code>apm pack --archive</code>)</td>
-      <td>A <code>.zip</code> whose files are pinned by SHA-256; needs a <code>dependencies:</code> closure with remote refs.</td>
-      <td>you must move it by hand &mdash; offline, air-gapped, or a customer hand-off.</td>
+      <td>A payload and embedded hash inventory; <code>dependencies: {}</code> permits local-only production.</td>
+      <td>you need an artifact handoff. Retain it for reinstall; the imperative ZIP route is one-shot deployment.</td>
     </tr>
     <tr>
       <td><strong>marketplace</strong></td>
-      <td>A discovery index over git (<code>apm marketplace add</code>), <em>not</em> a hosted registry.</td>
+      <td>A curated discovery index (<code>apm marketplace add</code>), not a REST archive service.</td>
       <td>many repos need to <em>discover</em> many curated packages.</td>
     </tr>
     <tr>
       <td><strong>registry</strong> (<code>apm publish</code>)</td>
-      <td>Semver-range installs from a REST service &mdash; experimental (<code>registries</code>).</td>
-      <td>your org runs a registry proxy (<a href="enterprise-at-fleet-scale.html">Chapter 11</a>).</td>
+      <td>Experimental consumption/publication against a compatible REST service.</td>
+      <td>your org has reviewed that backend and its access controls; a Git proxy alone is not one.</td>
     </tr>
   </tbody>
-</table>
+</table></div>
 
 <aside class="callout callout-warn">
-  <h3>Pitfall: run <code>apm install</code> before <code>apm pack</code></h3>
+  <h3>Pitfall: inspecting an exit code instead of the intended inventory</h3>
   <p>
-    <code>apm pack</code> reflects the files your <em>last install deployed</em>, read from the
-    lockfile &mdash; not the raw <code>.apm/</code> tree. A stale or empty lockfile yields
-    &ldquo;No deployed files found&rdquo; or &ldquo;Nothing to pack.&rdquo; The fix is always the same:
-    <code>apm install</code> first, then <code>apm pack --dry-run --verbose</code> to confirm the file
-    list before you share anything.
+    Install and audit the producer, preview the pack, then inspect the real output. Confirm both
+    <a href="#ch10-pack-routing">routing</a> and <a href="#ch10-source-authority">source selection</a>:
+    the old manifest's successful archive command creates no ZIP, while the new empty-mapping
+    fixture does. A file excluded by a declaration cannot be recovered by checking the final hash
+    inventory &mdash; you must first know which primitives should have shipped.
   </p>
 </aside>
 
+<!-- Legacy-format boundary: action-cli-pack-apm / action-cli-unpack-apm and
+     attestation-tamper-apm succeeded with no shared skill. action-instruction-pack /
+     action-instruction-unpack preserved one instruction; legacy-attestation-eligible-file=1.
+     This is an actual omission, not a network skip or failure of all pack formats. -->
 <aside class="callout callout-warn">
-  <h3>Pitfall: <code>-o dist</code> is not where output lands &mdash; the default is <code>./build</code></h3>
+  <h3>Pitfall: treating legacy tooling as the same bundle path</h3>
   <p>
-    The default <code>apm pack</code> output directory is <code>./build</code>, and <code>-o</code> /
-    <code>--archive</code> only do anything in <strong>bundle mode</strong> (a <code>dependencies:</code>
-    block). Running <code>apm pack --archive -o dist</code> on a primitives-only package writes the
-    plugin manifests in-tree and leaves <code>dist/</code> empty. Do not assume a <code>dist/</code>
-    directory appeared &mdash; check the routing table and look in <code>./build</code>.
+    The tested legacy <code>--format apm</code> Copilot pack silently omitted the public
+    <code>style-checker</code> skill deployed under shared <code>.agents/skills/</code>, producing an
+    empty archive with exit <code>0</code>. This is a real 0.31.0 bug, not a network skip. A nonempty
+    instruction packed and restored successfully, and default Claude-compatible packing retained
+    the skill. Do not generalize either result to all formats or all primitives
+    (<a href="https://github.com/microsoft/apm/blob/8fd10ac5eafee7ca77d41cc34ba139d812fdacd5/src/apm_cli/bundle/packer.py" rel="noreferrer">legacy pack implementation</a>).
+    Pack's <code>--target</code> and <code>apm unpack</code> remain deprecated tooling surfaces;
+    <a href="enterprise-at-fleet-scale.html">Chapter 11</a> treats workflow compatibility separately.
   </p>
 </aside>
 
-<aside class="callout callout-warn">
-  <h3>Pitfall: author under <code>.apm/&lt;type&gt;/</code>, not root convention dirs</h3>
-  <p>
-    <code>apm pack</code> will collect a root <code>skills/</code> or <code>instructions/</code> folder,
-    but <code>apm install</code> may not <em>discover</em> those on the consumer side &mdash; so a
-    primitive can appear in the bundle yet be silently skipped on install, quietly removing a guardrail.
-    The only layout that round-trips through both pack and install is
-    <code>.apm/&lt;type&gt;/</code>. Use it for every primitive.
-  </p>
-</aside>
-
+<!-- Integrity evidence: bundle-tamper / bundle-extra-file / bundle-missing-file all exit 1
+     without project writes. Bundle digests recomputed in bundle-inventories.json.
+     archive-repeat.json separates unchanged payload bytes from packed_at/ZIP timestamp changes. -->
 <aside class="callout callout-info">
-  <h3>Recognise, don't misread: <code>type</code> and &ldquo;marketplace&rdquo;</h3>
+  <h3>Integrity is not a signature, and reproducibility is not a clock</h3>
   <p>
-    <code>type: hybrid</code> is real and forward-looking, but it changes <em>no</em> behaviour at
-    v0.23.1 &mdash; do not teach it as &ldquo;this makes the package hybrid.&rdquo; And a
-    <strong>marketplace is not a registry</strong>: it is a discovery index layered over git, with no
-    central hosted service behind it. Both are easy to over-read; keep the vocabulary crisp.
+    The embedded lock's <code>pack.bundle_files</code> maps payload-relative paths to SHA-256
+    digests; the lock cannot hash itself. Changed, missing, and extra payload files in genuine bundle
+    controls were rejected before project writes. That protects integrity <em>relative to trusted
+    metadata</em>, not publisher identity: someone who replaces both payload and hash manifest is
+    not authenticated by either. A clean scan or an unsigned SBOM is not a safety certificate
+    (<a href="security-by-default.html">Chapter 8</a>).
+  </p>
+  <p>
+    New locks omit <code>generated_at</code>, but repeated ZIP packing can still change
+    <code>pack.packed_at</code> and archive member timestamps while leaving payload bytes unchanged.
+    Do not promise identical ZIP bytes merely because dependency locks match
+    (<a href="the-lockfile-and-reproducibility.html">Chapter 6</a>;
+    <a href="https://github.com/microsoft/apm/blob/8fd10ac5eafee7ca77d41cc34ba139d812fdacd5/docs/src/content/docs/producer/pack-a-bundle.md" rel="noreferrer">bundle integrity contract</a>).
   </p>
 </aside>
           </div>
@@ -793,55 +1033,210 @@ marketplace:
 <p>
   The real test of a produced package is not that it packs &mdash; it is that it <em>stands alone</em>.
   Local primitives can lean on paths, tools, or context that only exist in the origin repo, so the
-  producer's discipline is to install the package into a fresh, throwaway repo and prove it works
-  there. &ldquo;Install your own package in a scratch repo before declaring it shipped&rdquo;
+  producer's discipline is to install the package into a fresh, throwaway repo and check that the
+  intended context deploys there. &ldquo;Install your own package in a scratch repo before declaring
+  it shipped&rdquo;
   (<a href="https://microsoft.github.io/apm/producer/" rel="noreferrer">Producer overview</a>). This is
   the consumer ramp from <a href="install-and-restore.html">Chapter 5</a>, seen from the producer's
   chair.
 </p>
 <p>
-  You can do it fully offline with a <strong>local-path source install</strong>. From a fresh scratch
-  repo, install <code>meridian-standards</code> by path: APM resolves its <code>.apm/</code> source
-  primitives (ignoring the producer's own compiled output), deploys them to the scratch repo's target,
-  and caches the package &mdash; exactly as it would for any git-sourced dependency, with no special
-  casing:
+  The v0.23.1 example tested a <strong>local-path source install</strong>, not an archive. The
+  current source control also succeeded with <code>apm install ./pkg</code> and retained the relative
+  <code>./pkg</code> dependency spelling: local adds do not invariably become absolute paths.
+  A local source still has to travel with its consumer; it is not an immutable Git pin. The separate
+  test below instead consumes a <em>real generated ZIP</em>.
 </p>
 
-<figure class="code-example">
-  <figcaption>
-    The offline round-trip: install <code>meridian-standards</code> into a throwaway repo by local path.
-    The extracted context stands alone &mdash; exit&nbsp;<code>0</code>, no network.
-    <span class="apm-version">apm v0.23.1</span>
-  </figcaption>
-  <pre><code class="language-bash">$ apm init -y --target copilot          # a scratch consumer repo, outside meridian-standards
-$ apm install ../meridian-standards     # local-path SOURCE install — fully offline
-  [*] Validating 1 package...
-  [+] …/meridian-standards
-  [>] Resolving …/meridian-standards...
-    |-- 1 prompts integrated       -> .github/prompts/
-    |-- 1 instruction(s) integrated -> .github/instructions/
-    |-- 1 skill(s) integrated       -> .agents/skills/
-  [*] Installed 1 APM dependency in 1.4s.        # exit 0 — the extracted context stands alone</code></pre>
-</figure>
-
+<h3>1. Pack the separate local-only Meridian fixture</h3>
 <p>
-  One caveat about that local-path install: APM records the dependency as a machine-specific
-  <em>absolute path</em>, which is not committable. For a portable manifest you use a relative
-  <code>./</code> path (dev-only) or &mdash; the real story &mdash; a <strong>git ref</strong>. That is
-  how the loop actually closes: Meridian pushes <code>meridian-standards</code> to its private host,
-  tags <code>v1.0.0</code>, and <code>meridian-checkout</code> depends on it. Because that host is
-  private, the resolve is <code>SKIPPED-needs-network</code> in this book &mdash; but the manifest change
-  is the whole point:
+  Copy <code>local-bundle/</code> to a short disposable directory. It reuses all three Meridian
+  source files, trims optional discovery metadata, and deliberately declares an empty dependency
+  mapping. The original <code>backend/examples/ch10/meridian-standards/</code> is unchanged.
 </p>
 
-<figure class="code-example">
+<!-- Example ch10-ex13-local-bundle: ProducerFixtures/local-bundle/apm.yml + all three .apm files
+     + genuine apm.lock.yaml. local-bundle-install, local-bundle-audit, local-bundle-preview,
+     local-bundle-directory, local-bundle-archive: all exit 0, offline, 0.31.0.
+     Current directory/archive invocations include verbose, exactly as the probes did.
+     Related source control: meridian-source-short / meridian-source-audit=0; ./pkg persisted. -->
+<figure class="code-example" id="ch10-ex13-local-bundle">
   <figcaption>
-    <code>meridian-checkout/apm.yml</code> closing the loop &mdash; the extracted conventions return as a
-    pinned dependency, and the version graduates to <code>1.0.0</code>. Resolving the private repo is
-    <code>SKIPPED-needs-network</code>. <span class="needs-network">needs network</span>
-    <span class="apm-version">apm v0.23.1</span>
+    Complete <code>local-bundle/apm.yml</code> and producer commands. The empty mapping selects a
+    real bundle; no format override means Claude-compatible output. All commands returned
+    <code>0</code> offline. <span class="apm-version">apm 0.31.0</span>
   </figcaption>
-  <pre><code class="language-yaml"># SKIPPED-needs-network: meridian-finance/meridian-standards is a private repo
+  <pre tabindex="0"><code class="language-yaml"># Local content can be a bundle: the empty mapping is deliberate.
+# This is a new fixture, not a change to the historical Ch10 package.
+name: meridian-standards
+version: 1.0.0
+description: Shared Meridian engineering instructions, prompts, and review skills.
+author: Meridian Platform Engineering
+license: MIT
+type: hybrid
+targets: [copilot, claude, cursor]
+dependencies: {}
+includes: auto</code></pre>
+  <pre tabindex="0"><code class="language-powershell"># In the disposable local-bundle producer:
+&amp; $Apm install
+&amp; $Apm audit --ci
+&amp; $Apm pack --dry-run --verbose
+&amp; $Apm pack --verbose
+&amp; $Apm pack --archive -o dist --verbose</code></pre>
+</figure>
+<p>
+  The actual directory is <code>build/meridian-standards-1.0.0/</code>, and the actual ZIP is
+  <code>dist/meridian-standards-1.0.0.zip</code>. Alongside generated <code>plugin.json</code> and the
+  enriched embedded lock, both contain:
+</p>
+<ul>
+  <li><code>instructions/meridian-engineering.instructions.md</code> &mdash; the engineering rules;</li>
+  <li><code>commands/checkout-review.md</code> &mdash; the authored prompt in the bundle's command layout;</li>
+  <li><code>skills/secure-payment-review/SKILL.md</code> &mdash; the review skill.</li>
+</ul>
+<p>
+  Packing enriched the <em>embedded copy</em> of the lock with bundle metadata without changing the
+  producer's root lock. The output is a Claude-compatible plugin bundle, not strict Agent Plugins
+  1.0 and not the flat registry archive.
+</p>
+
+<h3>2. Install that ZIP into a fresh three-target consumer</h3>
+<p>
+  In another empty scratch directory, replace the placeholder with the absolute path to the ZIP you
+  just created. Pass the targets on the <em>install command as well as init</em>: without that
+  explicit install flag, the 0.31.0 ZIP probe deployed only to Copilot despite a three-target consumer
+  manifest.
+</p>
+
+<!-- Example ch10-ex14-zip-consumer: init-multitarget-archive, archive-explicit-multitarget,
+     archive-explicit-multitarget-audit: all exit 0. Displayed absolute ZIP placeholder
+     parameterizes the observed ../b/dist/meridian-standards-1.0.0.zip, not a source directory.
+     Real consumer manifest/lock and eight native files: producer-probes/materialized/za/.
+     local-archive-consumer (no target flag) deployed only Copilot; do not use it as three-target proof. -->
+<figure class="code-example" id="ch10-ex14-zip-consumer">
+  <figcaption>
+    Fresh consumer of the generated archive, explicitly targeting Copilot, Claude, and Cursor.
+    Offline, all three commands returned <code>0</code>. This tests deployment and audit, not a
+    live agent review. <span class="apm-version">apm 0.31.0</span>
+  </figcaption>
+  <pre tabindex="0"><code class="language-powershell"># In a DIFFERENT, empty consumer directory:
+&amp; $Apm init --yes --target copilot,claude,cursor
+&amp; $Apm install '&lt;absolute path to meridian-standards-1.0.0.zip&gt;' --target copilot,claude,cursor
+&amp; $Apm audit --ci</code></pre>
+</figure>
+<div class="table-scroll" role="region" aria-label="Scrollable table" tabindex="0"><table>
+  <caption>
+    Inspect the files, not just the counter: eight distinct native files were present; the CLI
+    reported nine copy operations because the Copilot/Cursor skill path is shared.
+  </caption>
+  <thead>
+    <tr><th scope="col">Target</th><th scope="col">Prompt and instruction locations</th><th scope="col">Skill location</th></tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>Copilot</td>
+      <td><code>.github/prompts/checkout-review.prompt.md</code> and <code>.github/instructions/meridian-engineering.instructions.md</code></td>
+      <td><code>.agents/skills/secure-payment-review/SKILL.md</code></td>
+    </tr>
+    <tr>
+      <td>Claude</td>
+      <td><code>.claude/commands/checkout-review.md</code> and <code>.claude/rules/meridian-engineering.md</code></td>
+      <td><code>.claude/skills/secure-payment-review/SKILL.md</code></td>
+    </tr>
+    <tr>
+      <td>Cursor</td>
+      <td><code>.cursor/commands/checkout-review.md</code> and <code>.cursor/rules/meridian-engineering.mdc</code></td>
+      <td>Shared <code>.agents/skills/secure-payment-review/SKILL.md</code></td>
+    </tr>
+  </tbody>
+</table></div>
+<aside class="callout callout-info">
+  <h3>This ZIP install is one-shot deployment, not a declared restore</h3>
+  <p>
+    The imperative route did <strong>not</strong> add the archive to <code>dependencies.apm</code>.
+    Its real lock recorded <code>local_deployed_files</code>, hashes, and local-bundle ownership,
+    not a replayable archive dependency row. Retain the artifact for reinstall; do not assume a
+    later bare install can recover it from the manifest. Nor does this file-level test establish
+    runtime loading or byte equality between source-install and archive-install projections.
+  </p>
+</aside>
+
+<h3>3. Use declared Git for the ordinary restore contract</h3>
+<p>
+  For day-to-day sharing, return to <a href="install-and-restore.html">Chapter 5</a>'s declared-source
+  loop. The small <code>pinned-bundle</code> fixture selects one public skill at an immutable commit,
+  avoiding the full sample package's floating transitive graph. Explicit <code>git</code> keeps it
+  Git-sourced even if registry defaults are configured. Unlike the one-shot ZIP, this declaration
+  tells the next clone <em>where to obtain the dependency again</em>.
+</p>
+
+<!-- Example ch10-ex15-declared-git: ProducerFixtures/pinned-bundle/apm.yml and genuine lock.
+     public-pinned-install, public-pinned-frozen, public-pinned-audit, public-pinned-pack: exit 0.
+     Cold source acquisition needs public GitHub. Pack argv includes archive/json exactly.
+     public-pinned-pack wrote the ZIP despite bundle:null; do not synthesize a corrected JSON report.
+     Attestation controls: attestation-tamper-claude-plugin / attestation-tamper-agent-plugin /
+     attestation-file-missing=1; cache-not-pack-authority=0 with original deployed bytes shipped. -->
+<figure class="code-example" id="ch10-ex15-declared-git">
+  <figcaption>
+    Complete <code>pinned-bundle/apm.yml</code>: declared Git install, unchanged-input frozen replay,
+    CI audit, and default bundle export. Observed exits <code>0</code>.
+    <span class="needs-network">Needs public GitHub access on a cold install or audit.</span>
+    <span class="apm-version">apm 0.31.0</span>
+  </figcaption>
+  <pre tabindex="0"><code class="language-yaml"># One public skill with immutable source identity; no floating transitive graph.
+name: pinned-bundle
+version: 1.0.0
+description: Lock-attested dependency content for a distributable review bundle.
+author: Book Fixtures
+license: MIT
+targets: [copilot]
+dependencies:
+  apm:
+    - git: microsoft/apm-sample-package
+      ref: fb2851683be0e0e7711421d518bd8dba23b0b1f6
+      path: .apm/skills/style-checker
+includes: auto</code></pre>
+  <pre tabindex="0"><code class="language-powershell"># In a disposable copy of pinned-bundle; cold acquisition needs network:
+&amp; $Apm install
+&amp; $Apm install --frozen
+&amp; $Apm audit --ci
+&amp; $Apm pack --archive --json</code></pre>
+</figure>
+<p>
+  The genuine lock records the full commit and the virtual skill's <code>version: unknown</code>;
+  do not invent a semantic version for that subpath. Its deployed skill bytes are the
+  <a href="#ch10-source-authority">attested dependency input</a> to pack. Frozen replay here checks
+  unchanged declared Git state, not deployed-content integrity; that is why audit is separate
+  (<a href="the-lockfile-and-reproducibility.html">Chapter 6</a>).
+</p>
+<p>
+  Inspect <code>build/pinned-bundle-1.0.0.zip</code> on disk. This release's successful JSON report
+  left <code>bundle: null</code> even while creating that archive; the JSON envelope is not a complete
+  artifact inventory and null is not proof of absence
+  (<a href="https://github.com/microsoft/apm/blob/8fd10ac5eafee7ca77d41cc34ba139d812fdacd5/src/apm_cli/commands/pack.py" rel="noreferrer">0.31.0 pack reporting</a>).
+</p>
+
+<h3>Meridian's payoff: the extracted conventions come back as a dependency</h3>
+<p>
+  In the story, Meridian publishes the source to its private Git host, tags <code>v1.0.0</code>, and
+  makes <code>meridian-checkout</code> depend on it. The historical manifest below preserves that
+  graduation to <code>1.0.0</code>. Private distribution remains <code>SKIPPED-needs-network</code>:
+  no real authorized Meridian repository or publication was supplied. The public declared-Git
+  example above proves the current mechanism, not the fictional host.
+</p>
+
+<!-- Example ch10-ex16-meridian-return-history: original chapter's private consumer manifest.
+     Preserve 0.23.1 stamp and SKIPPED-needs-network; no private Git publication/resolution executed.
+     This is the story snapshot, not a freshly verified 0.31.0 dependency. -->
+<figure class="code-example" id="ch10-ex16-meridian-return-history">
+  <figcaption>
+    Historical, reduced <code>meridian-checkout/apm.yml</code> extraction/return illustration:
+    the conventions return as a pinned dependency. This is not a replacement for the accumulated
+    consumer manifest. Private resolution is <code>SKIPPED-needs-network</code>, not a current
+    execution result. <span class="needs-network">Needs private source access.</span>
+    <span class="apm-version">apm v0.23.1 snapshot</span>
+  </figcaption>
+  <pre tabindex="0"><code class="language-yaml"># SKIPPED-needs-network: meridian-finance/meridian-standards is a private repo
 name: meridian-checkout-agent-context
 version: 1.0.0                    # &lt;- the beat: the checkout context graduates from v0.x to 1.0.0
 author: Meridian Checkout Team
@@ -854,14 +1249,21 @@ includes: auto</code></pre>
 </figure>
 
 <p>
-  That single pinned line is the payoff of the whole book. The checkout team no longer <em>copies</em>
-  its own conventions between services &mdash; it <em>depends</em> on them. The lockfile pins the exact
-  commit and content hash (<a href="the-lockfile-and-reproducibility.html">Chapter 6</a>); the
-  install-time scanners vet the source (<a href="security-by-default.html">Chapter 8</a>); and the org
-  policy from <a href="governance-and-policy.html">Chapter 9</a> can now
-  <code>require: meridian-finance/meridian-standards</code>, so <em>every</em> Meridian service restores
-  the same approved conventions, byte-for-byte. The four properties the reader consumed for nine
-  chapters are now the four properties they <em>produce</em>.
+  Carry the earlier consumer decisions forward: merge this dependency into the existing reviewed
+  declarations, including Chapter 8's <code>local-fetch</code> MCP declaration, the other packages,
+  and the review script. The reduced snapshot's <code>mcp: []</code> and omitted script do not
+  direct you to erase them. Retiring any existing dependency or capability requires its own
+  reviewed change.
+</p>
+<p>
+  That dependency is the payoff of the whole book. The checkout team no longer <em>copies</em> its
+  own conventions between services &mdash; it <em>depends</em> on them. Once the private source is
+  available, the normal Git loop records its commit and content hash
+  (<a href="the-lockfile-and-reproducibility.html">Chapter 6</a>), scans deployable content
+  (<a href="security-by-default.html">Chapter 8</a>), and gives
+  <a href="governance-and-policy.html">Chapter 9</a>'s policy a named package to require. The same
+  approved version can then supply each service's supported native context. The four properties the
+  reader consumed for nine chapters are now the four properties they <em>produce</em>.
 </p>
           </div>
         </section>
@@ -876,39 +1278,38 @@ includes: auto</code></pre>
     dependency, not a fork.
   </li>
   <li>
-    <strong>A package is just a directory</strong> with an <code>apm.yml</code> and a
-    <code>.apm/&lt;type&gt;/</code> source tree. There is no separate build pipeline; the CLI is the
-    build pipeline. Producing is relocation into a package shape, not new authoring.
+    <strong>Meridian keeps its familiar source layout</strong>: <code>apm.yml</code> plus
+    <code>.apm/</code>, not the only supported package shape. Producing is relocation, not new
+    authoring; <code>type: hybrid</code> remains reserved metadata, not a layout or format switch.
   </li>
   <li>
-    A <strong>producer manifest</strong> is the same schema as a consumer's, with the distribution
-    fields filled in (<code>description</code>, <code>author</code>, <code>license</code>,
-    <code>repository</code>, <code>keywords</code>). Only <code>name</code> + <code>version</code> are
-    required; <code>type</code> is a real enum but <em>inert</em> at v0.23.1; unknown keys are silently
-    preserved.
+    <strong>Pack routes by declaration.</strong> The unchanged historical manifest still writes
+    in-tree plugin manifests. The separate <code>dependencies: {}</code> fixture produces a real
+    default Claude-compatible directory and ZIP containing all three Meridian primitives.
   </li>
   <li>
-    <strong><code>apm pack</code> routes by manifest content</strong>: <code>dependencies:</code> &rarr;
-    a bundle in <code>./build</code>; <code>marketplace:</code> &rarr; a marketplace index;
-    <code>targets:</code> (claude/copilot) &rarr; <code>plugin.json</code> in-tree; nothing &rarr;
-    &ldquo;Nothing to pack.&rdquo; <code>meridian-standards</code> is plugin.json mode.
+    <strong>Publication authority is explicit.</strong> Local packing follows selected source and
+    exhaustive includes; install does not use includes as a discovery allowlist. Dependencies
+    supply attested deployed content, not arbitrary cached files. Dev tooling stays out of the bundle.
   </li>
   <li>
-    Mind the corrections: <strong>run <code>apm install</code> before <code>apm pack</code></strong>
-    (pack packs deployed files); <strong><code>-o dist</code> does not work</strong> &mdash; the default
-    output is <code>./build</code>, and <code>-o</code>/<code>--archive</code> only apply in bundle mode.
+    <strong>Formats and support are bounded.</strong> Strict Agent Plugins 1.0 carries skills/MCP,
+    not Meridian's complete package. Native registration works, but its known canonical-IR audit
+    failure is separate from runtime loading. Bundle hashes detect changed payload relative to
+    trusted metadata; they are not signatures.
   </li>
   <li>
-    Distribution is git-based: a <strong>git ref</strong> is the zero-infra default; bundles are for
-    offline hand-off; a <strong>marketplace is a discovery index, not a registry</strong>; and
-    <code>apm publish</code> (experimental <code>registries</code>) is
-    <code>SKIPPED-needs-network</code>.
+    <strong>Catalog checks are read-only, not bundle certification.</strong> Drift or uncertifiable
+    clean checks return <code>4</code>; incomplete strict metadata returns <code>5</code>, including
+    when both gates are combined. A marketplace index, a Git proxy, and the shipped experimental
+    REST registry client/API are different things; none proves a public hosted hub.
   </li>
   <li>
     Meridian extracted its checkout-review prompt, engineering instructions, and secure-payment skill
-    into <code>meridian-standards</code>, proved it stands alone with an offline round-trip, and closed
-    the loop by depending on <code>meridian-finance/meridian-standards#v1.0.0</code> &mdash; graduating
-    <code>meridian-checkout</code> to <code>1.0.0</code>.
+    into <code>meridian-standards</code>. The current example proves offline ZIP deployment with
+    explicit <code>copilot,claude,cursor</code> targets; it is one-shot, unlike declared Git restore.
+    The story closes with the conventions returning as a private dependency and
+    <code>meridian-checkout</code> graduating to <code>1.0.0</code>, without claiming a live publication.
   </li>
 </ul>
 
@@ -918,8 +1319,8 @@ includes: auto</code></pre>
   must adopt raises new questions: how do you gate it in CI, serve it in an air-gapped environment, and
   govern its use across a whole organisation without turning developer setup into a bottleneck?
   <a href="enterprise-at-fleet-scale.html">Chapter 11 &mdash; Enterprise at Fleet Scale</a> takes the
-  producer and consumer ramps to org scale: <code>apm audit --ci</code> gating, a registry proxy,
-  air-gapped installs, and the adoption playbook that makes the
+  producer and consumer ramps to org scale: <code>apm audit --ci</code> gating, Git proxying,
+  air-gapped handoffs, and the adoption playbook that makes the
   <a href="governance-and-policy.html">Chapter 9</a> policy stick.
 </p>
           </div>
@@ -933,7 +1334,7 @@ includes: auto</code></pre>
 
       <footer class="site-footer chapter-footer">
         <p>By <a href="https://www.linkedin.com/in/webmaxru/" rel="noreferrer">Maxim Salnikov</a> &middot; <a href="https://github.com/webmaxru/agent-package-manager-book" rel="noreferrer">Source on GitHub</a> &middot; <a href="../apm-book.pdf" download>Download the book (PDF)</a></p>
-        <p class="footer-edition"><a href="https://github.com/webmaxru/agent-package-manager-book/releases" rel="noreferrer">Edition v1.1 · Updated July 8, 2026</a></p>
+        <p class="footer-edition"><a href="https://github.com/webmaxru/agent-package-manager-book/releases" rel="noreferrer">Edition v1.2 · Updated September 16, 2026</a></p>
       </footer>
     </div>
   </div>

@@ -152,8 +152,10 @@
             <h2 id="features-heading">APM features</h2>
             <ul class="tag-list">
             <li>apm outdated</li>
+            <li>registry Current/Wanted/Latest</li>
             <li>apm update</li>
             <li>apm audit</li>
+            <li>apm pack --check-clean</li>
             <li>apm.yml</li>
             <li>apm.lock.yaml</li>
             </ul>
@@ -170,89 +172,82 @@
           <h2 id="objective"><a class="anchor-link" href="#objective" aria-label="Link to Objective section">Objective</a></h2>
           <div class="section-content" data-content-slot="objective">
 <p>
-  After this chapter you can run APM's maintenance triad &mdash; <code>apm outdated</code>,
-  <code>apm update</code>, and <code>apm audit</code> &mdash; and keep the three jobs straight:
-  <em>report</em> what has drifted from upstream, <em>change</em> versions on purpose, and
-  <em>verify</em> the result is intact. You will read an <code>apm outdated</code> table, know why a
-  freshly-locked floating ref shows as up-to-date until its branch moves, drive a consent-gated
-  <code>apm update</code> (the <strong>only</strong> version-moving verb), and read the
-  <code>apm.lock.yaml</code> diff it produces as a reviewable artifact. You will also know precisely
-  what <code>apm audit</code> is &mdash; a hidden-Unicode and drift-integrity check, <em>not</em> an
-  <code>npm audit</code>-style vulnerability feed &mdash; and when to reach for its <code>--ci</code>
-  gate. This is where
-  <span class="property property--reproducibility">Reproducibility</span> stops meaning merely
-  &ldquo;frozen&rdquo; and starts meaning &ldquo;frozen <em>and</em> kept current, deliberately,&rdquo;
-  with a first look at <span class="property property--security">Provenance / security</span> through
-  the audit check.
+  After this chapter you can use APM's maintenance triad &mdash; <code>apm outdated</code>,
+  <code>apm update</code>, and <code>apm audit</code> &mdash; to keep dependencies current deliberately,
+  separating <em>freshness</em>, <em>permission to change</em>, and <em>integrity</em>, and reviewing
+  actual manifest, lockfile, and deployment outcomes rather than trusting a successful exit alone.
+</p>
+<p id="ch7-evidence">
+  <strong>Edition 1.2 targets exactly APM 0.31.0.</strong> Captions marked &ldquo;observed&rdquo; refer
+  to recorded command-and-file checks in the
+  <a href="https://github.com/webmaxru/agent-package-manager-book/blob/main/content/research/updates/1.2/operations-reference.md" rel="noreferrer">operations research</a>;
+  source-inspected rules are distinguished below. The retained Meridian excerpt is an exact
+  historical v0.23.1 snapshot, not a current transcript or a new verification stamp.
 </p>
           </div>
         </section>
         <section class="chapter-section" data-section="concept-theory">
           <h2 id="concept-theory"><a class="anchor-link" href="#concept-theory" aria-label="Link to Concept/Theory section">Concept/Theory</a></h2>
           <div class="section-content" data-content-slot="concept-theory">
-<h3>Reproducible is a floor, not a ceiling</h3>
+<h3 id="ch7-deliberate-lifecycle">Reproducible is a floor, not a ceiling</h3>
 <p>
-  <a href="the-lockfile-and-reproducibility.html">Chapter 6</a> solved &ldquo;works on my machine&rdquo;
-  by freezing the dependency graph: <code>apm install --frozen</code> guarantees a clone matches the
-  lockfile byte for byte. But a frozen graph, left alone, quietly rots. Upstream skills gain fixes,
-  prompts get sharper, instructions track new conventions &mdash; and a project pinned six months ago is
-  reproducible <em>and stale</em>. The failure mode from <a href="the-context-problem.html">Chapter 1</a>
-  simply inverts: instead of silent <em>drift</em> you get silent <em>staleness</em>.
-  <strong>Reproducibility is a floor, not a ceiling.</strong>
+  <a href="the-lockfile-and-reproducibility.html">Chapter 6</a> gave you a recorded dependency graph
+  to replay. But a frozen graph, left alone, quietly ages. Upstream skills gain fixes, prompts get
+  sharper, instructions track new conventions &mdash; and a project pinned six months ago can be
+  reproducible <em>and stale</em>. The failure mode from
+  <a href="the-context-problem.html">Chapter 1</a> inverts: instead of silent drift you get silent
+  staleness. <strong>Reproducibility is a floor, not a ceiling.</strong>
 </p>
 <p>
-  So the obvious next worry is: <em>if everything is pinned, how does anything ever move forward &mdash;
-  safely?</em> The answer is a deliberate maintenance loop layered on top of the reproducible baseline
-  &mdash; a three-beat motion you perform on a cadence, not by accident:
+  So the obvious next worry is: <em>if everything is pinned, how does anything move forward
+  safely?</em> Use the same separation you want from an application package manager:
 </p>
 <ol>
-  <li><strong>Inspect</strong> what has moved upstream since you locked (<code>apm outdated</code>).</li>
-  <li><strong>Change</strong> on purpose, behind a consent gate (<code>apm update</code>).</li>
-  <li><strong>Verify</strong> the result is intact (<code>apm audit</code>).</li>
+  <li><strong>Inspect availability</strong> &mdash; <a href="#ch7-report"><code>apm outdated</code></a> reports what is newer upstream.</li>
+  <li><strong>Authorize a change</strong> &mdash; <a href="#ch7-change"><code>apm update</code></a> previews and applies a permitted refresh.</li>
+  <li><strong>Check the result</strong> &mdash; <a href="#ch7-verify"><code>apm audit</code></a> checks recorded integrity and deployment consistency.</li>
 </ol>
 <p>
-  These are the same motions any team already performs on application dependencies; here they apply to
-  agent context. And they are deliberately <em>not</em> part of the daily habit. The consumer ramp draws
-  the line explicitly: after naming the four everyday commands from
-  <a href="install-and-restore.html">Chapter 5</a>, it says &ldquo;everything else is either lifecycle
-  automation (<code>update</code>, <code>outdated</code>, <code>audit</code>) or a workflow
-  extension&rdquo; (<a href="https://microsoft.github.io/apm/consumer/" rel="noreferrer">Use APM
-  packages</a>). The broader lifecycle concept sets the rhythm too &mdash; you use
-  &ldquo;<code>install</code> and <code>run</code> daily, <code>audit</code> in CI, and <code>init</code>
-  and <code>compile</code> rarely&rdquo;
-  (<a href="https://microsoft.github.io/apm/concepts/lifecycle/" rel="noreferrer">Lifecycle</a>). This
-  chapter uses <em>lifecycle</em> in that narrower, everyday sense: the three maintenance verbs, not the
-  whole <code>init &rarr; install &rarr; run &rarr; audit</code> flow.
+  These are three different questions. A newer release can be outside your constraint. An allowed
+  update still needs review. A current version can have a broken local deployment. The loop protects
+  <span class="property property--reproducibility">Reproducibility</span> by making change deliberate,
+  not by making change impossible.
+</p>
+<p>
+  This chapter uses <em>lifecycle</em> in that maintenance sense, not for the entire
+  scaffold-to-runtime flow. It sits alongside <a href="install-and-restore.html">Chapter 5</a>'s
+  four-command consumer habit. The
+  <a href="https://microsoft.github.io/apm/consumer/" rel="noreferrer">consumer guide</a> likewise
+  groups <code>update</code>, <code>outdated</code>, and <code>audit</code> as lifecycle automation.
+  The cadence is yours to choose; it is not a reason to refresh dependencies on every restore.
 </p>
 
 <aside class="callout callout-warn">
   <h3>Bust this myth up front: <code>apm audit</code> is not <code>npm audit</code></h3>
   <p>
-    <code>apm audit</code> ships <strong>no CVE / vulnerability database</strong> and reports zero
-    &ldquo;known advisories.&rdquo; Its checks are <em>content integrity</em> (hidden Unicode &mdash;
-    zero-width characters, bidi overrides, tag characters) and <em>lockfile / drift consistency</em>. A
-    clean audit means &ldquo;no hidden characters and nothing has drifted from the lockfile,&rdquo;
-    <strong>not</strong> &ldquo;no known vulnerabilities&rdquo;
-    (<a href="https://microsoft.github.io/apm/reference/cli/audit/" rel="noreferrer">apm audit</a>).
-    Treating it as a CVE gate would give a false sense of coverage. This is the single most important
-    misconception this chapter exists to prevent &mdash; hold onto it through the whole
-    <span class="property property--security">Provenance / security</span> story that
-    <a href="security-by-default.html">Chapter 8</a> continues.
+    APM's built-in audit is <strong>not a CVE / vulnerability feed</strong>. It checks hidden Unicode,
+    recorded hashes, ownership, and deployment consistency. A clean CI result means the checks that
+    ran found no blocking issue within their scope &mdash; not that the package has no vulnerabilities,
+    no warnings, or benign intent
+    (<a href="https://github.com/microsoft/apm/blob/8fd10ac5eafee7ca77d41cc34ba139d812fdacd5/docs/src/content/docs/reference/cli/audit.md" rel="noreferrer">0.31.0 audit reference</a>).
+    It neither authenticates the publisher nor tests a running agent or MCP server.
+    <a href="security-by-default.html">Chapter 8</a> develops those
+    <span class="property property--security">Provenance / security</span> boundaries.
   </p>
 </aside>
 
 <aside class="meridian-beat">
   <h3>Meridian</h3>
   <p>
-    Meridian's checkout context has its <strong>first birthday</strong> with a locked setup. It has been
-    reproducible for a quarter (<a href="the-lockfile-and-reproducibility.html">Chapter 6</a>), and it
-    shows: the public package the team pinned in <a href="install-and-restore.html">Chapter 5</a> pulls in
-    a shared review skill on a moving <code>#main</code> branch, and that branch has advanced several
-    commits past the version they locked. Rather than let the pin rot <em>or</em> blindly track the
-    branch, the staff engineer institutes a <strong>monthly agent-context refresh</strong> &mdash; a
-    scheduled loop that runs <code>apm outdated</code> to see what drifted, <code>apm update</code> to move
-    it on purpose, and <code>apm audit</code> to confirm the result is intact, then lands the whole thing
-    as a reviewed pull request. Deliberate change, not silent drift. That refresh is this chapter.
+    Meridian's checkout context has its <strong>first birthday</strong> with a locked setup. It has
+    been reproducible for a quarter (<a href="the-lockfile-and-reproducibility.html">Chapter 6</a>),
+    and it shows: the public package in
+    <a href="install-and-restore.html#ch5-add-historical">Chapter 5's historical full-package setup</a>
+    pulls in a shared review skill on a moving <code>#main</code> branch, and that branch has advanced
+    past the version they locked. Rather than let the pin rot <em>or</em> blindly track the branch,
+    the staff engineer institutes a <strong>monthly agent-context refresh</strong> &mdash; a scheduled
+    loop that reports staleness, reviews a deliberate change, checks the result, and lands the evidence
+    with a pull request. Deliberate change, not silent drift. That refresh is this chapter.
   </p>
 </aside>
           </div>
@@ -262,451 +257,408 @@
           <div class="section-content" data-content-slot="in-apm">
 <h3>Three verbs, three jobs</h3>
 <p>
-  APM splits maintenance into three single-purpose commands so that <em>reporting</em>, <em>changing</em>,
-  and <em>verifying</em> never blur together. Bundling &ldquo;what's new?&rdquo;, &ldquo;change it,&rdquo;
-  and &ldquo;is it intact?&rdquo; into one verb is how package managers historically made updates scary
-  &mdash; you never knew what a single command would touch. Three verbs give each step its own, observable
-  blast radius:
+  The <a href="#ch7-deliberate-lifecycle">three-question model</a> remains useful in 0.31.0, but it is
+  not an absolute side-effect guarantee. In particular, &ldquo;update&rdquo; need not move a version,
+  and &ldquo;verify&rdquo; may need to acquire missing locked content.
 </p>
-<table>
-  <caption>The maintenance triad, each verb mapped to its job and what it is allowed to touch. Verified on apm v0.23.1.</caption>
+<!-- ch7-triad-roles: OP07.1-3 and OP06.2; source contracts narrowed by the probes below. -->
+<div class="table-scroll" role="region" aria-label="Scrollable table" tabindex="0"><table id="ch7-triad-roles">
+  <caption>The maintenance triad at APM 0.31.0: intended job and observed operational boundaries.</caption>
   <thead>
     <tr>
       <th scope="col">Verb</th>
-      <th scope="col">Job</th>
-      <th scope="col">Writes?</th>
-      <th scope="col">Contacts upstream?</th>
+      <th scope="col">Question</th>
+      <th scope="col">State and network boundary</th>
     </tr>
   </thead>
   <tbody>
     <tr>
       <td><code>apm outdated</code></td>
-      <td><strong>report</strong> drift from upstream</td>
-      <td>No &mdash; read-only</td>
-      <td>Yes</td>
+      <td><strong>Report:</strong> what is newer upstream?</td>
+      <td>Queries sources without changing project files. Unreachable or unresolved sources can be <code>unknown</code>.</td>
     </tr>
     <tr>
       <td><code>apm update</code></td>
-      <td><strong>change</strong> versions &mdash; the only mover</td>
-      <td>Yes &mdash; rewrites the lockfile (and manifest)</td>
-      <td>Yes</td>
+      <td><strong>Change:</strong> which permitted refresh do you accept?</td>
+      <td>May change manifest, lock, cache, and deployments; may instead be a no-op or repair. Queries upstream. Trusted lifecycle scripts add side effects.</td>
     </tr>
     <tr>
       <td><code>apm audit</code></td>
-      <td><strong>verify</strong> integrity (content + drift)</td>
-      <td>No (unless you pass <code>--strip</code>, which removes hidden characters)</td>
-      <td>No &mdash; cache-only replay + local scan</td>
+      <td><strong>Verify:</strong> does recorded state agree with the installation?</td>
+      <td>Diagnosis, not ordinary repair. Replay uses scratch/cache; CI hydration and policy discovery can need network. Explicit stripping is a separate mutating operation.</td>
     </tr>
   </tbody>
-</table>
+</table></div>
 
-<h4>Report: <code>apm outdated</code> shows drift and changes nothing</h4>
+<h4 id="ch7-report">Report: freshness is not permission</h4>
 <p>
-  <code>apm outdated</code> answers <em>&ldquo;what has drifted from upstream since we locked?&rdquo;</em>
-  without changing anything. It &ldquo;reads <code>apm.lock.yaml</code> and queries each remote to detect
-  staleness&rdquo; and is explicitly &ldquo;read-only&hellip; does not modify <code>apm.lock.yaml</code>
-  or touch <code>apm_modules/</code>&rdquo;
-  (<a href="https://microsoft.github.io/apm/reference/cli/outdated/" rel="noreferrer">apm outdated</a>).
-  On Meridian's freshly-restored project it finds nothing to do:
+  <code>apm outdated</code> starts with the lockfile's dependency inventory, not a scan of the deployed
+  bytes. A floating Git branch is not automatically outdated: when its locked commit still equals
+  the current tip, there is nothing newer to report. Once the tip moves, the report can change even
+  though your manifest, lock, and deployed files have not.
 </p>
-<figure class="code-example">
-  <figcaption>
-    <code>apm outdated</code> on the freshly-installed Meridian project. The pinned tag has no newer
-    match, and the transitive <code>#main</code> skill is locked at the branch's <em>current</em> tip, so
-    both read as current. <span class="needs-network">needs network</span>
-    <span class="apm-version">apm v0.23.1</span>
-  </figcaption>
-  <pre><code class="language-text">$ apm outdated
-  [*] All dependencies are up-to-date            # exit 0</code></pre>
-</figure>
 <p>
-  That &ldquo;nothing to do&rdquo; is the chapter's first non-obvious lesson. A freshly-locked floating
-  ref is <strong>not</strong> outdated, because <code>apm install</code> locked <code>#main</code> to
-  whatever the branch pointed at <em>that day</em> &mdash; the lock already equals what the ref resolves
-  to now. Drift is latent in the <em>ref</em> and surfaced by <em>time</em>, not by how loosely the
-  dependency is pinned. A month later, once the upstream branch has advanced <em>past</em> Meridian's
-  locked commit, the same command produces a table:
+  Do not extend that observation into &ldquo;pinned dependencies never show outdated.&rdquo; The
+  <a href="https://github.com/microsoft/apm/blob/8fd10ac5eafee7ca77d41cc34ba139d812fdacd5/docs/src/content/docs/reference/cli/outdated.md" rel="noreferrer">target-tag reference</a>
+  describes matching-tag comparisons for Git tags and comparison with eligible annotated semver tags
+  for full-SHA revision pins. The separate
+  <a href="https://github.com/microsoft/apm/blob/8fd10ac5eafee7ca77d41cc34ba139d812fdacd5/docs/src/content/docs/reference/cli/update.md" rel="noreferrer">Git revision-update contract</a>
+  can propose a reviewed SHA rewrite to the commit behind an eligible stable annotated semver tag,
+  not an arbitrary branch tip or lightweight tag. Those special Git-tag rules are
+  <strong>source-inspected</strong> here, not a newly executed tag-publication experiment.
+  A pin records current identity; it does not hide later availability.
 </p>
-<figure class="code-example">
-  <figcaption>
-    <code>apm outdated</code> once the upstream branch has moved ahead of the locked commit. The pinned
-    tag stays <code>up-to-date</code>; the moving <code>#main</code> skill is now <code>outdated</code>.
-    The tip SHA is illustrative &mdash; <code>#main</code> floats, so your run resolves to a different
-    commit (the content hash stays the same).
-    <span class="needs-network">needs network</span> <span class="apm-version">apm v0.23.1</span>
-  </figcaption>
-  <pre><code class="language-text">$ apm outdated
-                                                  Dependency Status
-┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━┳━━━━━━━━━━━━┳━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━┓
-┃ Package                                           ┃ Current    ┃ Latest     ┃ Status       ┃ Source               ┃
-┡━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━╇━━━━━━━━━━━━╇━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━┩
-│ microsoft/apm-sample-package                      │ v1.0.0     │ v1.0.0     │ up-to-date   │ git tags             │
-│ github/awesome-copilot/skills/review-and-refactor │ (default)  │ 3169734b   │ outdated     │ git branch           │
-└───────────────────────────────────────────────────┴────────────┴────────────┴──────────────┴──────────────────────┘
-[!] 1 outdated dependency found                    # exit 0 -- finding drift is not an error</code></pre>
-</figure>
 <p>
-  Read the columns and the reason for each status becomes clear:
+  Experimental registry rows make the distinction especially clear:
+  <strong>Current</strong> is the locked version, <strong>Wanted</strong> is the highest version
+  satisfying the manifest constraint, and <strong>Latest</strong> is the highest published parseable
+  version under the registry's ordering. Latest can be outside the constraint and can be a prerelease.
+  Wanted uses declarations from the root or installed package manifests: the inventory is lock-based,
+  but Wanted is not independent of your declarations.
 </p>
-<table>
-  <caption>How <code>apm outdated</code> checks each dependency, and why the pinned tag holds while the branch drifts. Verified on apm v0.23.1.</caption>
+<!--
+  ch7-registry-freshness: OP07.1; OpsFixtures/registry, registry_fixture.py.
+  Primary: registry-outdated-current-wanted-latest; registry-outdated-wide confirms
+  the full Latest/Source text in its LATER all-1.1.0 state, not these initial Current values.
+  Reusable: registry-current-wanted-latest, after server.advance(), before any update.
+  This is an explanatory value table, not a reconstructed verbatim terminal transcript.
+-->
+<div class="table-scroll" role="region" aria-label="Scrollable table" tabindex="0"><table id="ch7-registry-freshness">
+  <caption>
+    Observed 0.31.0 values from the <code>operations/registry</code> loopback fixture before updating;
+    all three rows report <code>outdated</code>. The <a href="#ch7-registry-manifest">manifest</a>
+    supplies one exact pin and two ranges.
+  </caption>
   <thead>
     <tr>
-      <th scope="col">Column</th>
-      <th scope="col">Meaning</th>
-      <th scope="col">Pinned tag dep</th>
-      <th scope="col">Unpinned branch dep</th>
+      <th scope="col">Package</th>
+      <th scope="col">Selector</th>
+      <th scope="col">Current</th>
+      <th scope="col">Wanted</th>
+      <th scope="col">Latest</th>
     </tr>
   </thead>
   <tbody>
-    <tr>
-      <td><strong>Current</strong></td>
-      <td>what you have locked</td>
-      <td><code>v1.0.0</code> (the tag)</td>
-      <td><code>(default)</code> (the default branch)</td>
-    </tr>
-    <tr>
-      <td><strong>Latest</strong></td>
-      <td>what the ref resolves to <em>now</em></td>
-      <td><code>v1.0.0</code> (same tag)</td>
-      <td><code>3169734b</code> (new tip commit)</td>
-    </tr>
-    <tr>
-      <td><strong>Status</strong></td>
-      <td><code>up-to-date</code> / <code>outdated</code> / <code>unknown</code></td>
-      <td><code>up-to-date</code></td>
-      <td><code>outdated</code></td>
-    </tr>
-    <tr>
-      <td><strong>Source</strong></td>
-      <td>how staleness was checked</td>
-      <td><code>git tags</code></td>
-      <td><code>git branch</code></td>
-    </tr>
+    <tr><td><code>operations/exact</code></td><td><code>1.0.0</code></td><td><code>1.0.0</code></td><td><code>1.0.0</code></td><td><code>2.0.0-beta.1</code></td></tr>
+    <tr><td><code>operations/range</code></td><td><code>^1.0.0</code></td><td><code>1.0.0</code></td><td><code>1.1.0</code></td><td><code>2.0.0-beta.1</code></td></tr>
+    <tr><td><code>operations/other</code></td><td><code>^1.0.0</code></td><td><code>1.0.0</code></td><td><code>1.1.0</code></td><td><code>2.0.0-beta.1</code></td></tr>
   </tbody>
-</table>
+</table></div>
 <p>
-  A tag-pinned dep is checked against <strong>git tags</strong> and stays current unless a newer matching
-  tag exists; a branch dep is checked against the <strong>branch tip</strong> and goes
-  <code>outdated</code> the moment the branch moves ahead of the locked commit. This is exactly the
-  unpinned hazard <a href="lessons-from-package-managers.html">Chapter 2</a> flagged, now shown in its
-  lifecycle consequence. Two more facts worth internalizing: <code>apm outdated</code> keys off the
-  <em>committed lockfile</em>, not a live <code>apm.yml</code> edit &mdash; loosening a pin in the manifest
-  without re-installing does not change its report &mdash; and its exit code is <code>0</code> whether or
-  not anything is outdated. Finding drift is not an error; the summary line is informational (exit
-  <code>1</code> occurs only when there is no lockfile at all).
+  <code>registry: fixture (outside constraint)</code> explains why a published Latest is not a
+  requested upgrade. Even the exact pin is reported outdated, while its Wanted remains
+  <code>1.0.0</code>. Registry comparison adds the Wanted column; Git-only output keeps
+  Current / Latest / Status / Source, and mixed Git rows use <code>-</code> for Wanted.
+  This is a shipped <strong>experimental client</strong>, not evidence of a Microsoft-hosted public
+  registry; the exercise uses only a controlled loopback source.
+</p>
+<p>
+  Finding outdated dependencies exits <code>0</code>: this is an informational report, not a build
+  gate. Do not treat <code>unknown</code> as proof of freshness, either. Local dependencies are skipped.
+  The inspected command has neither a package filter nor a JSON-output flag &mdash; the JSON option
+  used below belongs to <code>audit</code>.
 </p>
 
-<h4>Change: <code>apm update</code> is the only version-moving verb</h4>
+<!--
+  ch7-change: OP07.1; registry-selected-plan, registry-exact-noop-plan,
+  registry-apply-within-constraints, registry-selected-without-consent,
+  git-semver-noop-plan / git-semver-noop-apply,
+  registry-update-empty-cache-no-consent, mcp-repair-preview-control / mcp-repair-apply-control.
+  Interactive default-No and special full-SHA tag rules are source-inspected, not executed here.
+-->
+<h4 id="ch7-change">Change: review the permitted resolution</h4>
 <p>
-  <code>apm update</code> re-resolves every dependency in <code>apm.yml</code> to &ldquo;the newest version
-  or Git ref allowed by its constraint, prints a structured plan &mdash; added, updated, removed,
-  unchanged &mdash; and prompts before touching anything&rdquo;
-  (<a href="https://microsoft.github.io/apm/reference/cli/update/" rel="noreferrer">apm update</a>). It is
-  &ldquo;the command that actually changes versions in your project&rdquo;
-  (<a href="https://microsoft.github.io/apm/consumer/update-and-refresh/" rel="noreferrer">Update and
-  refresh</a>). Start with <code>--dry-run</code>, the safe preview that &ldquo;computes and prints the
-  plan &hellip; but never writes and never asks&rdquo;:
+  <code>apm update</code> is the recommended consented refresh of existing declarations, not the only
+  operation capable of changing resolution. Explicit manifest edits followed by install, and
+  install or lock refresh modes, can also change it. The distinction from
+  <a href="install-and-restore.html">Chapter 5</a> is <strong>replaying unchanged intent versus
+  reconciling changed intent</strong>, not a magical guarantee attached to one verb.
 </p>
-<figure class="code-example">
+<p>
+  Preview with <code>apm update --dry-run</code>; a package argument can narrow the refresh.
+  The <a href="#ch7-registry-plan">observed selected plan</a> correctly reported
+  <code>1 updated, 2 unchanged</code>. Separate exact-registry and Git-semver controls reported
+  <code>All dependencies already at their latest matching refs.</code> A plan need not overstate
+  movement or print an unknown destination. A correct plan is useful evidence, but it is not a
+  substitute for checking the applied state.
+</p>
+<p>
+  <code>--yes</code> accepts a plan; it does <strong>not</strong> widen a constraint. In the registry
+  control, an all-package update advanced allowed ranges to <code>1.1.0</code> and kept the exact
+  <code>1.0.0</code> pin. Noninteractive selected change without <code>--yes</code> exited
+  <code>1</code> with <code>Cannot prompt for confirmation in non-interactive shell</code>.
+  The interactive default of No is the
+  <a href="https://github.com/microsoft/apm/blob/8fd10ac5eafee7ca77d41cc34ba139d812fdacd5/docs/src/content/docs/reference/cli/update.md" rel="noreferrer">documented contract</a>;
+  an unattended job must handle the observed noninteractive refusal as a failure, not a successful decline.
+</p>
+<p>
+  Nor does every successful update move a version or rewrite the lock. An unchanged-ref update
+  restored an empty materialized cache without consent or lock mutation. An MCP-only accepted update
+  repaired missing native configuration; its preview did not. These are repairs, not dependency
+  bumps. Dependency maintenance is also distinct from upgrading the APM executable itself.
+</p>
+
+<h4 id="ch7-verify">Verify: know what the gate actually checked</h4>
+<p>
+  Audit combines content scanning with consistency checks and an install replay. CI mode checks
+  hashes where the lock supplies a baseline; replay compares expected deployment with the working
+  tree. Canonical ownership adds a separate question: does each recorded owner still name a valid
+  dependency or supported workspace/bundle owner? This implements
+  <a href="the-lockfile-and-reproducibility.html">Chapter 6's recorded-state model</a>, not upstream
+  freshness.
+</p>
+<!--
+  ch7-audit-modes: OP07.2; OpsFixtures/repro after a benign edit to
+  .github/instructions/library.instructions.md, source and lock untouched.
+  Primary: drift-copilot-bare / drift-copilot-ci (0 / 1).
+  Reusable: copilot-bare-drift / copilot-ci-drift; analogous Claude/Cursor cases also ran.
+-->
+<figure class="code-example" id="ch7-audit-modes">
   <figcaption>
-    <code>apm update --dry-run</code> previews the plan and writes nothing. Note the caveat below: the
-    plan over-states movement. <span class="needs-network">needs network</span>
-    <span class="apm-version">apm v0.23.1</span>
+    Two modes on the same deliberately edited Copilot rule in the operations <code>repro</code>
+    fixture: advisory audit exits <code>0</code>; CI audit exits <code>1</code>. Neither repairs it.
+    Offline local-source control. <span class="apm-version">apm v0.31.0 &mdash; observed</span>
   </figcaption>
-  <pre><code class="language-text">$ apm update --dry-run
-  [>] Checking upstream for revision-pin freshness...
-  [i] Update plan for apm.yml
-
-    [~] github/awesome-copilot/skills/review-and-refactor
-        ref: - (a4aebcd -> -)
-        files: .agents/skills/review-and-refactor, .agents/skills/review-and-refactor/SKILL.md, .claude/skills/review-and-refactor, +1 more
-
-    [~] microsoft/apm-sample-package
-        ref: v1.0.0 (fb28516 -> -)
-        files: .agents/skills/style-checker, .agents/skills/style-checker/SKILL.md, .claude/agents/design-reviewer.md, +13 more
-
-    2 updated
-    [~] updated
-
-  [i] Dry run: no changes applied. Re-run without --dry-run to update.   # exit 0 -- lock unchanged</code></pre>
+  <pre tabindex="0"><code class="language-bash">apm audit -f json
+apm audit --ci --no-fail-fast -f json</code></pre>
 </figure>
 <p>
-  Do not read that plan too literally. It is a <em>re-deploy</em> plan, not a precise
-  &ldquo;these-commits-will-change&rdquo; diff: it marks <strong>every</strong> re-resolvable dep
-  <code>[~] updated</code> &mdash; including the pinned <code>v1.0.0</code> dep that will <em>not</em> move
-  &mdash; and it does not pre-compute the destination SHA, rendering it as <code>-</code>
-  (<code>a4aebcd -&gt; -</code>). The <code>2 updated</code> count over-states real movement. The truth
-  shows only when you run it for real and read the deploy phase (or diff the lockfile). Applied
-  non-interactively as a scheduled job with <code>--yes</code>:
+  Here <em>bare audit</em> means the mode without <code>--ci</code>, even when you request JSON.
+  Its JSON reported <code>"passed": true</code> while stderr reported ordinary drift.
+  That result is not contradictory: ordinary replay drift is advisory in this mode.
+  <code>--ci</code> is the integrity gate.
 </p>
-<figure class="code-example">
-  <figcaption>
-    <code>apm update --yes</code> applies the refresh. The deploy phase tells the true story the plan
-    blurred: the pinned dep re-resolved to the <em>same</em> commit; only the moving <code>#main</code>
-    skill advanced. <span class="needs-network">needs network</span>
-    <span class="apm-version">apm v0.23.1</span>
-  </figcaption>
-  <pre><code class="language-text">$ apm update --yes
-  [>] Checking upstream for revision-pin freshness...
-  [i] Update plan for apm.yml
-    [~] github/awesome-copilot/skills/review-and-refactor    ref: - (a4aebcd -> -)         files: ..., +1 more
-    [~] microsoft/apm-sample-package                         ref: v1.0.0 (fb28516 -> -)    files: ..., +13 more
-    2 updated
-    [~] updated
-  [i] Targets: claude, copilot, cursor  (source: apm.yml)
-    [+] microsoft/apm-sample-package #v1.0.0 @fb285168 (cached)     # &lt;- pinned: commit UNCHANGED
-    |-- 2 prompts adopted -> .github/prompts/
-    |-- 3 agents adopted -> 3 targets
-    |-- 4 commands integrated -> .claude/commands/, .cursor/commands/
-    |-- 3 rule(s) adopted -> 3 targets
-    |-- 1 skill(s) integrated -> .agents/skills/, .claude/skills/
-    [+] github.com/github/awesome-copilot/skills/review-and-refactor #default @3169734b   # &lt;- MOVED to tip
-    |-- (files unchanged)                                          # &lt;- content identical: bytes didn't change
-    [+] &lt;project root&gt; (local)
-    |-- 1 prompts adopted -> .github/prompts/
-    |-- 2 commands integrated -> .claude/commands/, .cursor/commands/
-    |-- 3 rule(s) adopted -> 3 targets
-  Updated 2 APM dependencies.                                       # exit 0</code></pre>
-</figure>
-<p>
-  There is the whole point of the verb, made concrete: the pinned dependency re-resolved to the
-  <em>same</em> <code>@fb285168 (cached)</code> &mdash; a tag pin does not move &mdash; while the moving
-  <code>#main</code> skill advanced <code>a4aebcd4 &rarr; 3169734b</code>, the branch tip, with
-  <code>(files unchanged)</code> because the file bytes were identical. Only <code>apm update</code> did
-  this; <a href="install-and-restore.html">Chapter 5</a>'s bare <code>apm install</code> would have
-  restored the <em>old</em> locked commit even for the floating ref. In an interactive session the prompt
-  &ldquo;defaults to No,&rdquo; and declining exits cleanly &mdash; &ldquo;no manifest rewrite, no lockfile
-  write, no filesystem changes&rdquo;; in CI or piped stdin you must pass <code>--yes</code>
-  (<a href="https://microsoft.github.io/apm/reference/cli/update/" rel="noreferrer">apm update</a>). One
-  more distinction to file away: <code>apm update</code> refreshes <em>project dependencies</em>; upgrading
-  the CLI binary itself is a different command, <code>apm self-update</code>
-  (<a href="https://microsoft.github.io/apm/consumer/update-and-refresh/" rel="noreferrer">Update and
-  refresh</a>).
-</p>
-
-<h4>Verify: <code>apm audit</code> checks integrity, not vulnerabilities</h4>
-<p>
-  <code>apm audit</code> confirms deployed context is <em>intact</em> with two independent checks: a
-  <strong>content scan</strong> for hidden Unicode in deployed prompt / instruction / skill / rules files,
-  and an <strong>install-replay drift</strong> check that re-materializes from cache into a scratch tree
-  and diffs it against your working tree. This protection &ldquo;already runs automatically in
-  <code>apm install</code>&rdquo; &mdash; <code>apm audit</code> is the on-demand re-verification, not a
-  gate you must remember to call to be safe
-  (<a href="https://microsoft.github.io/apm/reference/cli/audit/" rel="noreferrer">apm audit</a>). Because
-  it replays from cache and scans local files, it needs no network:
-</p>
-<figure class="code-example">
-  <figcaption>
-    Default <code>apm audit</code> on the refreshed project: content scan plus install-replay drift, both
-    clean. Runs offline. <span class="apm-version">apm v0.23.1</span>
-  </figcaption>
-  <pre><code class="language-text">$ apm audit
-  [>] Scanning all installed packages...
-  [>] Replaying install (cache-only)...
-  [+] Replayed 3 package(s)
-  [>] Diffing scratch vs working tree...
-  [+] No drift detected
-
-  [*] 26 file(s) scanned -- no issues found          # exit 0</code></pre>
-</figure>
-<p>
-  For CI you want a machine-readable gate, and that is <code>apm audit --ci</code>: it adds a
-  nine-check lockfile-consistency table on top of the drift replay. This is the
-  <span class="property property--security">Provenance / security</span> guardrail that makes a refresh
-  <em>trustworthy</em>:
-</p>
-<figure class="code-example">
-  <figcaption>
-    <code>apm audit --ci</code> &mdash; the lockfile-consistency gate. Nine checks, all green. Runs
-    offline. <span class="apm-version">apm v0.23.1</span>
-  </figcaption>
-  <pre><code class="language-text">$ apm audit --ci
-  [!] Could not determine org from git remote; enforcement skipped (set policy.fetch_failure_default=block in apm.yml to fail closed)
-  [>] Replaying install (cache-only)...
-  [+] Replayed 3 package(s)
-  [>] Diffing scratch vs working tree...
-  [+] No drift detected
-
-                                            [>] APM Policy Compliance
-┏━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
-┃ Status   ┃ Check                    ┃ Message                                                                  ┃
-┡━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┩
-│ [+]      │ lockfile-exists          │ Lockfile present                                                         │
-│ [+]      │ ref-consistency          │ All dependency refs match lockfile                                       │
-│ [+]      │ deployed-files-present   │ All deployed files present on disk                                       │
-│ [+]      │ no-orphaned-packages     │ No orphaned packages in lockfile                                         │
-│ [+]      │ skill-subset-consistency │ Skill subset selections match lockfile                                   │
-│ [+]      │ config-consistency       │ No MCP configs to check                                                  │
-│ [+]      │ content-integrity        │ No critical hidden Unicode or hash drift detected                        │
-│ [+]      │ includes-consent         │ 'includes:' declared -- local content deployment is explicitly consented │
-│ [+]      │ drift                    │ no drift detected against lockfile                                       │
-└──────────┴──────────────────────────┴──────────────────────────────────────────────────────────────────────────┘
-
-  [*] All 9 check(s) passed          # exit 0</code></pre>
-</figure>
-<p>
-  The choice of form matters because the two modes carry <strong>different exit codes on the same
-  problem</strong> &mdash; and that is the difference between an advisory report and a build gate:
-</p>
-<table>
-  <caption>The three <code>apm audit</code> exit codes, by mode. Default audit is advisory on drift; only <code>--ci</code> gates it. Verified on apm v0.23.1.</caption>
+<!--
+  ch7-audit-exits: OP07.2/OP08.1; repro baselines, drift-{copilot,claude,cursor}-{bare,ci},
+  ownership-invalid-{bare,ci}, ownership-unrecorded-ci,
+  scan-unrecorded-whole-{bare,ci}, scan-warning-short-{bare,ci}.
+  Reusable repro/security suites retain the ordinary-drift, owner, and installed-warning cases.
+-->
+<div class="table-scroll" role="region" aria-label="Scrollable table" tabindex="0"><table id="ch7-audit-exits">
+  <caption>
+    Isolated APM 0.31.0 observations from the operations <code>repro</code> and security controls,
+    not a universal three-exit-code formula.
+  </caption>
   <thead>
-    <tr>
-      <th scope="col">Situation</th>
-      <th scope="col"><code>apm audit</code> (default)</th>
-      <th scope="col"><code>apm audit --ci</code></th>
-    </tr>
+    <tr><th scope="col">Condition</th><th scope="col">Bare audit</th><th scope="col">CI audit</th></tr>
   </thead>
   <tbody>
-    <tr>
-      <td>Clean</td>
-      <td><code>0</code></td>
-      <td><code>0</code></td>
-    </tr>
-    <tr>
-      <td>Drift only (missing / modified deployed file)</td>
-      <td><code>0</code> &mdash; advisory</td>
-      <td><code>1</code> &mdash; gate fails</td>
-    </tr>
-    <tr>
-      <td>Hidden-Unicode finding</td>
-      <td><code>2</code> &mdash; content scan</td>
-      <td><code>1</code> &mdash; via <code>content-integrity</code></td>
-    </tr>
+    <tr><td>Clean recorded local project</td><td><code>0</code></td><td><code>0</code></td></tr>
+    <tr><td>Benign modified deployed rule</td><td><code>0</code>, drift advisory</td><td><code>1</code>, hash/replay drift</td></tr>
+    <tr><td>Invalid canonical owner / active owner</td><td><code>1</code></td><td><code>1</code></td></tr>
+    <tr><td>Replayed file has no recorded ownership, even though bytes agree</td><td>Not measured in this control</td><td><code>1</code>, <code>unrecorded</code></td></tr>
+    <tr><td>Critical character in an unrecorded governed file</td><td><code>1</code></td><td><code>1</code></td></tr>
+    <tr><td>Warning-only U+200B content, installed and correctly hashed</td><td><code>2</code></td><td><code>0</code></td></tr>
   </tbody>
-</table>
+</table></div>
+<!--
+  Ownership repair: ownership-prune (0), ownership-after-prune (1),
+  ownership-reinstall-after-prune (0), ownership-repaired-after-install (0).
+  scan-package-selector-narrower (0) scanned no files and is not successful scope evidence.
+  Corrected canonical-selector control: content/research/updates/1.2/ch08-verification.md,
+  final-source-canonical-scope (audit ./package -f json, exit 0, files_scanned: 3).
+-->
 <p>
-  The benign <code>Could not determine org from git remote</code> line appears only because the sample
-  project has no git remote, so <em>organization</em>-policy discovery is skipped. In a real repo with a
-  remote, org policy would be fetched and enforced &mdash; that fleet story is
-  <a href="enterprise-at-fleet-scale.html">Chapter 11</a>, not this chapter.
+  Warning-only content does not, by itself, fail CI; adding a hash mismatch would be a different
+  condition. Invalid ownership is also not merely advisory drift: it fails <em>both</em> modes.
+  In a repair control, <code>apm prune</code> removed invalid owner rows, but the next audit still found
+  an unrecorded file. Install then restored complete ownership and the audit passed. Removing bad
+  metadata is not proof that every deployment discrepancy has been repaired.
+</p>
+<p>
+  Ten checks ran in the clean local fixture, including <code>deployment-ledger-owners</code>,
+  <code>content-integrity</code>, and <code>drift</code>. <strong>Ten is an observation, not an API
+  constant.</strong> Empty projects, configuration, policy, and early failures can change the total.
+  <code>--no-fail-fast</code> requests diagnostic coverage after the first failure;
+  <code>-f json</code> changes the report format
+  (<a href="https://github.com/microsoft/apm/blob/8fd10ac5eafee7ca77d41cc34ba139d812fdacd5/docs/src/content/docs/reference/baseline-checks.md" rel="noreferrer">baseline checks</a>).
+  Read check names, findings, and scope, not a fixed &ldquo;all nine passed&rdquo; string.
+</p>
+<p>
+  The <a href="https://github.com/microsoft/apm/blob/8fd10ac5eafee7ca77d41cc34ba139d812fdacd5/docs/src/content/docs/reference/cli/audit.md" rel="noreferrer">source-inspected flag contract</a>
+  distinguishes whole-project audit from a package selector or <code>--file</code>: the latter
+  narrow scanning and skip replay. <code>--no-drift</code> explicitly reduces replay coverage;
+  it is not a repair. The earlier <code>_local/package</code> control returned <code>0</code> but
+  selected no files, so it proved no successful scan. <a href="security-by-default.html#ch08-package-audit-scope">Chapter
+  8's corrected <code>./package</code> control</a> records three scanned files instead.
+  Check the selected input and coverage as well as the exit code, and keep the full-project gate
+  for the maintenance loop.
+</p>
+
+<!--
+  ch7-cold-audit: OP06.2; public-cold-ci (0), public-cold-offline-ci (1),
+  cold-local-audit-ci (0). Bare cold-cache skip is target-doc source evidence, not
+  an inference from those CI runs. Ch5 marker-present audit mutation is independent F2 evidence.
+-->
+<h4 id="ch7-cold-audit">Cold is not the same as offline</h4>
+<p>
+  A warm or local-source audit can work offline. Bare replay remains cache-only; the target reference
+  documents an informational skip on a cache miss. CI mode instead can hydrate a
+  <strong>lock-pinned scratch replay</strong> when modules are absent. A public cold-cache control
+  exited <code>0</code> without checkout writes; making its source unreachable exited <code>1</code>,
+  not a harmless green skip. A local-source cold control succeeded without remote acquisition.
+  Policy discovery can require network too. &ldquo;Audit is always offline&rdquo; is obsolete.
+</p>
+<p>
+  Those unchanged-checkout results are scoped observations, not a guarantee for every package form.
+  <a href="install-and-restore.html">Chapter 5</a> records a marker-present plugin replay defect that
+  even mutated materialized cache files. The MCP-only operations control also returned CI
+  <code>0</code> for missing or edited native MCP configuration. Inspect actual native artifacts;
+  an audit is not a comprehensive native-config byte comparator or runtime health test.
+</p>
+<!--
+  Policy scope: OP09.3 policy-pin-nonempty-mismatch-audit (0),
+  policy-explicit-env-only / policy-disable-even-failclosed (0).
+  Native scope: OP08.3 mcp-edited-native-ci / mcp-missing-native-audit-ci (0);
+  parked-hook and native-plugin replay limitations stay documented in Ch5/Ch8.
+-->
+<p>
+  Likewise, a fixture's &ldquo;enforcement skipped&rdquo; warning is not evidence of organization
+  policy compliance. The observed default policy-fetch/hash-failure posture can leave baseline CI
+  green, and <code>APM_POLICY_DISABLE=1</code> suppressed even an explicit policy source.
+  <a href="governance-and-policy.html">Chapter 9</a> explains the authority and bypass boundaries;
+  <a href="enterprise-at-fleet-scale.html">Chapter 11</a> protects the required job's inputs.
+  Do not turn a baseline integrity result into a wider security or governance certificate.
 </p>
           </div>
         </section>
         <section class="chapter-section" data-section="when-to-use-pitfalls">
           <h2 id="when-to-use-pitfalls"><a class="anchor-link" href="#when-to-use-pitfalls" aria-label="Link to When to use / pitfalls section">When to use / pitfalls</a></h2>
           <div class="section-content" data-content-slot="when-to-use-pitfalls">
-<h3>The division of labor</h3>
+<h3>Choose the change you actually mean</h3>
 <p>
-  Six commands touch a locked project, and keeping them straight is most of the skill. Only one moves a
-  version; only one fails a build:
+  With matching declarations, a lock, and unchanged local sources, ordinary install replays recorded
+  state; use the triad to review a refresh. If you deliberately change a selector, install reconciles
+  that new intent: in the registry probe,
+  editing <code>operations/exact</code> from <code>1.0.0</code> to <code>1.1.0</code>, preserving its
+  registry declaration, then running <code>apm install</code> moved it to <code>1.1.0</code> with exit
+  <code>0</code>. That is explicit permission, unlike merely seeing a newer Latest.
 </p>
-<table>
-  <caption>Every command that touches a locked project, by role. Only <code>apm update</code> moves a version; only <code>apm audit --ci</code> fails a build. Verified on apm v0.23.1.</caption>
+<!--
+  Manifest reconciliation: registry-install-edited-constraint, after registry-apply-within-constraints.
+  Frozen boundary: OP06.2 plus ch05-verification.md F1, frozenlocal-new-local-frozen.
+-->
+<p>
+  <code>apm install --frozen</code> is neither a read-only command nor a universal declaration-change
+  veto. It requires a lock and performs limited structural checks; in 0.31.0 a newly declared local
+  dependency can still deploy and rewrite it. Keep
+  <a href="install-and-restore.html#ch5-frozen-boundary">Chapter 5's local-path exception</a> in mind,
+  and use <a href="the-lockfile-and-reproducibility.html">Chapter 6</a> for the full restore boundary.
+  Audit separately. Do not hand-edit the generated lock to manufacture consistency.
+</p>
+
+<aside class="callout callout-warn" id="ch7-preview-boundary">
+  <h3>A preview of refs is not a promise that no code runs</h3>
+  <!--
+    OP07.3; OpsFixtures/lifecycle, record.py records inert event names only.
+    Primary: lifecycle-update-dry-run, lifecycle-uninstall-dry-run,
+    lifecycle-install-dry-run, lifecycle-command-failure-nonfatal.
+    Reusable: update-preview-has-pre-events, update-preview-kill-switch,
+    uninstall-preview-pre-event. No callback/runtime execution is inferred.
+  -->
+  <p>
+    APM can execute lifecycle commands. Project scripts require trust in the lifecycle subtree;
+    changing that subtree revokes trust, while editing unrelated metadata does not. In the harmless
+    operations <code>lifecycle</code> fixture, a trusted <code>apm update --dry-run</code> ran
+    <code>pre-update</code> and <code>pre-install</code>, changing the event recorder's file.
+    <code>apm uninstall ./package --dry-run</code> ran <code>pre-uninstall</code>.
+    The install-only preview control ran no events.
+  </p>
+  <p>
+    For a no-script preview, the control set <code>APM_NO_SCRIPTS=1</code> in the command's child
+    environment; the same update preview then left the recorder unchanged. Do not assume a preview
+    is safe to execute arbitrary repository automation. A trusted test command that returned
+    <code>7</code> was also logged as a nonfatal lifecycle error while APM returned <code>0</code>.
+    Inspect script outcomes as well as dependency outcomes
+    (<a href="https://github.com/microsoft/apm/blob/8fd10ac5eafee7ca77d41cc34ba139d812fdacd5/docs/src/content/docs/enterprise/lifecycle-scripts.md" rel="noreferrer">lifecycle trust model</a>).
+    These install/update events are distinct from a harness invoking a deployed hook.
+  </p>
+</aside>
+
+<h4 id="ch7-cleanup">Cleanup: preserve source, then inspect what remains</h4>
+<p>
+  Removal and target contraction are reconciliation, not permission to erase whole harness folders.
+  Preserve local sources, surviving shared owners, and unrelated human-authored content. The
+  <a href="https://github.com/microsoft/apm/blob/8fd10ac5eafee7ca77d41cc34ba139d812fdacd5/docs/src/content/docs/reference/cli/uninstall.md" rel="noreferrer">target uninstall reference</a>
+  and release notes describe stronger deletion-failure reporting. The observed Windows behavior
+  below does <em>not</em> satisfy every part of that promise.
+</p>
+<!--
+  ch7-cleanup-outcomes: OP07.3.
+  Primary: uninstall-edited-file / uninstall-retry-after-repair;
+  uninstall-directory-delete-failure (expected 1, actual 0, retained failure);
+  uninstall-locked-file-reproduced; install-stale-edited-file;
+  mcp-required-native-write-failure / mcp-required-native-write-force (both 1).
+  Reusable: lifecycle/uninstall-retains-edited-file and separate cleanup-limit/
+  windows-locked-cleanup-reports-success. Known-limit assertions are not CLI guarantees.
+-->
+<div class="table-scroll" role="region" aria-label="Scrollable table" tabindex="0"><table id="ch7-cleanup-outcomes">
+  <caption>Observed APM 0.31.0 cleanup outcomes: operations lifecycle, cleanup-limit, and MCP controls.</caption>
   <thead>
-    <tr>
-      <th scope="col">Command</th>
-      <th scope="col">Role</th>
-      <th scope="col">Moves versions?</th>
-      <th scope="col">Fails on drift?</th>
-    </tr>
+    <tr><th scope="col">Controlled condition</th><th scope="col">Actual outcome</th></tr>
   </thead>
   <tbody>
     <tr>
-      <td><code>apm install</code> (bare)</td>
-      <td><strong>restore</strong> locked bytes (<a href="install-and-restore.html">Ch 5</a>)</td>
-      <td>No</td>
-      <td>No</td>
+      <td>Edited owned target file; <code>apm uninstall _local/package</code></td>
+      <td><code>1</code>; edited file, declaration, and lock retained. Some module cleanup had already happened: no blanket rollback.</td>
     </tr>
     <tr>
-      <td><code>apm install --frozen</code></td>
-      <td><strong>enforce</strong> structural reproduce (<a href="the-lockfile-and-reproducibility.html">Ch 6</a>)</td>
-      <td>No</td>
-      <td>Presence gate</td>
+      <td>Exclusive Windows OS lock on a materialized file; <code>apm uninstall ./package</code></td>
+      <td><strong><code>0</code> and <code>Uninstall complete</code>, but the locked file remained.</strong> The dependency declaration and ownership were removed; the dependency-only fixture lost its lockfile.</td>
     </tr>
     <tr>
-      <td><code>apm outdated</code></td>
-      <td><strong>report</strong> drift (read-only)</td>
-      <td>No</td>
-      <td>No (exit <code>0</code>)</td>
+      <td>Source stops producing an old, locally edited target file; <code>apm install</code></td>
+      <td><code>0</code> with a warning; the edited stale target file remained.</td>
     </tr>
     <tr>
-      <td><code>apm update</code></td>
-      <td><strong>change</strong> &mdash; the only mover</td>
-      <td><strong>Yes</strong></td>
-      <td>n/a</td>
-    </tr>
-    <tr>
-      <td><code>apm audit</code></td>
-      <td><strong>verify</strong> content + drift</td>
-      <td>No</td>
-      <td>Advisory (exit <code>0</code>)</td>
-    </tr>
-    <tr>
-      <td><code>apm audit --ci</code></td>
-      <td><strong>gate</strong> lockfile consistency</td>
-      <td>No</td>
-      <td><strong>Yes</strong> (exit <code>1</code>)</td>
+      <td>A directory occupies a required native MCP JSON path; <code>apm install</code></td>
+      <td><code>1</code>; repeating with <code>--force</code> still failed. Force is not general I/O recovery.</td>
     </tr>
   </tbody>
-</table>
+</table></div>
 <p>
-  The one-line mental model: <strong>install restores &middot; <code>--frozen</code> enforces &middot;
-  outdated reports &middot; update changes &middot; audit verifies &middot; <code>audit --ci</code>
-  gates.</strong> Note the two integrity checks are <em>not</em> the same tool wearing two hats.
-  <code>apm install --frozen</code> from <a href="the-lockfile-and-reproducibility.html">Chapter 6</a> is a
-  <em>structural</em> guardrail &mdash; it refuses to resolve anything new and fails if the manifest and
-  lockfile have drifted apart before deploying. <code>apm audit --ci</code> is an <em>integrity</em>
-  guardrail &mdash; it replays the deployed tree and runs the nine consistency checks (content hashes,
-  orphaned packages, hidden Unicode, on-disk drift). Use <code>--frozen</code> at install time to prove
-  the lock is honored; use <code>audit --ci</code> to prove the deployed bytes are intact. Both belong in
-  CI; neither is a CVE feed.
+  The Windows locked-file case is a reproduced limitation, not a network skip and not proof that
+  every uninstall fails. Do not equate a success message with absence of artifacts. Inspect remaining
+  files and the manifest/lock before choosing a retry: after the declaration is gone, the same
+  identifier can fail selection. Preserve edits and resolve the specific filesystem problem rather
+  than deleting source or broad target directories to make a check look clean.
 </p>
 
-<aside class="callout callout-warn">
-  <h3>Pitfall: <code>apm outdated</code> shows nothing until a branch moves past your lock</h3>
+<aside class="callout callout-info" id="ch7-marketplace-check">
+  <h3>Different drift: <code>pack --check-clean</code> checks a marketplace</h3>
   <p>
-    On a fresh build, both pinned <em>and</em> unpinned dependencies report <code>up-to-date</code>. That
-    is not a bug: <code>apm install</code> locked the floating ref to the branch's tip at install time, so
-    the lock already equals what the ref resolves to today. A dependency only becomes <code>outdated</code>
-    once the branch advances <em>past</em> the locked commit; a tag- or SHA-pinned dep stays put
-    indefinitely. Do not expect a loose <code>#main</code> pin to light up as outdated the moment you add
-    it &mdash; drift lives in the ref and is surfaced by time. If you want a dependency to
-    <em>stop</em> drifting, pin it to a tag or full SHA
-    (<a href="https://microsoft.github.io/apm/consumer/manage-dependencies/" rel="noreferrer">Manage
-    dependencies</a>); if you want to <em>surface</em> drift on a schedule, that is what a periodic
-    <code>apm outdated</code> is for.
+    Report-before-change also applies to generated distribution metadata. This is a separate
+    producer-side check, not another spelling of <code>audit --ci</code> and not a bundle
+    round-trip test.
   </p>
-</aside>
-
-<aside class="callout callout-warn">
-  <h3>Pitfall: the <code>apm update --dry-run</code> plan over-states movement</h3>
+  <!--
+    ch7-pack-check: OP07.4; OpsFixtures/pack-check, materialized by verify.py suite pack.
+    Primary: pack-check-generate, pack-check-clean-readonly, pack-check-dirty-readonly,
+    pack-check-path-override-missing. Reusable: pack-generate-local-output,
+    check-clean-readonly, check-clean-drift-four.
+    producer-reference.md section 6 supplies additional mtime, mixed-output, and metadata controls.
+  -->
+  <figure class="code-example" id="ch7-pack-check">
+    <figcaption>
+      In a scratch copy of the operations <code>pack-check</code> fixture, the first command generates
+      outputs; only the second is read-only. Clean catalog: <code>0</code>. Repeating the second after
+      a catalog edit: <code>4</code>, without repair. Offline.
+      <span class="apm-version">apm v0.31.0 &mdash; observed</span>
+    </figcaption>
+    <pre tabindex="0"><code class="language-bash">apm pack --offline --json
+apm pack --check-clean --offline --json</code></pre>
+  </figure>
   <p>
-    The preview marks <em>every</em> re-resolvable dependency <code>[~] updated</code> &mdash; pinned tags
-    included &mdash; and renders the destination SHA as <code>-</code> because it does not pre-compute it.
-    A <code>2 updated</code> line does <em>not</em> mean two commits will change. Trust the
-    <strong>lockfile diff</strong> (or the real run's deploy-phase <code>@&lt;commit&gt;</code> lines), not
-    the plan's count: in Meridian's refresh the plan claimed two updates, but only one commit actually
-    moved. Use <code>--dry-run</code> to confirm <em>which packages</em> will be re-resolved and that the
-    run is safe &mdash; then read the lock diff to see <em>what really changed</em>.
-  </p>
-</aside>
-
-<aside class="callout callout-warn">
-  <h3>Pitfall: default <code>apm audit</code> does not gate &mdash; use <code>--ci</code></h3>
-  <p>
-    Bare <code>apm audit</code> is <strong>advisory</strong> on drift: it will report a missing or modified
-    deployed file and still exit <code>0</code>, because its exit code tracks the hidden-Unicode content
-    scan (which exits <code>2</code> on a finding). The same drift exits <code>1</code> only under
-    <code>apm audit --ci</code>. Wiring bare <code>apm audit</code> into a pipeline gives you a check that
-    never fails the build on drift. In CI, use <code>apm audit --ci</code> &mdash; and remember it verifies
-    integrity, not vulnerabilities.
-  </p>
-</aside>
-
-<aside class="callout callout-info">
-  <h3>Never hand-edit the lockfile</h3>
-  <p>
-    <code>apm.lock.yaml</code> is a generated artifact &mdash; &ldquo;regenerated on every install; any
-    manual change is overwritten or &hellip; will trip <code>apm audit</code>&rdquo;
-    (<a href="https://microsoft.github.io/apm/consumer/manage-dependencies/" rel="noreferrer">Manage
-    dependencies</a>). The review target is always the <em>generated</em> diff from a real
-    <code>apm update</code>, never a hand-tweak. And a reminder from
-    <a href="install-and-restore.html">Chapter 5</a>: re-running <code>apm install</code> (with or without
-    <code>--force</code>) restores the locked set and never bumps versions &mdash; <code>--force</code>
-    only bypasses the security gate for an already-resolved set. Upgrading is always an explicit
-    <code>apm update</code>.
+    The checks left file bytes unchanged; the producer probes also checked modification times.
+    A missing overridden marketplace output failed without being created. In a mixed-output
+    producer fixture, a missing bundle ZIP still allowed exit <code>0</code> when the marketplace
+    matched &mdash; <strong>catalog cleanliness is not bundle certification</strong>.
+    Unavailable remote metadata cannot be certified merely by asking for offline mode: producer
+    controls returned <code>4</code> for an uncertifiable clean check, or <code>5</code> with
+    <code>--strict-metadata</code>, including when both gates were combined.
+    <a href="becoming-a-producer.html">Chapter 10</a> covers distribution; see the
+    <a href="https://github.com/microsoft/apm/blob/8fd10ac5eafee7ca77d41cc34ba139d812fdacd5/docs/src/content/docs/reference/cli/pack.md" rel="noreferrer">pinned pack reference</a>
+    for this separate contract.
   </p>
 </aside>
           </div>
@@ -716,32 +668,225 @@
           <div class="section-content" data-content-slot="worked-example">
 <h3>Meridian's first monthly refresh, as a pull request</h3>
 <p>
-  The staff engineer's scheduled job runs the triad in order &mdash; report, change, verify:
+  The staff engineer still follows the normal triad: report, review a change, verify immediately.
+  To make &ldquo;newer upstream&rdquo; repeatable without pushing a live release or editing a lock,
+  this exercise uses a tiny registry fixture. It is a laboratory for Meridian's maintenance habit,
+  not a migration of the team's Git-based setup to a new service.
 </p>
-<figure class="code-example">
+<p>
+  Use the <code>registry</code> suite of the
+  <a href="https://github.com/webmaxru/agent-package-manager-book/blob/main/backend/examples/updates/1.2/operations/README.md" rel="noreferrer">operations fixture runner</a>
+  with the prepared absolute APM 0.31.0 executable. It copies the fixture and genuine lock to a new
+  short scratch directory, isolates HOME/cache, and enables registries only there. It serves anonymous
+  reads on <code>127.0.0.1:18431</code>, with no publishing endpoint or credentials.
+  The fixed port is part of the recorded URLs; if it is busy, do not stop an unrelated process.
+  Do not run these fixture mutations in your book checkout.
+</p>
+<!--
+  ch7-registry-manifest: exact OpsFixtures/registry/apm.yml, including its comment.
+  Genuine input lock: OpsFixtures/registry/apm.lock.yaml, all three versions 1.0.0.
+  Reusable: registry-frozen / registry-ci, then registry_fixture.py server.advance().
+  Initial source publication list is 1.0.0; advance exposes 1.1.0 and 2.0.0-beta.1.
+  No hand-edited lock, live registry publication, private access, or harness runtime.
+-->
+<figure class="code-example" id="ch7-registry-manifest">
   <figcaption>
-    The monthly refresh, three verbs in order. <code>outdated</code> and <code>update</code> contact
-    upstream; <code>audit --ci</code> runs offline. <span class="needs-network">needs network</span>
-    <span class="apm-version">apm v0.23.1</span>
+    <code>backend/examples/updates/1.2/operations/registry/apm.yml</code> &mdash; complete fixture
+    manifest. One exact pin, two ranges, one target; experimental registry support is enabled by
+    the isolated runner. <span class="needs-network">loopback network only</span>.
+    <span class="apm-version">apm v0.31.0 &mdash; observed fixture</span>
   </figcaption>
-  <pre><code class="language-bash">apm outdated            # report: the #main skill drifted past our lock
-apm update --yes        # change: move it on purpose, re-lock (the only version-moving verb)
-apm audit --ci          # verify: 9 integrity checks pass -> attach as PR evidence</code></pre>
+  <pre tabindex="0"><code class="language-yaml"># Anonymous loopback fixture only; run with verify.py's isolated registry suite.
+name: operations-registry-constraints
+version: 1.0.0
+targets: [copilot]
+registries:
+  fixture:
+    url: http://127.0.0.1:18431
+  default: fixture
+dependencies:
+  apm:
+    - registry: fixture
+      id: operations/exact
+      version: 1.0.0
+    - registry: fixture
+      id: operations/range
+      version: ^1.0.0
+    - registry: fixture
+      id: operations/other
+      version: ^1.0.0
+includes: auto</code></pre>
 </figure>
 <p>
-  The whole reviewable surface of that change is the <code>apm.lock.yaml</code> diff. It is plain YAML you
-  can read &ldquo;to answer &lsquo;what version am I actually running?&rsquo; without trusting the
-  manifest, which may have floating refs&rdquo;
-  (<a href="https://microsoft.github.io/apm/consumer/manage-dependencies/" rel="noreferrer">Manage
-  dependencies</a>). Here it is &mdash; and what it does <em>not</em> change is as instructive as what it
-  does:
+  The runner first restores and audits the genuine all-<code>1.0.0</code> lock while the source offers
+  only that version. It then exposes <code>1.1.0</code> and <code>2.0.0-beta.1</code>.
+  The <a href="#ch7-registry-freshness">Current / Wanted / Latest table</a> now has a concrete cause.
+  Anonymous HTTP loopback is a supported fixture exception, not permission to send credentials over
+  HTTP to a real registry.
 </p>
-<figure class="code-example">
+<!--
+  ch7-registry-triad: OpsFixtures/verify.py registry suite; actual reusable records
+  registry-current-wanted-latest, registry-selected-preview,
+  registry-selected-update, registry-selected-cache-drift: exits 0, 0, 0, 1.
+  The omitted registry-consent-required control exits 1 without changing state.
+  This is a command-sequence excerpt, not an invented all-green terminal transcript.
+-->
+<figure class="code-example" id="ch7-registry-triad">
   <figcaption>
-    The <code>apm.lock.yaml</code> diff a deliberate <code>apm update</code> produced &mdash; one resolved
-    commit plus the timestamp. The reviewable artifact. <span class="apm-version">apm v0.23.1</span>
+    The triad, with preview and an explicit selection, in the operations <code>registry</code> suite.
+    The first three commands exit <code>0</code>; the immediate audit exits <strong><code>1</code></strong>
+    for the cache-state failure explained below. <span class="needs-network">loopback network only</span>.
+    <span class="apm-version">apm v0.31.0 &mdash; observed</span>
   </figcaption>
-  <pre><code class="language-text">--- apm.lock.yaml (before update)
+  <pre tabindex="0"><code class="language-bash">apm outdated
+apm update operations/range --dry-run --verbose
+# Review the plan before applying.
+apm update operations/range --yes
+apm audit --ci --no-fail-fast -f json</code></pre>
+</figure>
+<!--
+  ch7-registry-plan: primary registry-selected-plan; reusable registry-selected-preview.
+  Condensed output preserves package/ref/count values; omits resolution chatter and file lists.
+  Before/after project hash inventories are equal for this preview; no lifecycle scripts here.
+-->
+<figure class="code-example" id="ch7-registry-plan">
+  <figcaption>
+    Selected preview from the operations <code>registry</code> fixture, condensed from
+    <code>registry-selected-plan</code>: accurate movement, two unchanged dependencies, no project
+    writes in this script-free control. <span class="needs-network">loopback network only</span>.
+    <span class="apm-version">apm v0.31.0 &mdash; observed excerpt</span>
+  </figcaption>
+  <pre tabindex="0"><code class="language-text">[~] operations/range
+    ref: 1.0.0 -> 1.1.0
+
+[=] operations/exact
+    ref: 1.0.0
+
+[=] operations/other
+    ref: 1.0.0
+
+1 updated, 2 unchanged</code></pre>
+</figure>
+<p>
+  The lock diff agrees with that plan. But the immediate audit finds something that the plan and
+  lock alone cannot prove: <code>modified: .github/instructions/other.instructions.md</code>.
+  Inspecting the three layers explains it:
+</p>
+<!--
+  ch7-selected-state: OP07.1 selected-update cache failure.
+  registry-selected-apply and reusable registry-selected-update preserve unselected lock/deploy;
+  selected-registry-update-audit-reproduced / registry-selected-cache-drift fail 1.
+  Values are file-state observations, not claims inferred solely from plan text.
+-->
+<div class="table-scroll" role="region" aria-label="Scrollable table" tabindex="0"><table id="ch7-selected-state">
+  <caption>Observed state immediately after the selected registry update at APM 0.31.0, before repair.</caption>
+  <thead>
+    <tr><th scope="col">Dependency</th><th scope="col">Locked version</th><th scope="col">Deployed text</th><th scope="col">Materialized cache</th></tr>
+  </thead>
+  <tbody>
+    <tr><td><code>operations/range</code></td><td><code>1.1.0</code></td><td><code>1.1.0</code></td><td><code>1.1.0</code></td></tr>
+    <tr><td><code>operations/other</code> (unselected)</td><td><code>1.0.0</code></td><td><code>1.0.0</code></td><td><strong><code>1.1.0</code></strong></td></tr>
+    <tr><td><code>operations/exact</code></td><td><code>1.0.0</code></td><td><code>1.0.0</code></td><td><code>1.0.0</code></td></tr>
+  </tbody>
+</table></div>
+<p>
+  <strong>This is a reproduced selected-registry-update cache contamination failure in 0.31.0.</strong>
+  The unselected dependency kept its locked pin and deployed bytes, but its cache advanced.
+  <code>content-integrity</code> passed because the deployed bytes still matched the lock;
+  cache-based <code>drift</code> replay failed. This does not establish that all updates are broken,
+  nor is it an unavailable-network case. It explains why a successful update and a plausible diff
+  must not be silently presented as a clean result.
+</p>
+<p>
+  In this controlled state, restoring from the unchanged contract repaired the cache:
+</p>
+<!--
+  ch7-registry-repair: same post-selected-update fixture, not a fresh all-package update.
+  Primary: selected-registry-update-frozen-repair (0), selected-registry-update-after-repair-ci (0).
+  Reusable: registry-selected-frozen-repair, registry-updated-ci-after-repair (0 / 0).
+  Exactly two other cache files changed; manifest, lock, and deployed text did not.
+-->
+<figure class="code-example" id="ch7-registry-repair">
+  <figcaption>
+    Operations <code>registry</code> repair: frozen install restores the two cached
+    <code>other</code> files to <code>1.0.0</code> without moving the lock; the following full audit
+    exits <code>0</code>. Both commands exit <code>0</code>.
+    <span class="needs-network">loopback source available for repair</span>.
+    <span class="apm-version">apm v0.31.0 &mdash; observed</span>
+  </figcaption>
+  <pre tabindex="0"><code class="language-bash">apm install --frozen
+apm audit --ci --no-fail-fast -f json</code></pre>
+</figure>
+<p>
+  Keep the failed audit as well as the repair evidence. Do not replace it with
+  <code>--no-drift</code>, hand-edit the lock, or upgrade the unselected package just to make the
+  discrepancy disappear. The repair establishes recovery for this fixture, not a universal
+  repair guarantee for every audit failure.
+</p>
+
+<h4 id="ch7-state-proof">Read a change, not a clock</h4>
+<p>
+  New 0.31.0 locks omit <code>generated_at</code>; unchanged legacy locks can retain it, and
+  Git-semver <code>resolved_at</code> has a different purpose. Neither a timestamp nor an
+  &ldquo;updated N&rdquo; counter proves movement. Compare complete lock bytes or hashes and the
+  relevant file inventories
+  (<a href="https://github.com/microsoft/apm/blob/8fd10ac5eafee7ca77d41cc34ba139d812fdacd5/docs/src/content/docs/reference/lockfile-spec.md" rel="noreferrer">recorded identity and content</a>).
+</p>
+<!--
+  ch7-state-comparisons: complete-byte/hash comparisons, not generated_at comparisons.
+  registry-selected-plan: lock 57f3ad18af79da266ad2b83c72ff84b5bb3f6d990b58d9cd6db6e7b09b16904a unchanged.
+  registry-selected-apply: lock becomes 49e87f953c1544a855c2ebbf94962afe20769200d9cbfad3868702142097cea6.
+  selected-registry-update-frozen-repair: that complete lock hash stays unchanged.
+  git-semver-noop-plan / git-semver-noop-apply: separate public-semver probe,
+  microsoft/apm-sample-package style-checker slice, ^1.0.0, not Ch5's full-SHA manifest.
+  Both retain complete lock hash 4c3a2cab218b3efbd8c0e02b62b1d7f539ec2833a9473920348d2c71a2124a9e
+  and identical before/after project file-hash inventories. Public source was really queried.
+-->
+<div class="table-scroll" role="region" aria-label="Scrollable table" tabindex="0"><table id="ch7-state-comparisons">
+  <caption>
+    Timestamp-free evidence at APM 0.31.0. Each row compares its own before/after state;
+    the public Git no-op is a separate observed snapshot, not a promise about future releases.
+  </caption>
+  <thead>
+    <tr><th scope="col">Control</th><th scope="col">Complete lock bytes</th><th scope="col">Other observed evidence</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>Selected registry preview</td><td>Unchanged</td><td>Recorded project file-hash inventory unchanged.</td></tr>
+    <tr><td>Selected registry apply</td><td>Changed</td><td>Only the selected locked version moved; the unselected cache discrepancy still failed audit.</td></tr>
+    <tr><td>Frozen registry repair</td><td>Unchanged</td><td>Two cache files restored; deployed bytes unchanged; subsequent CI audit <code>0</code>.</td></tr>
+    <tr><td>Public Git <code>^1.0.0</code> preview and <code>apm update --yes</code></td><td>Unchanged in both</td><td>Both exited <code>0</code> with matching-ref no-op messages; recorded project file-hash inventories unchanged. <span class="needs-network">needs public network</span></td></tr>
+  </tbody>
+</table></div>
+<p>
+  The pull request's review surface is broader than a lock diff alone: <code>apm.yml</code> shows
+  intent, <code>apm.lock.yaml</code> records resolution and ownership, and the audit plus actual
+  artifacts test the result. An unchanged manifest does not by itself prove pins held; an unchanged
+  lock does not by itself prove a clean cache. That is the practical payoff of keeping all three
+  questions separate.
+</p>
+
+<details id="ch7-history">
+  <summary>Historical Meridian lock diff &mdash; APM 0.23.1 only</summary>
+  <p>
+    The original 2026-07-02 experiment reconstructed an older checkout by manually setting the
+    transitive's starting commit to its genuine earlier value. The subsequent update was real,
+    but that <strong>simulated setup is not an authoring recipe</strong>. This exact retained
+    excerpt records one commit change and the old timestamp-bearing format; the timestamp is not
+    the current proof of change. Do not recreate the experiment by editing a generated lock.
+  </p>
+  <!--
+    ch7-history-lock-diff: unchanged original Ch7 pre/code block; historical research
+    07-lifecycle-reference.md, simulated older starting lock, executed APM 0.23.1.
+    No 0.31.0 execution or evidence is attributed to this code.
+  -->
+  <figure class="code-example" id="ch7-history-lock-diff">
+    <figcaption>
+      Exact historical <code>apm.lock.yaml</code> diff excerpt, including its original annotations.
+      Public-source update after a simulated older starting lock, recorded 2026-07-02.
+      <span class="needs-network">needs public network</span>
+      <span class="apm-version">apm v0.23.1 &mdash; historical snapshot, not rerun at 0.31.0</span>
+    </figcaption>
+    <pre tabindex="0"><code class="language-text">--- apm.lock.yaml (before update)
 +++ apm.lock.yaml (after update)
 -generated_at: '2026-07-02T01:17:41.266376+00:00'
 +generated_at: '2026-07-02T01:23:19.474392+00:00'   # advanced: update rewrote the resolved content
@@ -749,59 +894,8 @@ apm audit --ci          # verify: 9 integrity checks pass -> attach as PR eviden
    - repo_url: github/awesome-copilot                 # the transitive #main dep
 -  resolved_commit: a4aebcd4bd354b59a6a6c12ab9c5c98a9d9e0276   # old (behind)
 +  resolved_commit: 3169734bc2fb25d5e092130fc93d24b0dee3ac3a   # new (branch tip)</code></pre>
-</figure>
-<table>
-  <caption>What the refresh changed in the lockfile &mdash; and what it deliberately left alone. Verified on apm v0.23.1.</caption>
-  <thead>
-    <tr>
-      <th scope="col">Field</th>
-      <th scope="col">Before</th>
-      <th scope="col">After</th>
-      <th scope="col">Why</th>
-    </tr>
-  </thead>
-  <tbody>
-    <tr>
-      <td><code>generated_at</code></td>
-      <td><code>&hellip;01:17:41&hellip;</code></td>
-      <td><code>&hellip;01:23:19&hellip;</code></td>
-      <td>advanced &mdash; <code>update</code> writes; a pure restore leaves it byte-stable (<a href="the-lockfile-and-reproducibility.html">Ch 6</a>)</td>
-    </tr>
-    <tr>
-      <td><code>github/awesome-copilot</code> <code>resolved_commit</code></td>
-      <td><code>a4aebcd4&hellip;</code></td>
-      <td><code>3169734b&hellip;</code></td>
-      <td>the <strong>only</strong> real move &mdash; floating <code>#main</code> re-resolved to the tip</td>
-    </tr>
-    <tr>
-      <td><code>github/awesome-copilot</code> <code>content_hash</code></td>
-      <td><code>sha256:9236d06a&hellip;</code></td>
-      <td><code>sha256:9236d06a&hellip;</code></td>
-      <td>unchanged &mdash; the commit moved but the bytes did not (content-addressing, <a href="the-lockfile-and-reproducibility.html">Ch 6</a>)</td>
-    </tr>
-    <tr>
-      <td><code>microsoft/apm-sample-package</code> <code>resolved_commit</code></td>
-      <td><code>fb285168&hellip;</code></td>
-      <td><code>fb285168&hellip;</code></td>
-      <td>unchanged &mdash; a tag pin does not move under <code>apm update</code></td>
-    </tr>
-  </tbody>
-</table>
-<p>
-  This is the headline of the chapter. An agent-context update is <strong>as reviewable as any dependency
-  bump</strong>. The pull request's review surface is the two files the book has built toward since
-  <a href="the-manifest-apm-yml.html">Chapter 4</a>: the <code>apm.yml</code> diff shows
-  <em>intent</em> and the <code>apm.lock.yaml</code> diff shows <em>effect</em>. In this refresh the
-  <code>apm.yml</code> is <em>unchanged</em> &mdash; and that emptiness is itself the evidence that the
-  pins held: the only thing that moved was a transitive floating ref, recorded entirely in the lockfile.
-  A reviewer opens both, sees one <code>resolved_commit</code> advance and everything else hold, and reads
-  the attached <code>apm audit --ci</code> pass as proof the result is intact. APM frames this mental model
-  directly: for SHA-pinned deps, &ldquo;think of <code>apm update</code> as Dependabot-style review for AI
-  packages&rdquo;
-  (<a href="https://microsoft.github.io/apm/consumer/manage-dependencies/" rel="noreferrer">Manage
-  dependencies</a>). The change is exactly as visible as the team's PR discipline makes it &mdash;
-  deliberate change, not silent drift.
-</p>
+  </figure>
+</details>
 
 <aside class="leader-callout">
   <h3>For engineering leaders</h3>
@@ -811,14 +905,15 @@ apm audit --ci          # verify: 9 integrity checks pass -> attach as PR eviden
     <code>update</code> to act, <code>audit</code> to verify) but deliberately imposes no schedule; the
     monthly refresh is Meridian's answer, not a product default. Decide who owns update timing &mdash; the
     application team, the platform team, or security enablement &mdash; and how stale agent dependencies
-    get reported (a scheduled <code>apm outdated</code> is a natural trigger). The payoff is
-    <strong>auditability</strong>: because every deliberate <code>apm update</code> lands as an
-    <code>apm.lock.yaml</code> diff, &ldquo;what changed in our agent context, when, and who approved
-    it?&rdquo; is answered in the same review surface as your application dependencies &mdash; and
+    get reported. The payoff is <strong>auditability</strong>: a refresh that changes recorded state
+    produces a reviewable diff, while a real no-op needs no manufactured bump.
+    &ldquo;What changed, and who approved it?&rdquo; belongs in the same review surface as application
+    dependencies. Keep immediate audit results, coverage limits, and unresolved cleanup outcomes
+    visible; somebody must own remediation as well as scheduling.
     <code>apm audit --ci</code> (wired into CI at fleet scale in
-    <a href="enterprise-at-fleet-scale.html">Chapter 11</a>) gives a machine-checkable
-    <span class="property property--security">Provenance / security</span> signal without pretending to be
-    a CVE feed it is not.
+    <a href="enterprise-at-fleet-scale.html">Chapter 11</a>) supplies a machine-checkable
+    <span class="property property--security">Provenance / security</span> signal, not a CVE feed or
+    proof that every requested policy or runtime behavior was enforced.
   </p>
 </aside>
           </div>
@@ -829,43 +924,40 @@ apm audit --ci          # verify: 9 integrity checks pass -> attach as PR eviden
 <h3>Recap</h3>
 <ul>
   <li>
-    <strong>Reproducible is a floor, not a ceiling.</strong> A frozen setup still needs a deliberate
-    maintenance loop &mdash; inspect &rarr; change &rarr; verify &mdash; to stay current without giving up
-    <span class="property property--reproducibility">Reproducibility</span>. Staleness is just drift
-    wearing a different mask.
+    <strong>Reproducible is a floor, not a ceiling.</strong> Keep the report &rarr; reviewed change
+    &rarr; verify loop, with an owner and a cadence. Meridian chose monthly.
   </li>
   <li>
-    <strong>Three verbs, three jobs.</strong> <code>apm outdated</code> <em>reports</em> drift (read-only,
-    exit <code>0</code> even when outdated); <code>apm update</code> <em>changes</em> versions &mdash; the
-    <strong>only</strong> version-moving verb, consent-gated; <code>apm audit</code> <em>verifies</em>
-    integrity.
+    <strong>Availability is not permission.</strong> Registry Current, Wanted, and Latest answer
+    different questions. An exact pin can be outdated without moving under update; an explicit
+    selector edit followed by install is new intent.
   </li>
   <li>
-    <strong><code>apm audit</code> is not <code>npm audit</code>.</strong> No CVE database &mdash; it checks
-    hidden Unicode and lockfile / drift consistency. Default audit is advisory on drift (exit <code>0</code>);
-    <code>apm audit --ci</code> gates the nine consistency checks (exit <code>1</code>). Distinct from
-    Chapter 6's <code>apm install --frozen</code>, which is a <em>structural</em> presence gate.
+    <strong>Update is not always a version change.</strong> Accurate unchanged plans, no-ops, and
+    repair-only outcomes exist. Preview can still execute trusted lifecycle scripts; inspect that
+    boundary rather than assuming no side effects.
   </li>
   <li>
-    <strong>Mind the two over-eager reports.</strong> <code>apm outdated</code> stays quiet until a branch
-    advances past your lock (pinned deps never light up); the <code>apm update --dry-run</code> plan
-    over-states movement &mdash; trust the lockfile diff, not the <code>N updated</code> count.
+    <strong>Audit is scoped integrity evidence.</strong> Ordinary bare-audit drift is advisory;
+    invalid owners fail both modes; correctly hashed Warning-only content can pass CI. Cold CI
+    replay can need network, and check totals vary. It is not a vulnerability feed.
   </li>
   <li>
-    <strong>The lockfile diff is the review artifact.</strong> A deliberate <code>apm update</code> lands
-    as a PR: <code>apm.yml</code> shows intent, <code>apm.lock.yaml</code> shows effect &mdash; and here
-    <code>apm.yml</code> held while the change lived entirely in the lockfile. <code>apm audit --ci</code>
-    is the evidence. Give the loop an owner and a cadence &mdash; Meridian chose monthly.
+    <strong>Review actual state, not clocks or success messages.</strong> The selected registry
+    update's cache failure and Windows uninstall leftovers are real 0.31.0 limits. Preserve failure
+    evidence, protect source, and verify a deliberate repair; do not suppress checks to manufacture
+    a clean refresh.
   </li>
 </ul>
 <h3>Next</h3>
 <p>
-  <code>apm audit</code> was your first look at the checks that keep agent context trustworthy &mdash; and
-  those same hidden-Unicode and content-integrity scans run automatically on <em>every</em> install, before
-  anything reaches disk. <a href="security-by-default.html">Chapter 8 &mdash; Security by Default</a> opens
-  that install-time pipeline: content-hash pinning, hidden-Unicode blocking, and why transitive MCP servers
-  are held back &mdash; the <span class="property property--security">Provenance / security</span> property
-  made mechanical, not optional.
+  Audit was your first look at the checks around agent-context integrity.
+  <a href="security-by-default.html">Chapter 8 &mdash; Security by Default</a> opens the install-time
+  pipeline: scanning authorized deployable content before agent-readable deployment, content-hash
+  checks, and scoped executable/MCP trust. Cache and staging writes can happen earlier, and none of
+  these checks is runtime sandboxing. That is the next layer of
+  <span class="property property--security">Provenance / security</span>, with its guarantees and
+  observed limits kept separate.
 </p>
           </div>
         </section>
@@ -878,7 +970,7 @@ apm audit --ci          # verify: 9 integrity checks pass -> attach as PR eviden
 
       <footer class="site-footer chapter-footer">
         <p>By <a href="https://www.linkedin.com/in/webmaxru/" rel="noreferrer">Maxim Salnikov</a> &middot; <a href="https://github.com/webmaxru/agent-package-manager-book" rel="noreferrer">Source on GitHub</a> &middot; <a href="../apm-book.pdf" download>Download the book (PDF)</a></p>
-        <p class="footer-edition"><a href="https://github.com/webmaxru/agent-package-manager-book/releases" rel="noreferrer">Edition v1.1 · Updated July 8, 2026</a></p>
+        <p class="footer-edition"><a href="https://github.com/webmaxru/agent-package-manager-book/releases" rel="noreferrer">Edition v1.2 · Updated September 16, 2026</a></p>
       </footer>
     </div>
   </div>

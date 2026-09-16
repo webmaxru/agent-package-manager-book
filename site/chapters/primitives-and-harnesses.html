@@ -155,7 +155,9 @@
             <li>prompts</li>
             <li>instructions</li>
             <li>agents</li>
+            <li>hooks</li>
             <li>plugins</li>
+            <li>Agent Plugins 1.0</li>
             <li>MCP servers</li>
             <li>AGENTS.md</li>
             <li>SKILL.md</li>
@@ -178,10 +180,15 @@
   After this chapter you can name the seven primitive types APM manages &mdash; instruction, prompt,
   skill, agent, plugin, MCP server, and hook &mdash; tell the three that look alike apart by
   <em>who triggers them</em>, explain that APM is built <em>on</em> the open AGENTS.md, SKILL.md, and
-  MCP standards rather than replacing them, and describe how one source primitive compiles into each
-  harness's native files. Naming the primitives is what makes a context declaration
+  MCP standards rather than replacing them, and describe how supported context is projected or
+  registered for selected harnesses. Naming the primitives is what makes a context declaration
   <span class="property property--portability">portable</span> and a security decision
   <span class="property property--governance">governable</span> in the chapters ahead.
+</p>
+<p>
+  <strong>Version scope:</strong> the inspected CLI for this update is
+  <span class="apm-version">apm v0.31.0</span>. Material labeled v0.23.1 is a retained historical
+  snapshot, not evidence of a fresh v0.31.0 execution.
 </p>
           </div>
         </section>
@@ -205,11 +212,12 @@
   though &ldquo;command&rdquo; is a <em>prompt</em> as some harnesses project it rather than a separate
   thing to author, and the experimental <code>canvas</code> type is out of scope here, which leaves
   <strong>seven</strong> authorable types. A
-  primitive is not the same as a <em>package</em>: a package is the unit of distribution &mdash; a
-  directory with an <code>apm.yml</code> that can bundle many primitives &mdash; while a primitive is
-  one typed unit inside it. And not every file is a primitive: only files under the recognised primitive
-  layout are discovered, validated, and deployed; everything else is just repo content
-  (<a href="https://microsoft.github.io/apm/concepts/glossary/" rel="noreferrer">glossary</a>).
+  primitive is not the same as a <em>package</em>: a package is the unit of distribution and can bundle
+  many primitives. An <code>apm.yml</code> is one supported package signal, not a prerequisite for every
+  consumable skill or plugin. Nor is every repository file a primitive: declarations, supported layouts,
+  and classification determine what can deploy
+  (<a href="https://github.com/microsoft/apm/blob/v0.31.0/docs/src/content/docs/reference/package-types.md" rel="noreferrer">v0.31.0 package types</a>).
+  The <a href="#ch3-layout-authority">declaration-first boundary</a> below makes that distinction concrete.
 </p>
 
 <h4>The primitive vocabulary</h4>
@@ -218,7 +226,9 @@
   <em>not</em> interchangeable: each has a different trigger, cost, and blast radius. Read the middle
   column carefully &mdash; <em>who (or what) invokes it</em> is the axis that keeps the types straight.
 </p>
-<table>
+<!-- Vocabulary deltas: RunRoot/core-probes/projects/portable, probe ch3-plugin-native;
+     backend/examples/updates/1.2/operations/hooks, probe hooks-install. -->
+<div class="table-scroll" role="region" aria-label="Scrollable table" tabindex="0"><table id="ch3-primitive-vocabulary">
   <caption>
     The seven primitive types APM manages, by trigger. Definitions condensed from APM's
     &ldquo;what APM manages&rdquo; table and primitive catalogue
@@ -261,8 +271,8 @@
     </tr>
     <tr>
       <td><strong>Plugin</strong></td>
-      <td>A bundle of the primitives above, packaged for one-shot install</td>
-      <td>Installed as one unit, then unpacked into its primitives</td>
+      <td>A packaging format bundling related primitives</td>
+      <td>Installed once; projected or registered whole <a href="#ch3-plugin-formats">according to format</a></td>
       <td>Shipping a set of primitives together</td>
     </tr>
     <tr>
@@ -273,12 +283,12 @@
     </tr>
     <tr>
       <td><strong>Hook</strong></td>
-      <td>A lifecycle handler that runs before or after agent tool calls</td>
+      <td>A target-specific callback at a harness event, such as session start or a tool call</td>
       <td>The harness runtime, automatically at that event</td>
       <td>Deterministic automation around tool calls</td>
     </tr>
   </tbody>
-</table>
+</table></div>
 
 <aside class="callout callout-info">
   <h3>The one distinction to get right: instruction &ne; prompt &ne; skill</h3>
@@ -301,10 +311,9 @@
   Two more pairs are worth keeping straight. An <strong>agent</strong> is <em>who</em> is acting &mdash;
   a persona with its own tools and boundaries; a <strong>skill</strong> is <em>how</em> to do a task
   &mdash; a procedure the acting agent can pull in, and one agent can use many skills. And a
-  <strong>plugin</strong> is not a new capability at all: it is a packaging format that ships several
-  primitives together and is normalized back into those same typed primitives at install time
-  (<a href="https://microsoft.github.io/apm/concepts/primitives-and-targets/" rel="noreferrer">primitives
-  and targets</a>).
+  <strong>plugin</strong> is packaging, not another trigger. Legacy Claude-compatible plugins project
+  into individual primitives; recognized Agent Plugins 1.0 follow a
+  <a href="#ch3-plugin-formats">whole-unit registration path</a> instead.
 </p>
 
 <h4>Built on standards, not instead of them</h4>
@@ -360,7 +369,7 @@
   </ul>
   <p>
     Two of the seven types don't appear yet: Meridian has no <strong>plugin</strong> (it isn't shipping a
-    bundle to other teams) and no <strong>hook</strong> (no lifecycle automation) &mdash; and that's
+    bundle to other teams) and no <strong>hook</strong> (no harness-event automation) &mdash; and that's
     fine. This map is the seed of <a href="the-manifest-apm-yml.html">Chapter 4</a>'s manifest, but it is
     <em>not yet a manifest</em>: it's just the pile, finally typed.
   </p>
@@ -372,29 +381,57 @@
           <div class="section-content" data-content-slot="in-apm">
 <h3>One source, many harnesses</h3>
 <p>
-  A <strong>harness</strong> is the agent runtime that executes primitives &mdash; harnesses include
-  GitHub Copilot, Claude Code, Cursor, Codex, Gemini, OpenCode, Windsurf, and Kiro, with Antigravity as
-  an additional explicit-only target &mdash; and &ldquo;each harness has
+  A <strong>harness</strong> is the agent runtime that consumes primitives &mdash; Meridian uses
+  GitHub Copilot, Claude Code, and Cursor &mdash; and &ldquo;each harness has
   its own primitive directory layout and file format&rdquo;
-  (<a href="https://microsoft.github.io/apm/concepts/glossary/" rel="noreferrer">glossary</a>). A
-  primitive, by contrast, is harness-agnostic. APM's central move is to sit between the two: you author
-  one set of primitives under <code>.apm/</code>, and APM writes them into each harness's native
-  location. It &ldquo;does not invent a runtime format. It writes the files each tool already
+  (<a href="https://microsoft.github.io/apm/concepts/glossary/" rel="noreferrer">glossary</a>).
+  A primitive's intent can be harness-independent, but its support and delivery are target-specific.
+  APM sits between the two. Authoring under <code>.apm/</code> is a useful convention, not the only
+  supported source layout. APM &ldquo;does not invent a runtime format. It writes the files each tool already
   understands and stays out of the way at agent runtime&rdquo;
   (<a href="https://microsoft.github.io/apm/concepts/what-is-apm/" rel="noreferrer">What is APM?</a>).
 </p>
+
+<!-- Intake evidence: RunRoot/core-probes/projects/apm-over-plugin (ch4-apm-over-plugin),
+     apm-source-control (ch4-apm-source-control), legacy-metadata (ch3-legacy-metadata-install),
+     legacy (ch3-plugin-legacy-declarations), legacy-empty (ch3-plugin-empty-declaration),
+     legacy-missing (ch3-plugin-missing-declaration). See core-reference.md section 4. -->
+<h4 id="ch3-layout-authority">Declarations before directories</h4>
+<p>
+  A directory is a discovery convention; a declaration states what the author intends to ship.
+  For the APM-versus-plugin choice, an <code>apm.yml</code> is <strong>eligible</strong> when the root
+  also has <code>.apm/</code> or the manifest declares APM or MCP dependencies. That eligible manifest
+  takes precedence over a co-located plugin marker. A metadata-only manifest with neither does not.
+  Root <code>SKILL.md</code> bundles and nested skill collections are separate supported signals, so
+  this is not an &ldquo;any apm.yml wins&rdquo; rule
+  (<a href="https://github.com/microsoft/apm/blob/v0.31.0/docs/src/content/docs/reference/package-types.md" rel="noreferrer">package layouts and precedence</a>).
+</p>
+<p>
+  A legacy plugin's explicit component declaration replaces discovery <em>for that component</em>.
+  In the controlled example, <code>"skills": ["./skills/kept", "./extra/custom"]</code> deployed only
+  those two skills, not the extra <code>skills/unlisted</code> directory. <code>"skills": []</code>
+  means <strong>no skills</strong>; omitting the key permits conventional discovery. A missing
+  declared skill failed installation rather than silently widening the selection. Declarations are
+  exhaustive, not hints. The <a href="#ch3-existing-skill-manifest">worked layout check</a> shows the
+  other side of this rule: a supported skill need not be moved into <code>.apm/</code>.
+</p>
+
 <p>
   Because each harness has its own format, APM either writes a primitive <em>natively</em> (the harness
   reads it directly) or <em>compiles</em> it (APM transforms it into a shape the harness understands).
-  The clearest proof is to install <em>one</em> source package into two harnesses and look at what lands
-  on disk. The public <code>microsoft/apm-sample-package</code> ships four of the seven primitive types,
-  so four rows follow &mdash; a real install, same source, zero edits, once with
-  <code>--target copilot</code> and once with <code>--target claude</code>:
+  The following historical snapshot makes that visible: the public
+  <code>microsoft/apm-sample-package</code> supplied four primitive types, installed at v0.23.1 once
+  with <code>--target copilot</code> and once with <code>--target claude</code>, with no source edits.
+  It is not a new v0.31.0 full-package run.
 </p>
-<table>
+<!-- Historical E03-projection: content/research/03-primitives-and-harnesses-reference.md,
+     Deploy #1 (%TEMP%/apm-ch03b) and Deploy #2 (%TEMP%/apm-ch03c), 2026-07-02.
+     Original public full-package scope and v0.23.1 evidence retained. -->
+<div class="table-scroll" role="region" aria-label="Scrollable table" tabindex="0"><table id="ch3-historical-projection">
   <caption>
     One source primitive set &rarr; two harnesses, two on-disk layouts &mdash; and even two different
-    <em>names</em>. Observed from a real install of <code>microsoft/apm-sample-package</code>.
+    <em>names</em>. Historical install of <code>microsoft/apm-sample-package</code>, 2026-07-02;
+    public network access used.
     <span class="apm-version">apm v0.23.1</span>
   </caption>
   <thead>
@@ -426,14 +463,15 @@
       <td><code>.claude/skills/&lt;name&gt;/SKILL.md</code></td>
     </tr>
   </tbody>
-</table>
+</table></div>
 <p>
   Read across any row and portability stops being a slogan. The same source instruction becomes a
   Copilot <code>.github/instructions/</code> file but is renamed to a Claude <code>rule</code>; the same
   prompt is a native Copilot prompt but a compiled Claude <code>/command</code>. (Skills for the Copilot
   family land in the cross-client <code>.agents/skills/</code> home rather than a Copilot-only directory,
   which is why that row's left cell reads <code>.agents/</code>, not <code>.github/</code>.) The intent is
-  identical everywhere; the file is whatever each harness natively reads.
+  shared; the native representation differs. Materializing these files does not establish identical
+  agent behavior.
 </p>
 
 <aside class="callout callout-warn">
@@ -443,36 +481,75 @@
     everywhere. The install above didn't just relocate files; it <em>renamed</em> an instruction to a
     Claude <em>rule</em> and a prompt to a <em>/command</em>, and it <strong>dropped</strong> the
     <code>mode</code> frontmatter key because Claude commands don't support it, warning as it did. That
-    is <em>compiled, by design</em>: the intent is preserved, the bytes are not. When a harness can't
-    represent a primitive at all, the compatibility matrix marks that cell <code>unsupported</code>
-    rather than inventing a lossy shim
-    (<a href="https://microsoft.github.io/apm/concepts/primitives-and-targets/" rel="noreferrer">primitives
-    and targets</a>). Expect parity to be <em>high but bounded</em>, and treat the matrix as the source of
-    truth.
+    is <em>compiled, by design</em>: supported intent is carried forward, not identical bytes.
+    The compatibility matrix identifies unsupported combinations rather than promising a shim
+    (<a href="https://github.com/microsoft/apm/blob/v0.31.0/docs/src/content/docs/reference/targets-matrix.md" rel="noreferrer">v0.31.0 targets matrix</a>).
+    Check support per primitive rather than assuming universal portability.
   </p>
 </aside>
 
-<h4>Targets are the declaration; the harness is the runtime</h4>
+<!-- Native evidence: RunRoot/core-probes/projects/portable, probes ch3-plugin-native and
+     ch3-plugin-native-restore; projects/portable-metadata, probes ch3-portable-metadata-install
+     (exit 0) and ch3-portable-metadata-audit (exit 1, canonical-IR replay limitation).
+     No Copilot runtime was executed. See core-reference.md section 5. -->
+<h4 id="ch3-plugin-formats">Two plugin delivery contracts</h4>
+<p>
+  <strong>Legacy Claude-compatible plugins</strong> are decomposed into target-specific primitives.
+  A root <code>plugin.json</code> declaring the
+  <a href="https://agent-plugins.org/schemas/1.0.0/plugin.schema.json" rel="noreferrer">Agent Plugins 1.0 schema</a>
+  selects a different contract: for Copilot, the recognized plugin stays <strong>whole</strong> under
+  <code>apm_modules/</code>. The local example registered <code>checkout-plugin@apm</code> through
+  APM's generated marketplace and <code>.github/copilot/settings.local.json</code>; it did not create
+  a loose <code>.agents/skills/retry/SKILL.md</code> duplicate. Non-Copilot targets do not receive an
+  automatic flattened fallback
+  (<a href="https://github.com/microsoft/apm/blob/v0.31.0/docs/src/content/docs/consumer/copilot-agent-plugins.md" rel="noreferrer">native registration contract</a>).
+</p>
+<p>
+  Loading that registration requires stable <strong>Copilot CLI 1.0.81 or newer</strong>; APM need
+  not locate or execute Copilot to register it. Registration success is not runtime success.
+  There is also a known v0.31.0 local-path limitation: the tested native plugin installed, but
+  <code>apm audit --ci</code> failed during replay with
+  <code>Native Agent Plugin canonical IR is missing</code>. That is not a network skip or an
+  audit-clean example, nor evidence that every Git-sourced plugin fails.
+</p>
+
+<!-- Catalog: RunRoot/core-probes/projects/init-all, probe ch3-init-all-targets.
+     Kiro agent materialization: projects/apm-source-control, probe ch4-apm-source-control.
+     Other target-profile claims are the exact v0.31.0 documented matrix, not runtime tests.
+     Target narrowing: backend/examples/updates/1.2/operations/hooks, probe hooks-dependency-target-filter.
+     Root compilation: projects/compile-only, probes ch5-compile-only-install/ch3-explicit-compile. -->
+<h4 id="ch3-target-catalog">Targets are the declaration; the harness is the runtime</h4>
 <p>
   You don't name a harness directly in the manifest &mdash; you list <strong>targets</strong>. A target
   is &ldquo;the declaration&hellip; the manifest or CLI selector for which harnesses to compile for,&rdquo;
   while &ldquo;the harness is the runtime that consumes the compiled output&rdquo;
-  (<a href="https://microsoft.github.io/apm/concepts/glossary/" rel="noreferrer">glossary</a>). Eight
-  harnesses are configured as targets by default &mdash; <code>copilot</code>, <code>claude</code>,
+  (<a href="https://microsoft.github.io/apm/concepts/glossary/" rel="noreferrer">glossary</a>).
+  In the exact v0.31.0 catalog, <code>all</code> expands to <strong>nine default stable targets</strong>:
+  <code>copilot</code>, <code>claude</code>,
   <code>cursor</code>, <code>codex</code>, <code>gemini</code>, <code>opencode</code>,
-  <code>windsurf</code>, and <code>kiro</code> &mdash; which is why this book says &ldquo;many
-  harnesses&rdquo; and lists them rather than promising every tool ever built
-  (<a href="https://microsoft.github.io/apm/concepts/what-is-apm/" rel="noreferrer">What is APM?</a>).
-  Selecting and pinning targets is <a href="install-and-restore.html">Chapter 5</a>'s job; here it is
-  enough to see the shape: one declaration, many native destinations.
+  <code>windsurf</code>, <code>kiro</code>, and <code>grok-build</code>. This describes catalog expansion,
+  not a promise that bare install selects all nine. Pin your team's actual targets;
+  package and per-dependency restrictions narrow the authorized set, not expand it.
+</p>
+<p>
+  The versioned matrix also documents stable, explicit-only <code>hermes</code>,
+  <code>antigravity</code>, and the <code>agent-skills</code> meta-target; experimental targets such as
+  <code>grok-cloud</code> stay outside <code>all</code>. IntelliJ-specific integration is MCP-only;
+  its file primitives use Copilot's profile. Kiro now supports agents. For Codex, Gemini, OpenCode,
+  and Hermes, dependency instructions need a separate <code>apm compile</code> for root context
+  (<a href="https://github.com/microsoft/apm/blob/v0.31.0/docs/src/content/docs/reference/targets-matrix.md" rel="noreferrer">exact v0.31.0 matrix</a>).
+  These are support boundaries, not claims of live runtime tests.
+  <a href="install-and-restore.html">Chapter 5</a> covers target selection in the consumer loop.
 </p>
 <p>
   Two of the book's four properties are already visible in this layer. Declaring context as typed
   primitives is the basis of <span class="property property--portability">Portability</span> &mdash; one
-  source set, compiled into every harness you target. And because each primitive is a named, typed unit,
+  declared source set, delivered where its primitive and format are supported. And because each
+  primitive is a named, typed unit,
   an organization can allow or deny it <em>by category</em>, which is what makes
   <span class="property property--governance">Governance</span> discussable at all. The remaining two
-  arrive downstream: the lockfile pins each deployed primitive by content hash &mdash; the basis of
+  arrive downstream: the lockfile records source identity and deployment ownership, with hashes where
+  applicable &mdash; the basis of
   <span class="property property--reproducibility">Reproducibility</span>
   (<a href="the-lockfile-and-reproducibility.html">Chapter 6</a>) and of
   <span class="property property--security">provenance</span>
@@ -506,7 +583,9 @@
   payment change, or an <em>agent</em> that owns review end to end. Each has a different cost and blast
   radius, so pick by trigger:
 </p>
-<table>
+<!-- Selection-table deltas: RunRoot/core-probes/projects/portable (ch3-plugin-native);
+     backend/examples/updates/1.2/operations/hooks (hooks-install) and mcp (mcp-install). -->
+<div class="table-scroll" role="region" aria-label="Scrollable table" tabindex="0"><table id="ch3-choose-primitive">
   <caption>Choosing a primitive by who &mdash; or what &mdash; triggers it.</caption>
   <thead>
     <tr>
@@ -517,7 +596,7 @@
   </thead>
   <tbody>
     <tr>
-      <td>a rule enforced every turn that no one has to remember</td>
+      <td>persistent guidance that no one has to invoke manually</td>
       <td><strong>instruction</strong></td>
       <td>it's ambient and always on</td>
     </tr>
@@ -537,49 +616,98 @@
       <td>it's a persona with its own tools and scope</td>
     </tr>
     <tr>
-      <td>deterministic automation around every tool call</td>
+      <td>deterministic automation at a supported agent-runtime event</td>
       <td><strong>hook</strong></td>
-      <td>the runtime fires it at a lifecycle event</td>
+      <td>the harness fires it at that event, not at package installation</td>
     </tr>
     <tr>
       <td>a governed connection to an external tool or dataset</td>
       <td><strong>MCP server</strong></td>
-      <td>it's declared and gated, run elsewhere</td>
+      <td>connection configuration is separate from server execution</td>
     </tr>
     <tr>
       <td>several of the above shipped as one installable unit</td>
       <td><strong>plugin</strong></td>
-      <td>it's a packaging format, unpacked into primitives</td>
+      <td>its format determines projection versus whole-unit registration</td>
     </tr>
   </tbody>
-</table>
+</table></div>
 
-<aside class="callout callout-warn">
+<!-- Hook/lifecycle distinction: backend/examples/updates/1.2/operations/hooks/package/.apm/hooks/notice.json
+     and lifecycle/{apm.yml,record.py}; RunRoot/operations-probes/logs/hooks-install,
+     lifecycle-trust, lifecycle-install-trusted, lifecycle-subtree-edit-revokes (.json/.txt). -->
+<h4 id="ch3-hooks-lifecycle">Harness hooks are not APM lifecycle scripts</h4>
+<p>
+  A hook is a callback for the <em>agent runtime</em>. In the current hook fixture,
+  <code>.apm/hooks/notice.json</code>'s <code>SessionStart</code> became Copilot
+  <code>sessionStart</code> but remained Claude <code>SessionStart</code>; APM deployed the callback
+  without running a harness. The event names and native settings are target-specific
+  (<a href="https://github.com/microsoft/apm/blob/v0.31.0/docs/src/content/docs/producer/author-primitives/hooks-and-commands.md" rel="noreferrer">hook projections</a>).
+  By contrast, a manifest's <code>lifecycle</code> section can run commands such as the fixture's
+  <code>python record.py</code> on <code>post-install</code>. That is <em>package-manager</em>
+  automation: automatic project execution requires separate lifecycle trust, and changing the
+  lifecycle subtree revokes that trust
+  (<a href="https://github.com/microsoft/apm/blob/v0.31.0/docs/src/content/docs/enterprise/lifecycle-scripts.md" rel="noreferrer">lifecycle scripts</a>).
+  APM is not an agent runtime, but &ldquo;APM never executes code&rdquo; would be wrong.
+</p>
+
+<!-- MCP evidence: RunRoot/core-probes/projects/mcp-file, probe ch3-mcp-separate-targets;
+     projects/transitive (ch3-direct-package-mcp-trusted), nested (ch3-nested-mcp-normal-cwd)
+     and nested-redeclared (ch3-transitive-mcp-redeclared). Config-only, no server run.
+     Explorer path confirmation: backend/examples/updates/1.2/operations/mcp, probe mcp-install.
+     Independent checks and retained limitations: content/research/updates/1.2/ch03-verification.md. -->
+<aside class="callout callout-warn" id="ch3-mcp-boundary">
   <h3>Pitfall: declaring an MCP server is not running it</h3>
   <p>
-    An MCP server is the one primitive APM <em>manages but does not ship</em>. &ldquo;MCP servers are
-    external processes; APM declares and gates them but does not ship their code&rdquo;
-    (<a href="https://microsoft.github.io/apm/concepts/glossary/" rel="noreferrer">glossary</a>). APM
-    writes each harness's MCP configuration and applies policy to the connection; the server itself runs
-    elsewhere, as its own process. So &ldquo;we declared the payment-sandbox MCP server&rdquo; means the
-    connection is wired and gated &mdash; not that APM launched a sandbox. The gating that makes this safe,
-    including withholding undeclared transitive MCP servers, is the subject of
-    <a href="security-by-default.html">Chapter 8</a>.
+    MCP describes a connection to a tool or data service, not a callback on installation or a
+    harness event. APM configures that connection; declaring Meridian's payment-sandbox does not
+    launch or validate a sandbox. Copilot CLI uses <code>.github/mcp.json</code> with
+    <code>mcpServers</code>, while VS Code uses <code>.vscode/mcp.json</code> with <code>servers</code>.
+    Sharing a Copilot <em>file-primitive</em> profile does not make those MCP destinations identical
+    (<a href="https://github.com/microsoft/apm/blob/v0.31.0/docs/src/content/docs/consumer/install-mcp-servers.md" rel="noreferrer">MCP integration</a>).
+  </p>
+  <p>
+    Trust also depends on depth. In the self-defined MCP probes, root and direct-dependency
+    declarations configured servers; a depth-two dependency-of-a-dependency's server was withheld
+    until the consumer re-declared it. That is not &ldquo;any dependency-provided MCP is blocked.&rdquo;
+    This default depth check is distinct from executable approvals and policy. Inspect the actual
+    config and lock as well as diagnostics; an install exit code is not a server health check.
+    <a href="security-by-default.html">Chapter 8</a> develops those trust boundaries.
+  </p>
+  <p>
+    <strong>0.31.0 limitation:</strong> the withheld depth-two control still failed
+    <code>apm audit --ci</code> with exit <code>1</code>:
+    <code>nested-checkout-probe: in manifest but not in lockfile</code>.
+    Correct withholding therefore did not produce an audit-clean project in that control.
+    This is a configuration-consistency failure, not a network skip or a reason to suppress audit.
   </p>
 </aside>
+
+<!-- Deploy-set evidence: RunRoot/operations-probes/logs/scan-source-only-install and
+     scan-admissible-selected-skill (.json/.txt); reproducible controls in
+     backend/examples/updates/1.2/operations/verify.py, security suite. -->
+<p id="ch3-deploy-scan">
+  The same declaration boundary limits the install-time content scan: APM scans the
+  <strong>authorized deployable source set before agent-readable deployment</strong>, not every file
+  in the downloaded cache. A source-only README and an unselected skill were outside that set in the
+  controlled probes. Neither a clean Unicode scan nor a content hash proves benign intent or runtime
+  safety
+  (<a href="https://github.com/microsoft/apm/blob/v0.31.0/docs/src/content/docs/enterprise/security.md" rel="noreferrer">security scope</a>).
+</p>
 
 <aside class="callout callout-info">
   <h3>Two words that aren't primitives: <em>command</em> and <em>canvas</em></h3>
   <p>
     You'll see &ldquo;command&rdquo; and &ldquo;canvas&rdquo; near APM, but neither is one of the seven
     types you author. A <strong>command</strong> is just a <em>prompt</em> projected into a harness that
-    names it differently &mdash; the same <code>.prompt.md</code> source becomes Copilot's prompt and
-    Claude's <code>/command</code>, with no separate commands directory to maintain.
+    names it differently &mdash; in the <code>.apm/</code> authoring layout, the same
+    <code>.prompt.md</code> source becomes Copilot's prompt and Claude's <code>/command</code>, with
+    no separate <code>.apm/commands/</code> directory to maintain.
     <strong>Canvas</strong> is an experimental type, out of scope for this book. A
     <strong>plugin</strong>, by contrast, <em>is</em> one of the seven &mdash; the <em>packaging</em>
-    primitive, authored in its own right with <code>apm plugin init</code>, that bundles several
-    primitives together and is normalized back into those same typed primitives at install time. So the
-    count holds: seven types to author, with <em>command</em> a projection of a prompt and
+    primitive, with the two delivery contracts described above.
+    <a href="becoming-a-producer.html">Chapter 10</a> covers authoring and distribution. So the
+    count holds: seven types in this chapter, with <em>command</em> a projection of a prompt and
     <em>canvas</em> left out as experimental
     (<a href="https://microsoft.github.io/apm/concepts/primitives-and-targets/" rel="noreferrer">primitives
     and targets</a>).
@@ -593,17 +721,20 @@
 <h3>Meridian's context, finally typed</h3>
 <p>
   Here is Meridian's pile from <a href="the-context-problem.html">Chapter 1</a>, sorted into its
-  primitive map. Nothing below is a manifest yet &mdash; it is the same inventory, now with a type and a
+  primitive map. This map is not a manifest &mdash; it is the same inventory, now with a type and a
   trigger on every row. Read down the trigger column and the instruction/prompt/skill split snaps into
   focus: three of these are markdown, but one is always on, one you run, and one the model reaches for.
 </p>
 
-<figure class="code-example">
+<!-- Historical E03-map: retained conceptual inventory, not CLI output or an executable fixture;
+     content/research/03-primitives-and-harnesses-theory.md, Meridian primitive-map beat. -->
+<figure class="code-example" id="ch3-meridian-map">
   <figcaption>
     Meridian's primitive map &mdash; every scattered file from Chapter 1, now typed. A map, not yet a
-    manifest. <span class="apm-version">apm v0.23.1</span>
+    manifest or CLI output. Retained conceptual snapshot.
+    <span class="apm-version">apm v0.23.1</span>
   </figcaption>
-  <pre><code class="language-text"># meridian-checkout, now TYPED:  source item  ->  primitive   (who triggers it)
+  <pre tabindex="0"><code class="language-text"># meridian-checkout, now TYPED:  source item  ->  primitive   (who triggers it)
 #
 checkout backend guardrails (use Money) -> instruction  nobody: read every turn (always-on)
 fraud-review PR checklist               -> prompt       you: invoked by name, on demand
@@ -618,16 +749,19 @@ payment-sandbox tool connection         -> mcp server   the agent at runtime (de
   That map is heading toward a manifest, but guard the distinction: it is <em>not yet a manifest</em>.
   The shape it will take groups the five rows into two dependency buckets &mdash; <code>apm</code> for
   primitives and <code>mcp</code> for MCP servers &mdash; plus the harness <code>targets</code> to build
-  for. Everything below is illustrative; <a href="the-manifest-apm-yml.html">Chapter 4</a> validates the
+  for. The next sketch is illustrative; <a href="the-manifest-apm-yml.html">Chapter 4</a> teaches the
   real syntax and pins each source, and <a href="install-and-restore.html">Chapter 5</a> installs it.
 </p>
 
-<figure class="code-example">
+<!-- Historical E03-map manifest shape: original illustrative code retained, not a validated
+     project fixture. Its eight-target comment belongs to the v0.23.1 snapshot, not the current catalog. -->
+<figure class="code-example" id="ch3-historical-manifest-shape">
   <figcaption>
     Conceptual only &mdash; the same map as a manifest <em>shape</em>, showing the two dependency buckets
-    and harness targets. Not validated until Chapter 4. <span class="apm-version">apm v0.23.1</span>
+    and harness targets. Historical sketch, not a validated project; the eight-target comment describes
+    that snapshot, not the v0.31.0 catalog. <span class="apm-version">apm v0.23.1</span>
   </figcaption>
-  <pre><code class="language-yaml">name: meridian-checkout-agent-context
+  <pre tabindex="0"><code class="language-yaml">name: meridian-checkout-agent-context
 targets: [copilot, claude, cursor]   # 3 of APM's 8 default harness targets
 dependencies:
   apm: []              # primitives -- declared for real in Chapter 4:
@@ -638,6 +772,52 @@ dependencies:
   mcp: []              # MCP servers -- declared + gated here, the server runs elsewhere:
     #  - &lt;payment-sandbox&gt;</code></pre>
 </figure>
+
+<h4>One skill, a different source layout</h4>
+<p>
+  Meridian's result here is still a typed inventory. A separate, current fixture makes the
+  <a href="#ch3-layout-authority">package/layout distinction</a> tangible: its existing skill lives
+  at <code>.claude/skills/checkout-review/SKILL.md</code>, without a package manifest beside it.
+  The consumer declares that directory as a local dependency and selects Copilot as its destination.
+</p>
+
+<!-- Example ch3-existing-skill-manifest: exact backend/examples/updates/1.2/core/onboard-skill/apm.yml;
+     companion source .claude/skills/checkout-review/SKILL.md and genuine apm.lock.yaml.
+     RunRoot/core-probes/logs/fixture-onboard-skill-install.json; independently exercised as
+     Core/onboard-skill in content/research/updates/1.2/ch05-verification.md (ch5-onboard-manifest).
+     Reuses existing 0.31.0 execution; no new Ch3 verification verdict is asserted. -->
+<figure class="code-example" id="ch3-existing-skill-manifest">
+  <figcaption>
+    Complete <code>apm.yml</code> from <code>core/onboard-skill</code> &mdash; a local skill reference,
+    not a source-layout conversion. Existing execution evidence; no network dependency.
+    <span class="apm-version">apm v0.31.0</span>
+  </figcaption>
+  <pre tabindex="0"><code class="language-yaml"># Reference an existing skill without moving or translating its source.
+name: core-onboard-skill
+version: 1.0.0
+targets: [copilot]
+dependencies:
+  apm:
+    - path: ./.claude/skills/checkout-review</code></pre>
+</figure>
+
+<!-- Example ch3-existing-skill-install: same complete core/onboard-skill fixture, including hidden
+     .claude source. Exact argv: install; RunRoot/core-probes/logs/fixture-onboard-skill-install
+     (.json/.txt), exit 0. apm below denotes the prepared exact 0.31.0 executable, not a PATH probe. -->
+<figure class="code-example" id="ch3-existing-skill-install">
+  <figcaption>
+    Run in a scratch copy of <code>backend/examples/updates/1.2/core/onboard-skill</code>, including
+    its hidden <code>.claude</code> directory. Observed exit 0; no agent or server execution.
+    <span class="apm-version">apm v0.31.0</span>
+  </figcaption>
+  <pre tabindex="0"><code class="language-bash">apm install</code></pre>
+</figure>
+<p>
+  APM materialized <code>.agents/skills/checkout-review/SKILL.md</code>, leaving the authored skill in
+  its existing layout. The <em>source</em> happened to be Claude-shaped; the declared
+  <em>destination</em> was Copilot. You did not need a second hand-maintained copy or an
+  <code>.apm/</code> directory, and installing the skill did not invoke it.
+</p>
           </div>
         </section>
         <section class="chapter-section" data-section="recap-and-next">
@@ -653,21 +833,28 @@ dependencies:
     There are seven types. The three that look alike differ by trigger:
     <em>instruction = always on; prompt = you run it; skill = the model reaches for it</em>. An
     <strong>agent</strong> is who acts; a <strong>plugin</strong> is packaging; an
-    <strong>MCP server</strong> is an external tool; a <strong>hook</strong> is lifecycle automation.
+    <strong>MCP server</strong> is an external tool connection; a <strong>hook</strong> responds to
+    harness events, not APM package lifecycle events.
   </li>
   <li>
     APM is <em>built on</em> open standards &mdash; AGENTS.md, SKILL.md, and MCP &mdash; not a
     replacement for them; <code>apm compile</code> emits distributed AGENTS.md files.
   </li>
   <li>
-    One source primitive compiles into each harness's native files: an instruction becomes a Copilot
+    Supported source primitives project into native files: an instruction becomes a Copilot
     instruction or a Claude <em>rule</em>; a prompt becomes a Copilot prompt or a Claude
-    <em>/command</em>. Compiled is not byte-identical; parity across the eight default harnesses is high
-    but bounded (native / compiled / unsupported).
+    <em>/command</em>. Compiled is not byte-identical or universally supported.
+    Recognized Agent Plugins 1.0 instead stay whole for native Copilot registration.
   </li>
   <li>
     <strong>Targets</strong> are the declaration you list; the <strong>harness</strong> is the runtime
-    that consumes the output.
+    that consumes the output. The <a href="#ch3-target-catalog">v0.31.0 catalog</a> is not a promise
+    that every target supports every primitive.
+  </li>
+  <li>
+    Declarations govern discovery: <code>.apm/</code> is one supported source layout, and an explicit
+    plugin skill list is exhaustive &mdash; an empty list means none. Registration, content checks,
+    and connection configuration are not proof of successful or safe runtime behavior.
   </li>
   <li>
     Typed primitives underpin <span class="property property--portability">Portability</span> and make
@@ -694,7 +881,7 @@ dependencies:
 
       <footer class="site-footer chapter-footer">
         <p>By <a href="https://www.linkedin.com/in/webmaxru/" rel="noreferrer">Maxim Salnikov</a> &middot; <a href="https://github.com/webmaxru/agent-package-manager-book" rel="noreferrer">Source on GitHub</a> &middot; <a href="../apm-book.pdf" download>Download the book (PDF)</a></p>
-        <p class="footer-edition"><a href="https://github.com/webmaxru/agent-package-manager-book/releases" rel="noreferrer">Edition v1.1 · Updated July 8, 2026</a></p>
+        <p class="footer-edition"><a href="https://github.com/webmaxru/agent-package-manager-book/releases" rel="noreferrer">Edition v1.2 · Updated September 16, 2026</a></p>
       </footer>
     </div>
   </div>

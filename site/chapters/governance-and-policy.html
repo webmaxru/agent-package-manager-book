@@ -152,11 +152,13 @@
             <h2 id="features-heading">APM features</h2>
             <ul class="tag-list">
             <li>apm-policy.yml</li>
-            <li>install-time enforcement</li>
+            <li>host-specific policy discovery</li>
             <li>transitive MCP governance</li>
+            <li>local extends</li>
             <li>tighten-only inheritance</li>
             <li>warn mode</li>
             <li>block mode</li>
+            <li>policy.fetch_failure_default</li>
             </ul>
           </aside>
           <aside class="metadata-card" aria-labelledby="depends-heading">
@@ -171,37 +173,31 @@
           <h2 id="objective"><a class="anchor-link" href="#objective" aria-label="Link to Objective section">Objective</a></h2>
           <div class="section-content" data-content-slot="objective">
 <p>
-  After this chapter you can author and pilot an <code>apm-policy.yml</code> &mdash; the organization's
-  allow/deny contract for agent packages &mdash; and enforce it at install time. You will keep
-  <span class="property property--governance">Governance</span> (&ldquo;is this
-  <em>allowed here</em>?&rdquo;) crisply separate from the
-  <span class="property property--security">Provenance / security</span> checks of
-  <a href="security-by-default.html">Chapter 8</a> (&ldquo;is this <em>safe</em>?&rdquo;), write the
-  <strong>verified</strong> policy schema (including the one field the running example got wrong &mdash;
-  target rules live under <code>compilation.target.allow</code>, <em>not</em> a top-level
-  <code>targets:</code> key), and drive the <code>warn</code>&nbsp;&rarr;&nbsp;<code>block</code> rollout
-  that turns a rule on without breaking every repo on day one. You will run
-  <code>apm audit --ci --policy</code> and read its two exit codes, inspect the effective policy with
-  <code>apm policy status</code>, and reason about tighten-only <em>enterprise&nbsp;&rarr;&nbsp;org&nbsp;&rarr;&nbsp;repo</em>
-  inheritance. One honesty note up front: at <span class="apm-version">apm v0.23.1</span> the policy
-  <em>engine</em> is <strong>early preview</strong> &mdash; schema, discovery, and inheritance ship today,
-  but enforcement semantics may shift between minor versions, so pin the CLI before you lean on it as a
-  production gate
-  (<a href="https://microsoft.github.io/apm/enterprise/policy-reference/" rel="noreferrer">Policy
-  reference</a>).
+  After this chapter you can write and rehearse an <code>apm-policy.yml</code>, inspect its effective
+  inherited rules, and pilot Meridian's <strong>warn &rarr; measure &rarr; remediate &rarr; block</strong>
+  rollout behind a protected CI gate without mistaking install-time
+  <span class="property property--governance">Governance</span> for runtime security.
+</p>
+<p>
+  <strong>Edition 1.2 targets exactly <span class="apm-version">APM 0.31.0</span></strong>, against the
+  reviewed book 1.1 / APM 0.23.1 baseline. Read
+  <a href="security-by-default.html">Chapter 8</a> first for integrity and trust boundaries, and
+  <a href="lifecycle.html">Chapter 7</a> for the baseline CI audit. Current examples below use recorded
+  0.31.0 explorer observations; the original Chapter 9 policies retain their historical 0.23.1 stamps.
 </p>
           </div>
         </section>
         <section class="chapter-section" data-section="concept-theory">
           <h2 id="concept-theory"><a class="anchor-link" href="#concept-theory" aria-label="Link to Concept/Theory section">Concept/Theory</a></h2>
           <div class="section-content" data-content-slot="concept-theory">
-<h3>Two questions at the same gate</h3>
+<h3 id="ch9-governance-contract">Two questions at the same gate</h3>
 <p>
-  <a href="security-by-default.html">Chapter 8</a> made every install <em>safe by construction</em>:
-  hidden-Unicode scanning, content-hash pinning, and transitive-MCP blocking all fire <strong>before any
-  file reaches disk</strong>. Those checks ship with the CLI and answer a question with a <em>universal</em>
-  answer &mdash; a bidi-override character is dangerous everywhere; a tampered hash is invalid everywhere.
-  But a second question has <strong>no universal answer</strong>: <em>may our developers install
+  A lockfile tells you which dependency will arrive, not whether your organization permits it.
+  An npm lockfile is not an approved-suppliers list; agent context needs the same distinction.
+  <a href="security-by-default.html">Chapter 8</a> introduced content scanning, hashes, and scoped
+  trust decisions. Those checks help detect suspicious content or changed bytes; a clean result does
+  not prove benign intent or authenticate a publisher. A second question has
+  <strong>no universal answer</strong>: <em>may our developers install
   <code>some-org/some-skill</code>? is the GitHub MCP server approved? which compilation targets do we
   support?</em> That depends entirely on <em>your</em> organization's risk posture, contracts, and
   compliance regime.
@@ -210,15 +206,16 @@
   That second question is <span class="property property--governance">Governance</span> &mdash; APM's third
   promise, &ldquo;governed by policy&rdquo;
   (<a href="https://microsoft.github.io/apm/concepts/the-three-promises/" rel="noreferrer">the three
-  promises</a>). Where security is <strong>intrinsic</strong> (built into the tool, non-negotiable),
+  promises</a>). Where the integrity checks are <strong>built into the tool</strong>,
   governance is <strong>declared</strong>: an org authors an allow/deny contract in
-  <code>apm-policy.yml</code> and APM enforces it at the <em>same</em> pre-disk gate as the security checks.
-  Same seam, two different authorities. Crucially, policy &ldquo;does not scan code semantics or behave like
-  an antivirus. It enforces <em>declarations</em> against an allow/deny list before APM writes any file&rdquo;
-  (<a href="https://microsoft.github.io/apm/enterprise/apm-policy/" rel="noreferrer">Policy files</a>).
+  <code>apm-policy.yml</code>. Applicable policy and security checks gate <strong>agent-readable
+  deployment</strong>; acquisition, staging, and cache writes can happen earlier. Policy checks
+  declarations against organizational rules, not the meaning or future behavior of a prompt
+  (<a href="https://github.com/microsoft/apm/blob/v0.31.0/docs/src/content/docs/enterprise/apm-policy.md" rel="noreferrer">0.31.0 policy guide</a>,
+  <a href="https://github.com/microsoft/apm/blob/v0.31.0/docs/src/content/docs/reference/cli/install.md" rel="noreferrer">install boundary</a>).
 </p>
-<table>
-  <caption>Security and governance answer different questions at the same install-time gate. Verified against apm v0.23.1.</caption>
+<div class="table-scroll" role="region" aria-label="Scrollable table" tabindex="0"><table>
+  <caption>Integrity and governance answer different questions about the same installation.</caption>
   <thead>
     <tr>
       <th scope="col">&nbsp;</th>
@@ -229,47 +226,50 @@
   <tbody>
     <tr>
       <td><strong>Question</strong></td>
-      <td>Is this artifact safe by construction?</td>
+      <td>Does this artifact pass the applicable integrity and trust checks?</td>
       <td>Is this artifact allowed <em>here</em>?</td>
     </tr>
     <tr>
       <td><strong>Source of authority</strong></td>
-      <td>Intrinsic &mdash; ships in the CLI</td>
+      <td>Built-in checks and explicitly scoped trust decisions</td>
       <td>Declared &mdash; the org authors <code>apm-policy.yml</code></td>
     </tr>
     <tr>
       <td><strong>Varies by org?</strong></td>
-      <td>No &mdash; same everywhere</td>
+      <td>Integrity tests do not depend on an approved-suppliers list</td>
       <td>Yes &mdash; each org's own contract</td>
     </tr>
     <tr>
       <td><strong>Where enforced</strong></td>
-      <td>Install gate (pre-disk)</td>
+      <td>Deployment checks and later integrity audit</td>
       <td>Install gate <em>and</em> <code>apm audit --ci</code></td>
     </tr>
   </tbody>
-</table>
+</table></div>
 <p>
-  The two verdicts are <strong>independent, and both must pass</strong>. A package can be perfectly safe
-  (clean scan, valid hash) yet <em>denied</em> because it comes from an un-vetted source; an
+  The two verdicts are <strong>independent</strong>. A package can pass its scan and hash checks yet
+  be <em>denied</em> because it comes from an un-vetted source; an
   <em>allowed</em> source still runs through the security scan. So beware the twin misconception
   &mdash; &ldquo;governance is just more security,&rdquo; and its inverse, &ldquo;if it's allowed by policy
   it must be safe.&rdquo; Neither holds. Policy is not an antivirus, and an allow-list is not a safety
   certificate.
 </p>
-<p>
+<p id="ch9-policy-authority">
   Policy is deliberately <strong>visible to developers yet authoritative for the org</strong>. It fires on
   a developer's own local <code>apm install</code> and prints an inline violation with a remediation hint
-  &mdash; but its source of truth is <em>not</em> the developer's checkout. As
+  &mdash; but an authoritative org baseline must not depend on an unreviewed checkout override. As
   <a href="the-context-problem.html">Chapter 1</a> foreshadowed, <code>apm-policy.yml</code> is an
-  <strong>org-remote artifact</strong>: it lives in your org's policy repo (protected by CODEOWNERS and
-  branch protection) and is auto-discovered from your project's git remote, not committed as a per-repo
-  default (<a href="https://microsoft.github.io/apm/enterprise/apm-policy/" rel="noreferrer">Policy
-  files</a>). The single distinction to protect above all others is the one the
-  <a href="https://github.com/microsoft/apm" rel="noreferrer">microsoft/apm README</a> draws:
+  <strong>org-remote authority</strong>: the policy repository is protected by CODEOWNERS and branch
+  protection, and discovery uses your project's git remote. Local files are useful for
+  <a href="#ch9-inheritance">inheritance rehearsals</a> and explicit audits; merely naming a checkout
+  file <code>apm-policy.yml</code> does not make install discover it.
+  The required CI job must protect its source selection and environment as well as its command.
+  Keep the install/runtime distinction from the
+  <a href="https://github.com/microsoft/apm/blob/v0.31.0/README.md" rel="noreferrer">APM README</a>:
   <strong><code>apm-policy.yml</code> governs what gets <em>installed</em>; your agent harness governs what
-  <em>runs</em>. The two planes do not overlap.</strong> Governance is an install-time gate, not a runtime
-  sandbox &mdash; the schema has no fields for runtime permissions or agent behavior.
+  the live agent may <em>do</em>.</strong> This is not a runtime sandbox or a permission system for
+  agent behavior. APM's separate script and executable-consent surfaces remain
+  <a href="security-by-default.html">Chapter 8</a>'s concern.
 </p>
           </div>
         </section>
@@ -279,194 +279,243 @@
 <aside class="callout callout-info">
   <h3>Version note: the policy engine is early preview</h3>
   <p>
-    At <span class="apm-version">apm v0.23.1</span> the policy <em>engine</em> is flagged <strong>early
-    preview</strong>: &ldquo;schema, inheritance, and discovery ship today; enforcement semantics may change
-    between minor versions&hellip; Pin to a specific APM version before relying on it as a production
-    gate&rdquo; (<a href="https://microsoft.github.io/apm/enterprise/policy-reference/" rel="noreferrer">Policy
-    reference</a>). The lockfile-based baseline of <code>apm audit --ci</code> from
-    <a href="lifecycle.html">Chapter 7</a> is stable; the <code>apm-policy.yml</code> <em>enforcement</em>
-    layer this chapter adds is what carries the preview label. Every field and exit code below was verified
-    empirically against v0.23.1; re-confirm on any CLI bump.
+    The policy engine still carries the <strong>early-preview</strong> label in
+    <span class="apm-version">APM 0.31.0</span>. Pin the CLI and test policy behavior before changing
+    versions; a release note or a successfully parsed file is not an enforcement test
+    (<a href="https://github.com/microsoft/apm/blob/v0.31.0/docs/src/content/docs/enterprise/policy-reference.md" rel="noreferrer">versioned policy reference</a>).
+    The policy layer is additional to <a href="lifecycle.html">Chapter 7</a>'s baseline audit.
+    The examples distinguish observed success, deliberate negative controls, and known coverage limits.
   </p>
 </aside>
 
-<h3>The policy file: <code>apm-policy.yml</code></h3>
+<h3 id="ch9-policy-file">The policy file: <code>apm-policy.yml</code></h3>
 <p>
-  A policy is a single YAML file whose top-level keys each govern one facet of <em>what may be
-  installed</em> &mdash; dependency sources, MCP servers and transports, compilation targets, manifest
-  shape, unmanaged files. There are no runtime keys. Here is the verified schema, trimmed to the sections
-  you will actually reach for:
+  The <a href="#ch9-governance-contract">allow/deny contract</a> is a YAML declaration. Dependency
+  rules restrict sources and require packages or bounded direct constraints; MCP rules restrict
+  connection declarations and transports; compilation rules restrict destinations. Manifest and
+  unmanaged-file rules make reviewable intent and file ownership auditable. Cache settings govern
+  availability of that contract, not package trust.
 </p>
-<figure class="code-example">
+<p>
+  This is a trimmed excerpt of the <strong>current schema fixture</strong>, not an exhaustive policy
+  or a recommended organization-wide default. In the PowerShell examples, <code>$Apm</code> means the
+  absolute path to the prepared <strong>0.31.0</strong> executable, never a PATH-selected CLI.
+  Local commands use an isolated scratch copy of the current <code>policy/</code> fixture; the
+  <a href="#ch9-current-rehearsal">worked example</a> explains the complete input and baseline.
+</p>
+<!--
+  ch9-schema-031: selected, unchanged fields from Fixtures/policy/apm-policy.schema.yml.
+  Omits default-valued require_resolution, source_attribution, require_explicit_includes,
+  unmanaged directories/exclude, and executables.deny_all; not a new standalone fixture.
+  Exact full-file parse/registration: OpsRoot/logs/policy-status-schema.{json,txt}, exit 0.
+-->
+<figure class="code-example" id="ch9-schema-031">
   <figcaption>
-    The <code>apm-policy.yml</code> schema, verified against apm v0.23.1. The single top-level
-    <code>enforcement</code> dial governs every rule; target rules live under
-    <code>compilation.target.allow</code>. <span class="apm-version">apm v0.23.1</span>
+    <code>backend/examples/updates/1.2/operations/policy/apm-policy.schema.yml</code>, selected sections.
+    <span class="apm-version">APM 0.31.0</span> &mdash; offline parse and rule registration observed
+    in <code>policy-status-schema</code>, exit <code>0</code>; not proof every field is enforced.
   </figcaption>
-  <pre><code class="language-yaml">name: Example Org Policy
-enforcement: warn            # off | warn | block  -- the single top-level dial
-
+  <pre tabindex="0"><code class="language-yaml">name: Operations schema reference
+version: "1"
+enforcement: warn
+fetch_failure: block
+cache:
+  ttl: 120
 dependencies:
-  allow:                     # null = no opinion | [] = allow NOTHING | [globs] = only these
-    - microsoft/**
-  deny:                      # deny always beats allow
-    - sketchy-org/**
-  require: []                # packages every repo must declare (supports "#version" pins)
-  require_pinned_constraint: true   # ban unbounded refs (bare branch / wildcard / open range)
-
+  allow: null
+  deny: []
+  require: []
+  max_depth: 5
+  require_pinned_constraint: true
 mcp:
   allow: null
   deny: []
   transport:
-    allow: [http, stdio]     # subset of: stdio | sse | http | streamable-http
-  self_defined: warn         # allow | warn | deny  (inline MCPs declared in apm.yml)
-
-compilation:                 # target rules live HERE -- NOT a top-level `targets:` key
+    allow: [stdio, http]
+  self_defined: warn
+  trust_transitive: false
+compilation:
   target:
     allow: [copilot, claude, cursor]
-
 manifest:
   required_fields: [name, version, description]
-  scripts: allow             # allow | deny
-
+  scripts: allow
 unmanaged_files:
-  action: warn               # ignore | warn | deny</code></pre>
+  action: ignore</code></pre>
 </figure>
 <p>
-  The confirmed, enforced top-level keys at v0.23.1 are: <code>name</code>, <code>version</code>,
-  <code>extends</code>, <code>enforcement</code>, <code>fetch_failure</code>, <code>cache</code>,
-  <code>dependencies</code>, <code>mcp</code>, <code>compilation</code>, <code>manifest</code>,
-  <code>unmanaged_files</code>, <code>registry_source</code>, <code>security</code>, and
-  <code>executables</code>. One allow-list rule is worth memorizing because it is easy to get backwards:
-  a list left as <code>null</code> means <em>&ldquo;no opinion&rdquo;</em> (allow anything not denied); an
-  <strong>empty</strong> list <code>[]</code> means <em>&ldquo;allow nothing&rdquo;</em>; a populated list
-  means <em>&ldquo;only these.&rdquo;</em> And <code>deny</code> is always evaluated first &mdash; it beats
-  <code>allow</code>.
+  For an allow list, <code>null</code> means <em>no opinion</em>, <code>[]</code> means
+  <em>allow nothing</em>, and a populated list means <em>only matches</em>.
+  <strong>Deny wins over allow.</strong> A <code>require</code> list adds mandatory packages; the
+  <a href="#ch9-pilot-warn-031">worked policy</a> includes a version-pinned requirement.
+  A <code>*</code> glob stays within one path segment; <code>**</code> can span segments
+  (<a href="https://github.com/microsoft/apm/blob/v0.31.0/src/apm_cli/policy/matcher.py" rel="noreferrer">matching rules</a>).
+</p>
+<!-- Casing evidence: policy-registry-mixedcase-allow (0), policy-registry-mixedcase-deny (1);
+     OpsRoot/registry_followup.py generates allow.yml/deny.yml over its real reg-graph project.
+     GitHub normalization is SOURCE-ONLY here: target matcher.py and dependency identity implementation. -->
+<p>
+  Matching uses canonical <strong>GitHub/registry owner-repository casing</strong>, not a blanket
+  lowercase conversion of every identifier. In the registry control, <code>OPERATIONS/**</code>
+  matched <code>operations/parent</code>: the allow policy audited <code>0</code>, the deny policy
+  <code>1</code>. GitHub normalization is source-grounded at this target; <strong>refs, subpaths,
+  local paths, and MCP identities are not all case-insensitive</strong>. Preserve their actual spelling
+  (<a href="https://github.com/microsoft/apm/blob/v0.31.0/src/apm_cli/policy/matcher.py" rel="noreferrer">source-aware policy matching</a>).
 </p>
 
-<aside class="callout callout-warn">
-  <h3>Schema trap: a top-level <code>targets:</code> is silently ignored &mdash; use <code>compilation.target.allow</code></h3>
-  <p>
-    APM <strong>silently drops unknown top-level keys</strong> &mdash; no error, no warning. The most
-    dangerous instance: writing target rules as a top-level <code>targets: {allow: [&hellip;]}</code> block
-    (a natural guess, and the shape an early running-example draft used). It parses cleanly and enforces
-    <em>nothing</em>. The real key is <code>compilation.target.allow</code>. The failure is invisible
-    unless you inspect <code>apm policy status</code>, where the rule count exposes it:
-  </p>
-  <pre><code class="language-text"># WRONG -- top-level targets:  { allow: [copilot, claude, cursor] }
-"compilation_targets_allowed": -1        # -1 = no rule registered (silently ignored)
-
-# RIGHT -- compilation: { target: { allow: [copilot, claude, cursor] } }
-"compilation_targets_allowed": 3         # rule registered</code></pre>
-  <p>
-    If you ever see a top-level <code>targets:</code> in a policy during review, it is doing
-    <strong>nothing</strong>. Every policy example in this book uses <code>compilation.target.allow</code>.
-  </p>
-</aside>
-
-<h3>One gate, two enforcement points</h3>
+<h3 id="ch9-policy-status">Inspect what loaded, not just what you wrote</h3>
 <p>
-  The same policy file is evaluated at two places that share one rule set
-  (<a href="https://microsoft.github.io/apm/enterprise/apm-policy/" rel="noreferrer">Policy files</a>):
+  <code>apm policy status</code> reports the source, resolution outcome, warnings, cache state, and
+  effective rule counts. Its <code>--policy-source</code> accepts a local path for rehearsal, or an
+  organization/repository/HTTPS source. <code>--check</code> tests policy <strong>resolution</strong>,
+  not whether the project complies. Both the warn and block files in this chapter resolve
+  successfully; only their audits distinguish compliance outcomes.
+</p>
+<!-- ch9-schema-status-031: exact argv from policy-status-schema, on the complete schema fixture. -->
+<figure class="code-example" id="ch9-schema-status-031">
+  <figcaption>
+    Inspect <code>policy/apm-policy.schema.yml</code> in the scratch copy.
+    <span class="apm-version">APM 0.31.0</span>; <code>policy-status-schema</code>, offline, exit
+    <code>0</code>. Comments summarize selected observed fields.
+  </figcaption>
+  <pre tabindex="0"><code class="language-powershell">&amp; $Apm policy status --policy-source ./apm-policy.schema.yml --json --check
+# outcome: found; enforcement: warn; warnings: []
+# rule_counts.compilation_targets_allowed: 3</code></pre>
+</figure>
+<p>
+  <strong>The correct policy key is <code>compilation.target.allow</code>.</strong> A top-level
+  <code>targets</code> in a <em>policy</em> is unknown: 0.31.0 warns and registers no target rule.
+  That is different from the valid <code>targets</code> list in the consumer's
+  <a href="the-manifest-apm-yml.html"><code>apm.yml</code></a>.
+</p>
+<!--
+  Schema negatives: OpsRoot/policy_probes.py cases unknown-top, wrong-list, wrong-bool,
+  wrong-integer -> policy/case-<name>.yml in scratch. Each table row maps to
+  policy-status-<name>; malformed rows also map to policy-status-<name>-check.
+  These invalid inputs are deliberate controls, not reusable policies.
+-->
+<div class="table-scroll" role="region" aria-label="Scrollable table" tabindex="0"><table id="ch9-schema-controls-031">
+  <caption>Observed 0.31.0 schema negative controls; diagnostic exit is not parser acceptance.</caption>
+  <thead>
+    <tr><th scope="col">Input mistake</th><th scope="col">Observed result</th><th scope="col">Probe / exit</th></tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>Only a top-level <code>targets: {allow: [copilot]}</code> rule</td>
+      <td><code>Unknown top-level policy key: 'targets'</code>; <code>outcome: empty</code>;
+        <code>compilation_targets_allowed: -1</code> (no rule)</td>
+      <td><code>policy-status-unknown-top</code>: <code>0</code></td>
+    </tr>
+    <tr>
+      <td><code>dependencies.allow</code> is the string <code>microsoft/**</code>, not a list</td>
+      <td><code>outcome: malformed</code>; <code>dependencies.allow must be a YAML list of package patterns</code></td>
+      <td><code>policy-status-wrong-list</code>: <code>0</code>; with <code>--check</code>: <code>1</code></td>
+    </tr>
+    <tr>
+      <td><code>require_pinned_constraint</code> is quoted <code>"true"</code>, not a boolean</td>
+      <td><code>outcome: malformed</code>; boolean type required</td>
+      <td><code>policy-status-wrong-bool</code>: <code>0</code>; with <code>--check</code>: <code>1</code></td>
+    </tr>
+    <tr>
+      <td><code>cache.ttl</code> is boolean <code>true</code>, not an integer</td>
+      <td><code>outcome: malformed</code>; positive integer required</td>
+      <td><code>policy-status-wrong-integer</code>: <code>0</code>; with <code>--check</code>: <code>1</code></td>
+    </tr>
+  </tbody>
+</table></div>
+<p>
+  Known wrong native types <strong>fail parsing</strong>; plain status still exits <code>0</code>
+  because it is a diagnostic command. An explicit malformed-policy audit can also exit
+  <code>0</code> under the default fetch-failure posture, or <code>1</code> under the
+  <a href="#ch9-fetch-failure">consumer fail-closed setting</a>. Do not equate a green command with
+  loaded rules
+  (<a href="https://github.com/microsoft/apm/blob/v0.31.0/src/apm_cli/policy/parser.py" rel="noreferrer">0.31.0 parser</a>).
+  The other <code>apm policy</code> subcommand, <code>explain</code>, explains executable trust
+  decisions from <a href="security-by-default.html">Chapter 8</a>; it is not a policy-compliance test.
+</p>
+
+<h3 id="ch9-enforcement-points">One contract, two enforcement points</h3>
+<p>
+  The <a href="#ch9-policy-authority">reviewed authority</a> is evaluated during install and CI audit.
+  They share policy semantics, but do not exercise identical checks
+  (<a href="https://github.com/microsoft/apm/blob/v0.31.0/docs/src/content/docs/enterprise/apm-policy.md" rel="noreferrer">policy enforcement points</a>):
 </p>
 <ul>
   <li>
-    <strong>The install-time preflight gate.</strong> <code>apm install</code> resolves the dependency
-    tree, runs the policy gate against the resolved set, <em>then</em> writes files. A blocking violation
-    halts the install with a non-zero exit and <strong>nothing reaches disk</strong>. This protects a
-    developer running <code>apm install</code> locally &mdash; they cannot accidentally deploy a denied
-    package even without CI. There is <strong>no <code>--policy</code> flag on <code>apm install</code></strong>;
-    discovery is automatic from the git remote.
+    <strong>Install-time preflight.</strong> <code>apm install</code> discovers policy from the git
+    remote and evaluates applicable install rules before agent-readable deployment. Do not turn this
+    into a promise that acquisition and staging write nothing, or that a failed multi-package command
+    rolls back every earlier success. There is <strong>no <code>--policy</code> override on
+    <code>apm install</code></strong>; the attempted override returned exit <code>2</code> in
+    <code>policy-install-no-override-flag</code>. A local policy rehearsal is not a live
+    organization-discovery test.
   </li>
   <li>
-    <strong>The CI audit gate.</strong> <code>apm audit --ci --policy org</code> runs the <em>same</em>
-    policy checks <strong>plus</strong> the baseline lockfile/integrity checks from
-    <a href="lifecycle.html">Chapter 7</a>, and emits SARIF for GitHub Code Scanning. This is the check you
-    wire into branch protection &mdash; the authoritative gate for merges, and the only enforcer of the
-    audit-only rules (required fields, scripts, unmanaged files) that the install gate does not check.
+    <strong>CI audit.</strong> <code>apm audit --ci --policy</code> adds policy checks to the
+    lockfile, ownership, integrity, and replay checks from <a href="lifecycle.html">Chapter 7</a>.
+    This includes audit-only concerns such as required manifest fields, scripts, and unmanaged files.
+    Use it as a required merge check with <a href="#ch9-ci-authority">protected inputs</a>.
+    Passing <code>--policy</code> to bare audit without <code>--ci</code> only produced an
+    ignored-option warning in <code>policy-source-without-ci</code>; it did not enforce the policy.
   </li>
 </ul>
 <p>
-  This is where the <a href="security-by-default.html">Chapter 8</a> thread ties back: when an APM package
-  pulls in its <em>own</em> MCP dependencies, those transitive servers are resolved and then passed through
-  a <strong>second policy pass</strong>, so no transitive MCP server reaches your runtime config without
-  clearing the same <code>mcp.allow</code> / <code>mcp.deny</code> / <code>mcp.transport</code> rules as a
-  direct one. Do <em>not</em> confuse that with the <code>mcp.trust_transitive</code> policy field &mdash;
-  at v0.23.1 that field <strong>parses but is not enforced</strong>; the actual transitive-MCP gate is the
-  <code>--trust-transitive-mcp</code> CLI flag (default deny) you met in
-  <a href="security-by-default.html">Chapter 8</a>
-  (<a href="https://microsoft.github.io/apm/enterprise/apm-policy/" rel="noreferrer">Policy files</a>).
+  Audit can produce the JSON report used below or a selected SARIF report for Code Scanning; SARIF is
+  not an automatic upload. A cold replay can fetch lock-pinned content into scratch, so audit is
+  <strong>not universally offline</strong> and there is no universal fixed check count.
+  This chapter's local-policy fixture needs no external package fetch
+  (<a href="https://github.com/microsoft/apm/blob/v0.31.0/docs/src/content/docs/reference/cli/audit.md" rel="noreferrer">audit modes and formats</a>).
 </p>
 
-<h3>The <code>enforcement</code> dial: <code>warn</code> and <code>block</code></h3>
+<h3 id="ch9-enforcement-dial">The <code>enforcement</code> dial: <code>warn</code> and <code>block</code></h3>
 <p>
   The top-level <code>enforcement</code> field has three modes &mdash; <code>off</code>, <code>warn</code>,
-  <code>block</code> &mdash; and it is a <strong>single, uniform dial</strong>: every rule runs under the
-  same mode. (Only two sub-fields carry their own <code>allow|warn|deny</code> sense &mdash;
-  <code>mcp.self_defined</code> and <code>unmanaged_files.action</code> &mdash; but their pass/fail still
-  surfaces through the top-level dial.) The difference between the two modes you will use is entirely in
-  the <strong>exit code on the same violation</strong>, verified on real violating projects:
+  <code>block</code>. It gives you a measurement phase before a rule becomes a merge gate.
+  There is no general per-rule <code>enforcement</code> switch. For the ordinary
+  <code>required-packages</code> violation in the worked example, with the baseline clean:
 </p>
-<table>
-  <caption>The <code>enforcement</code> dial, same violation, two modes. Run with <code>apm audit --ci --policy</code>. Verified on apm v0.23.1.</caption>
+<div class="table-scroll" role="region" aria-label="Scrollable table" tabindex="0"><table>
+  <caption>Same missing package, observed APM 0.31.0 audits: <code>policy-audit-warn</code> and <code>policy-audit-block</code>.</caption>
   <thead>
     <tr>
       <th scope="col">Mode</th>
-      <th scope="col">Every check runs?</th>
-      <th scope="col">Violation shown as</th>
-      <th scope="col">Summary</th>
+      <th scope="col">JSON check result</th>
       <th scope="col">Exit code</th>
     </tr>
   </thead>
   <tbody>
     <tr>
       <td><code>warn</code></td>
-      <td>Yes</td>
-      <td><code>[+]</code> &hellip; <code>(enforcement: warn)</code></td>
-      <td><code>All N check(s) passed</code></td>
+      <td><code>passed: true</code>, but the missing-package message includes <code>(enforcement: warn)</code></td>
       <td><strong><code>0</code></strong> &mdash; measures, does not gate</td>
     </tr>
     <tr>
       <td><code>block</code></td>
-      <td>Yes</td>
-      <td>failing row</td>
-      <td><code>1 of N check(s) failed</code></td>
-      <td><strong><code>1</code></strong> &mdash; fails closed</td>
+      <td><code>passed: false</code>, with the same missing package in <code>details</code></td>
+      <td><strong><code>1</code></strong> &mdash; fails this rule</td>
     </tr>
   </tbody>
-</table>
+</table></div>
 <p>
-  That single-column difference &mdash; exit <code>0</code> vs exit <code>1</code> on an identical finding
-  &mdash; is the whole mechanism behind the rollout you will run in the worked example.
+  Do not generalize this into &ldquo;warn makes every failure green.&rdquo; Baseline failures are
+  independent, and <code>security.integrity.require_hashes: true</code> is explicitly fail-closed
+  even in warn mode. A deliberately hash-stripped Git lock failed
+  <code>dependency-content-hashes</code>, exit <code>1</code>, in
+  <code>policy-require-hash-even-warn</code>
+  (<a href="https://github.com/microsoft/apm/blob/v0.31.0/src/apm_cli/policy/policy_checks.py" rel="noreferrer">check-specific fail-closed boundary</a>).
 </p>
 
-<h3>Inspecting policy: <code>apm policy status</code> and <code>explain</code></h3>
+<h3 id="ch9-inheritance">Tighten-only inheritance: enterprise &rarr; org &rarr; repo</h3>
 <p>
-  At v0.23.1, <code>apm policy</code> has exactly two subcommands (there is no <code>check</code>,
-  <code>diagnose</code>, or <code>show</code>). <code>apm policy status</code> reports the effective posture
-  &mdash; discovery outcome, cache, and the <em>merged</em> rule counts &mdash; and accepts
-  <code>--policy-source</code> (<code>org</code> | <code>owner/repo</code> | <code>https://&hellip;</code> |
-  a <strong>local path</strong>) so you can preview a file before it lands. It <strong>always exits
-  0</strong> unless you add <code>--check</code>, which turns an unreachable or misconfigured org policy
-  into a non-zero CI pre-flight. The other subcommand, <code>apm policy explain &lt;package&gt;</code>, is
-  the <em>executable-trust</em> surface from <a href="security-by-default.html">Chapter 8</a> (the
-  <code>apm approve</code>/<code>deny</code> decision) &mdash; not the <code>apm-policy.yml</code> gate, so
-  it is not re-taught here.
+  A shared baseline needs room for stricter product teams, not a way for each repo to undo it.
+  Policies compose through <code>extends</code>, canonically an
+  <strong>enterprise hub &rarr; org policy &rarr; repo child</strong>.
+  The merge is <strong>tighten-only</strong>: a child's relaxation attempt leaves the parent's
+  restriction effective. It need not make parsing fail
+  (<a href="https://github.com/microsoft/apm/blob/v0.31.0/src/apm_cli/policy/inheritance.py" rel="noreferrer">0.31.0 inheritance implementation</a>).
 </p>
-
-<h3>Tighten-only inheritance: enterprise &rarr; org &rarr; repo</h3>
-<p>
-  Policies compose along a chain &mdash; canonically an <strong>enterprise hub &rarr; org policy &rarr;
-  repo override</strong> &mdash; declared with <code>extends:</code> (max depth 5; cross-host
-  <code>extends:</code> is refused as a credential-leak mitigation). The merge is <strong>tighten-only</strong>:
-  &ldquo;children can only tighten rules, never relax them&hellip; a repo can be more restrictive than the
-  org, but cannot widen what the org has allowed&rdquo;
-  (<a href="https://microsoft.github.io/apm/enterprise/apm-policy/" rel="noreferrer">Policy files</a>).
-  Because the org policy is discovered from the git remote, the org level is the default authority; a
-  lower level is understood as a stricter <em>child</em>, never a replacement. In plain English:
-</p>
-<table>
-  <caption>How the tighten-only merge composes each field kind. The effective policy is always at least as strict as every level above it. From the policy reference; verified rule shapes at apm v0.23.1.</caption>
+<div class="table-scroll" role="region" aria-label="Scrollable table" tabindex="0"><table>
+  <caption>Tighten-only composition: target source plus local and HTTPS inheritance observations at APM 0.31.0.</caption>
   <thead>
     <tr>
       <th scope="col">Field kind</th>
@@ -481,14 +530,14 @@ unmanaged_files:
       <td>Narrow the list &mdash; never widen it</td>
     </tr>
     <tr>
-      <td>deny lists (<code>dependencies.deny</code>, <code>mcp.deny</code>)</td>
+      <td>Deny and require lists (<code>dependencies.deny</code>, <code>dependencies.require</code>, <code>mcp.deny</code>)</td>
       <td><strong>union</strong></td>
-      <td>Add denies &mdash; never remove one</td>
+      <td>Add restrictions; an empty or null child list does <strong>not</strong> erase the parent's entries</td>
     </tr>
     <tr>
-      <td><code>enforcement</code></td>
-      <td><strong>max</strong> (<code>off &lt; warn &lt; block</code>)</td>
-      <td>Escalate <code>warn &rarr; block</code> &mdash; never the reverse</td>
+      <td><code>enforcement</code> and <code>fetch_failure</code></td>
+      <td><strong>stricter value</strong> (<code>off &lt; warn &lt; block</code> for enforcement; <code>warn &lt; block</code> for fetch failure)</td>
+      <td>Escalate; never turn inherited <code>block</code> into <code>warn</code></td>
     </tr>
     <tr>
       <td><code>require_pinned_constraint</code></td>
@@ -496,23 +545,146 @@ unmanaged_files:
       <td>Turn it on &mdash; never off if a parent set it</td>
     </tr>
     <tr>
-      <td><code>max_depth</code>, <code>cache.ttl</code></td>
+      <td><code>dependencies.max_depth</code>, <code>cache.ttl</code></td>
       <td><strong>min</strong></td>
       <td>Lower the cap &mdash; never raise it</td>
     </tr>
   </tbody>
-</table>
+</table></div>
 <p>
-  The consequence a security lead cares about: a repo <strong>cannot</strong> override the org policy to
-  unblock itself. A child that tries to drop <code>block</code> back to <code>warn</code>, or re-allow a
-  denied source, is rejected. Exceptions therefore flow <em>upward</em>, not downward &mdash; to exempt a
-  repo you relax the rule <em>at the parent level</em> (narrow a <code>deny</code> glob, or add the package
-  to <code>dependencies.allow</code>), documented in the policy file itself. APM has no first-class waiver
-  field; that file is your audit log. Discovery reinforces the org-remote model from
-  <a href="the-context-problem.html">Chapter 1</a>: APM resolves the org from the project's git remote and
-  searches candidate repos in order &mdash; <code>.github</code>, then <code>.apm</code>, then
-  <code>_apm</code> &mdash; first found wins, cached about an hour. Rolling that baseline across product
-  groups is the fleet story of <a href="enterprise-at-fleet-scale.html">Chapter 11</a>.
+  The target's
+  <a href="https://github.com/microsoft/apm/blob/v0.31.0/docs/src/content/docs/reference/policy-schema.md" rel="noreferrer">companion schema page</a>
+  has a conflicting inheritance table: its suggestion that child
+  <code>[]</code> can clear inherited deny/require lists, or that a child freely overrides
+  <code>fetch_failure</code>, does <strong>not</strong> describe the observed implementation.
+  Exceptions therefore flow upward to the owners of the governing parent. Adding an allow entry does
+  not cancel a deny; review and narrow the restriction itself. A child file is not a waiver.
+</p>
+<p>
+  <strong>Local-file inheritance works in 0.31.0.</strong> These two committed rehearsal files make
+  it observable without publishing any policy:
+</p>
+<!-- ch9-local-parent-031 and ch9-local-child-031: complete YAML bodies (leading comments omitted)
+     from Fixtures/policy/apm-policy.parent.yml and apm-policy.child.yml.
+     OpsRoot/policy_followup.py copies these exact inputs. Primary records:
+     policy-local-inheritance-status (0), policy-local-inheritance-audit (1).
+     Reusable records: local-parent-merged (0), child-cannot-clear-parent (1). -->
+<figure class="code-example" id="ch9-local-parent-031">
+  <figcaption>
+    <code>policy/apm-policy.parent.yml</code> &mdash; a restrictive local parent.
+    <span class="apm-version">APM 0.31.0</span>; merged in
+    <code>policy-local-inheritance-status</code>, exit <code>0</code>, offline.
+  </figcaption>
+  <pre tabindex="0"><code class="language-yaml">name: Operations parent
+enforcement: block
+fetch_failure: block
+cache:
+  ttl: 120
+dependencies:
+  deny: [example-org/denied-package]
+  require: [example-org/required-review-package#v1.0.0]
+  max_depth: 3
+  require_pinned_constraint: true</code></pre>
+</figure>
+<figure class="code-example" id="ch9-local-child-031">
+  <figcaption>
+    <code>policy/apm-policy.child.yml</code> &mdash; a deliberate relaxation attempt, not a
+    recommended child policy. <span class="apm-version">APM 0.31.0</span>;
+    <code>policy-local-inheritance-audit</code> still exits <code>1</code>, offline.
+  </figcaption>
+  <pre tabindex="0"><code class="language-yaml">name: Operations child
+extends: ./apm-policy.parent.yml
+enforcement: warn
+fetch_failure: warn
+cache:
+  ttl: 900
+dependencies:
+  deny: []
+  require: []
+  max_depth: 10
+  require_pinned_constraint: false</code></pre>
+</figure>
+<!-- ch9-local-merge-031: exact primary argv from policy-local-inheritance-status and
+     policy-local-inheritance-audit; comments summarize their real results, not full transcripts. -->
+<figure class="code-example" id="ch9-local-merge-031">
+  <figcaption>
+    Inspect the effective child, then audit the missing requirement.
+    <span class="apm-version">APM 0.31.0</span>; <code>policy-local-inheritance-status</code>
+    / <code>policy-local-inheritance-audit</code>, observed <code>0 / 1</code>, offline.
+  </figcaption>
+  <pre tabindex="0"><code class="language-powershell">&amp; $Apm policy status --policy-source ./apm-policy.child.yml --check --json
+# exit 0: outcome found; enforcement block
+# dependencies_deny: 1; dependencies_require: 1; extends_chain: []
+
+&amp; $Apm audit --ci --policy ./apm-policy.child.yml --no-fail-fast -f json
+# exit 1: required-packages failed
+# 1 required package(s) missing from manifest
+# details: example-org/required-review-package</code></pre>
+</figure>
+<p>
+  Here, <code>extends_chain: []</code> did <strong>not</strong> mean &ldquo;no merge&rdquo;:
+  the effective block mode, retained counts, and failing audit prove inheritance. Inspect effective
+  rules and a known violation, not the chain array alone. This tests local composition, not automatic
+  organization discovery.
+</p>
+<!-- HTTPS evidence: OpsRoot/policy-inputs/{parent,child}.yml, generated by policy_probes.py;
+     policy-https-cold-chain (0), policy-https-warm-chain (0), policy-https-inheritance-audit (1).
+     Strict fields/TTL: CLI-written OpsRoot/policy-cache-generated; no handcrafted cache.
+     Cross-host/incomplete controls: policy-cross-host-chain (1), policy-incomplete-chain (1). -->
+<p>
+  The separate loopback-HTTPS parent/child test retained block enforcement, block fetch posture,
+  TTL <code>120</code>, depth <code>3</code>, mandatory pins, and inherited restrictions on both
+  cold and warm reads. The warm read made no additional requests; its audit still failed the missing
+  requirement. The source caps chains at five levels; cross-host and incomplete-chain controls
+  returned <code>1</code> with status <code>--check</code>. These were anonymous local tests,
+  not private-host authorization tests.
+</p>
+
+<h3 id="ch9-policy-discovery">Discovery follows the host, not one universal repository list</h3>
+<p>
+  The <a href="#ch9-policy-authority">org-remote model</a> depends on locating the right authority.
+  The frozen discovery implementation gives each host its own convention for the repository
+  containing <code>apm-policy.yml</code>:
+</p>
+<div class="table-scroll" role="region" aria-label="Scrollable table" tabindex="0"><table>
+  <caption>APM 0.31.0 source contracts, not live organization-discovery results.</caption>
+  <thead>
+    <tr><th scope="col">Host</th><th scope="col">Policy location / precedence</th></tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>GitHub / GitHub-class</td>
+      <td><code>.github-private</code> before <code>.github</code>, then <code>.apm</code>, then
+        <code>_apm</code>. Meridian's existing <code>.github</code> location remains valid.</td>
+    </tr>
+    <tr>
+      <td>GitLab</td>
+      <td>The <strong>top-level group's</strong> <code>apm-policy</code> project, not a cascade
+        through GitHub-style names or the nearest subgroup.</td>
+    </tr>
+    <tr>
+      <td>Azure DevOps</td>
+      <td>Project <code>apm</code>, repository <code>apm-policy</code>. The legacy
+        <code>_apm/_apm</code> coordinate is tried only after a <code>404</code>, not after
+        an arbitrary authentication or network failure.</td>
+    </tr>
+  </tbody>
+</table></div>
+<p>
+  These locations come from the
+  <a href="https://github.com/microsoft/apm/blob/v0.31.0/src/apm_cli/policy/discovery.py" rel="noreferrer">actual discovery source</a>
+  and <a href="https://github.com/microsoft/apm/blob/v0.31.0/src/apm_cli/policy/_gitlab.py" rel="noreferrer">GitLab adapter</a>,
+  not an inferred release-note migration. Live private GitHub/GHES, GitLab, and ADO authorization and
+  policy publication are <span class="needs-network">SKIPPED-needs-network</span>: no organization
+  repository or permissions were supplied.
+</p>
+<p>
+  Policy cache now lives beneath the <strong>APM cache root</strong>, in
+  <code>policy_v1/&lt;project-key&gt;/&lt;source-key&gt;.{yml,meta.json}</code>, not
+  <code>apm_modules/.policy-cache/</code>. The default TTL is one hour; the test parent deliberately
+  tightens it to two minutes. A warm cache must preserve the same effective restrictions, not a
+  weaker child-only policy. Fleet distribution belongs in
+  <a href="enterprise-at-fleet-scale.html">Chapter 11</a>.
 </p>
           </div>
         </section>
@@ -530,65 +702,250 @@ unmanaged_files:
   that makes <code>block</code> safe. The recommended sequence is four steps:
 </p>
 <ol>
-  <li><strong>Author in <code>warn</code></strong> in <code>&lt;org&gt;/.github/apm-policy.yml</code>. Nothing breaks; every violation is reported and every install still succeeds.</li>
-  <li><strong>Read the telemetry</strong> &mdash; the warnings in <code>apm install</code> output and, canonically, the SARIF that <code>apm audit --ci --policy org</code> feeds into Code Scanning &mdash; to build a fleet-wide violation list.</li>
-  <li><strong>Remediate the top offenders</strong> &mdash; upgrade or replace the offending dependency (the default fix), or grant an exception by relaxing the rule at the parent level.</li>
-  <li><strong>Flip to <code>block</code></strong> once the count is zero (or the survivors are documented exceptions). To block <em>one</em> rule while others still warn, <strong>stage rules</strong> (clean one, then flip the file) or <strong>split via <code>extends:</code></strong> so a strict child escalates for its scope only &mdash; there is no per-rule <code>enforcement</code> knob.</li>
+  <li><strong>Author in <code>warn</code></strong>, rehearse locally, then review it into the
+    protected org policy repository. Meridian keeps <code>meridian-finance/.github/apm-policy.yml</code>;
+    the new preferred GitHub location does not require relocating the story.</li>
+  <li><strong>Measure</strong> the warnings and structured audit findings, using JSON or a deliberately
+    configured SARIF/Code Scanning integration. A green warn-mode check is not a zero-violation count.</li>
+  <li><strong>Remediate</strong> by reviewing, pinning, upgrading, or replacing offending direct
+    dependencies, or satisfying required-package rules. Exceptions require review at the governing
+    parent, not an empty child deny/require list.</li>
+  <li><strong>Block</strong> after the pilot's findings are resolved or its parent rules deliberately
+    amended. Stage a small rule set or pilot a stricter child in a narrower scope:
+    <strong>block applies to that entire effective policy</strong>, not just one inherited rule.</li>
 </ol>
 
 <aside class="callout callout-warn">
-  <h3>Pitfall: <code>warn</code>-mode audit exits <code>0</code> &mdash; it does <em>not</em> gate CI</h3>
+  <h3>Pitfall: <code>warn</code>-mode policy findings can leave CI green</h3>
   <p>
-    Under <code>enforcement: warn</code>, <code>apm audit --ci</code> rewrites violations to
-    <em>passed</em> so the exit code stays <code>0</code> and the check goes <strong>green</strong>. The
-    visibility lives in the SARIF and the Code Scanning UI &mdash; <em>not</em> in the red/green check. Do
-    not read &ldquo;CI is green&rdquo; as &ldquo;no violations&rdquo; during the warn phase: watch Code
-    Scanning, and only <code>block</code> actually fails the build (exit <code>1</code>). This is exactly
-    why the rollout above treats <code>warn</code> as a measurement window, not an on switch.
+    The ordinary missing-package finding below is rendered <code>passed: true</code> in warn mode,
+    yet its message and package details remain in the JSON. Count those findings, not green jobs.
+    Block makes this same finding fail with exit <code>1</code>; independent integrity or baseline
+    failures can already fail a warn-mode run. This is a measurement window, not a promise that
+    every install or audit succeeds.
   </p>
 </aside>
 
-<aside class="callout callout-warn">
-  <h3>Pitfall: a local-file <code>extends:</code> does not merge a parent</h3>
-  <p>
-    At v0.23.1, <code>extends:</code> only merges a parent fetched as <code>org</code>,
-    <code>owner/repo</code>, or <code>https://&hellip;</code>. Point it at a <strong>local path</strong>
-    and <code>apm policy status</code> will <em>record</em> the reference in the extends chain but the
-    parent's rules are <strong>not merged</strong> &mdash; the effective policy is the child's rules alone
-    (verified: the child's <code>deny</code> count stayed at its own single entry instead of unioning with
-    the parent's). So you cannot prototype inheritance with two files on disk; real multi-level merge needs
-    a remote parent, which is why the inheritance demos in this chapter are marked
-    <span class="needs-network">needs network</span>. Treat a repo-local policy as
-    <em>&ldquo;author and test here, then publish to <code>&lt;org&gt;/.github</code>,&rdquo;</em> not as a
-    local child of a local org.
-  </p>
-</aside>
-
-<aside class="callout callout-warn">
-  <h3>Pitfall: don't audit-test <code>compilation.target</code>, and don't trust <code>mcp.trust_transitive</code></h3>
-  <p>
-    Two rules mislead in a local demo. The <code>compilation-target</code> check needs a <em>resolved</em>
-    target; on a static manifest that only lists candidate <code>targets:</code> it reports &ldquo;No
-    compilation target set in manifest&rdquo; and <strong>passes</strong> &mdash; it bites at
-    <code>apm install</code>/<code>apm compile</code> time, not at audit time. So <code>compilation.target.allow</code>
-    is the <em>correct</em> key (see the schema trap) but a weak choice for an audit-gate demo; lead with
-    <code>dependencies.*</code>, <code>mcp.*</code>, or <code>require_pinned_constraint</code>. And
-    <code>mcp.trust_transitive</code> <strong>parses but is not enforced</strong> &mdash; the real
-    transitive-MCP gate is the <code>--trust-transitive-mcp</code> flag from
-    <a href="security-by-default.html">Chapter 8</a>. Do not claim the policy field blocks transitive MCP.
-  </p>
-</aside>
-
+<h3 id="ch9-direct-pin-scope">Pitfall: the pin rule checks direct declarations</h3>
 <p>
-  Two smaller habits round out the &ldquo;when to use&rdquo;: wire <code>apm audit --ci --policy org</code>
-  (not bare <code>apm audit</code>) into branch protection &mdash; it is the authoritative gate &mdash; and
-  reach for <code>apm policy status --check</code> only when you want CI to fail because the org policy is
-  <em>unreachable or misconfigured</em>, since plain <code>apm policy status</code> never fails. Use
-  <code>apm audit --ci --policy</code> to gate on rule <em>violations</em>; use <code>--check</code> to gate
-  on policy <em>reachability</em>. The bypass contract is honest but loud: <code>apm install --no-policy</code>
-  and <code>APM_POLICY_DISABLE=1</code> skip the <em>auto-discovered</em> org policy for a single, logged
-  invocation &mdash; but an <strong>explicit <code>--policy &lt;source&gt;</code> overrides the bypass</strong>
-  and still enforces, and the baseline lockfile checks are never bypassable.
+  <code>dependencies.require_pinned_constraint</code> implements a narrower concept than
+  &ldquo;every edge of the graph has a bounded range.&rdquo; In 0.31.0 the check is
+  <strong>direct-scoped</strong>. A resolved lockfile commit does not make an unbounded direct
+  declaration bounded; conversely, an unbounded transitive declaration alone is not this check's
+  failing case
+  (<a href="https://github.com/microsoft/apm/blob/v0.31.0/src/apm_cli/policy/policy_checks.py" rel="noreferrer">direct pin check</a>).
+</p>
+<!--
+  ch9-direct-pin-negative-031: consumer dependencies excerpt from the controlled variant of
+  Fixtures/registry-graph/apm.yml. Fixtures/verify.py registry() changes only the direct
+  dependency's version to >=1.0.0, installs, then audits Fixtures/registry-graph/apm-policy.yml.
+  Reusable records: bounded-direct-unbounded-transitive (0), new-direct-intent (0),
+  unbounded-direct-fails-policy (1), in all-final.json.
+  Primary corrected setup: OpsRoot/registry_followup.py (not the initial registry_probes.py
+  invalid wildcard/routing case); policy-pin-direct-only-control (0),
+  registry-graph-direct-unbounded-install (0), policy-pin-direct-unbounded-control (1).
+  The primary equivalent policy is reg-graph/pin-policy.yml, name Bound direct constraints.
+-->
+<figure class="code-example" id="ch9-direct-pin-negative-031">
+  <figcaption>
+    Deliberate <strong>direct</strong> violation: the <code>registry-graph/apm.yml</code> variant's
+    dependency excerpt, not a standalone manifest. The fixture retains its explicit registry routing.
+    <span class="apm-version">APM 0.31.0</span>; <code>policy-pin-direct-unbounded-control</code>,
+    exit <code>1</code>. <span class="needs-network">Loopback network only</span>, experimental
+    registry fixture; no public or private registry service is implied.
+  </figcaption>
+  <pre tabindex="0"><code class="language-yaml">dependencies:
+  apm:
+    - registry: fixture
+      id: operations/parent
+      version: '>=1.0.0'</code></pre>
+</figure>
+<div class="table-scroll" role="region" aria-label="Scrollable table" tabindex="0"><table>
+  <caption>Observed direct-scope control under a blocking pin policy; the registry graph has a real depth-two lock.</caption>
+  <thead>
+    <tr><th scope="col">Root's direct constraint</th><th scope="col">Transitive constraint</th><th scope="col">Audit result / probe</th></tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><code>^1.0.0</code> (bounded)</td><td>Unbounded</td>
+      <td><code>0</code> &mdash; <code>policy-pin-direct-only-control</code></td>
+    </tr>
+    <tr>
+      <td><code>&gt;=1.0.0</code> (no upper bound)</td><td>Unbounded</td>
+      <td><code>1</code> &mdash; <code>policy-pin-direct-unbounded-control</code>;
+        <code>operations/parent: unbounded upper; pair with '&lt;X.Y' or use a caret range</code></td>
+    </tr>
+  </tbody>
+</table></div>
+<p>
+  Both controls use <code>require_pinned_constraint: true</code> with <code>enforcement: block</code>.
+  Use a bounded <em>direct</em> constraint to remediate this finding, then install and review the
+  resulting lock as <a href="the-lockfile-and-reproducibility.html">Chapter 6</a> taught.
+  The policy's definition of pinned includes bounded ranges; it is not limited to immutable SHAs.
+  Do not substitute the sample package's transitive <code>#main</code> edge as Ch9's failing pin demo.
+</p>
+
+<aside class="callout callout-warn">
+  <h3>Pitfall: registered targets and parsed trust fields are not complete enforcement</h3>
+  <p>
+    Plural <code>targets: [copilot, claude, cursor]</code> in <code>apm.yml</code> is a real authorized
+    target set, not a list of candidate hints. Yet against
+    <code>compilation.target.allow: [claude]</code>, <code>policy-target-plural-audit</code>
+    exited <code>0</code> and reported <code>No compilation target set in manifest</code>.
+    In <code>policy-target-singular-audit</code>, the singular <code>target: copilot</code>
+    made the <code>compilation-target</code> check itself fail:
+    <code>Target(s) ['copilot'] not in allowed list ['claude']</code>.
+    That run exited <code>1</code> and also had two missing-path baseline failures; it is not a
+    clean one-rule rollout example. Compare the target check, not just the exit code. The plural
+    result is an audit-input coverage limit, not permission to use disallowed targets. Keep your
+    intended plural declaration; use the dependency violation below for the audit-gate demonstration.
+  </p>
+  <p>
+    The target policy contract includes a second preflight over transitive MCP declarations using
+    <code>mcp.allow</code>, <code>mcp.deny</code>, and transport rules. That contract is distinct from
+    <code>mcp.trust_transitive</code>, which remains <strong>parsed but not enforced</strong>.
+    The actual depth-based declaration/CLI trust boundary, including
+    <code>--trust-transitive-mcp</code>, belongs to
+    <a href="security-by-default.html">Chapter 8</a>. Direct dependency MCP and depth-two MCP are not
+    interchangeable cases, and this chapter did not test a live MCP server or certify every
+    executable gate
+    (<a href="https://github.com/microsoft/apm/blob/v0.31.0/docs/src/content/docs/enterprise/apm-policy.md" rel="noreferrer">policy's MCP boundary</a>).
+  </p>
+</aside>
+<!-- Target controls: OpsRoot/policy_probes.py case-target-claude.yml; unchanged policy/apm.yml
+     for plural, cloned policy-singular/apm.yml replacing targets with target: copilot for singular.
+     Singular raw JSON: compilation-target, deployed-files-present, and content-integrity failed;
+     no claim that its exit 1 isolates target enforcement.
+     MCP boundaries: core-reference.md section 6, operations-reference.md OP08.3 / OP09.2. -->
+
+<h3 id="ch9-ci-authority">Protect CI's environment as well as its command</h3>
+<p>
+  A required job is authoritative because you control its inputs, not because its command contains
+  <code>--ci</code>. The following <strong>isolated negative controls</strong> all used the same
+  missing-required-package block policy. They diagnose the enforcement boundary; they are
+  <strong>not CI configurations to copy</strong>.
+</p>
+<!--
+  Bypass controls: Fixtures/policy/{apm.yml,apm-policy.block.yml}; OpsRoot/policy_probes.py and
+  policy_followup.py. Consumer-block variant is policy-follow-failclosed/apm.yml generated by
+  policy_followup.py; only policy.fetch_failure_default is added to the fixture manifest.
+  Rows map exactly to primary IDs below. The misleadingly named overrides-disable probe returned
+  0, not its original expected 1. Reusable: explicit-policy-beats-flag (1),
+  env-disables-explicit-policy (0, known_cli_limitation), all-final.json.
+-->
+<div class="table-scroll" role="region" aria-label="Scrollable table" tabindex="0"><table id="ch9-bypass-controls-031">
+  <caption>Observed APM 0.31.0 bypass controls. Exit <code>0</code> with missing policy checks is an authority failure, not compliance.</caption>
+  <thead>
+    <tr><th scope="col">Control condition</th><th scope="col">Actual audit result</th><th scope="col">Probe</th></tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>Explicit block policy, no bypass</td>
+      <td><code>1</code>; missing package fails</td>
+      <td><code>policy-explicit-control-no-bypass</code></td>
+    </tr>
+    <tr>
+      <td>Explicit policy plus <code>--no-policy</code></td>
+      <td><code>1</code>; explicit source beats the flag</td>
+      <td><code>policy-explicit-flag-only</code></td>
+    </tr>
+    <tr>
+      <td>Explicit policy with environment <code>APM_POLICY_DISABLE=1</code></td>
+      <td><strong><code>0</code>; only baseline checks, explicit policy suppressed</strong></td>
+      <td><code>policy-explicit-env-only</code></td>
+    </tr>
+    <tr>
+      <td>Explicit policy, environment disable, and <code>--no-policy</code></td>
+      <td><code>0</code>; still suppressed</td>
+      <td><code>policy-explicit-overrides-disable</code></td>
+    </tr>
+    <tr>
+      <td>Environment disable plus explicit policy and consumer fail-closed configuration</td>
+      <td><code>0</code>; fail-closed fetch posture does not defeat the disable switch</td>
+      <td><code>policy-disable-even-failclosed</code></td>
+    </tr>
+  </tbody>
+</table></div>
+<p>
+  Thus <strong>explicit <code>--policy</code> beats <code>--no-policy</code>, but not
+  <code>APM_POLICY_DISABLE=1</code></strong> in this release, despite broader precedence wording
+  in the help/docs. Protect the required workflow, its selected policy source, consumer settings,
+  and environment from unreviewed changes. Ensure the disable switch cannot arrive enabled in the
+  required job. Run status and audit under the same controlled inputs, inspect the
+  <strong>actual loaded source, outcome, enforcement, warnings, and effective rules</strong>, and
+  retain the rule findings. Require the resolution preflight to succeed; do not discard its failure
+  when a later command runs. A baseline-only exit <code>0</code> cannot establish organization compliance.
+</p>
+
+<h3 id="ch9-fetch-failure">Fail closed from the consumer, before the first fetch</h3>
+<p>
+  An unread remote policy cannot tell a consumer what to do when fetching it fails.
+  Put the failure default in the consumer's reviewed <code>apm.yml</code> when policy availability is
+  mandatory. This is distinct from <code>fetch_failure</code> inside the policy, and from the
+  violation-mode <code>enforcement</code> dial:
+</p>
+<!--
+  ch9-consumer-failclosed-031: exact apm.yml fragment added to copies of Fixtures/policy by
+  OpsRoot/policy_followup.py: policy-follow-failclosed, policy-first-fetch, policy-pin-nonempty.
+  Primary records: policy-explicit-malformed-failclosed (1), policy-cold-fetch-consumer-block (1),
+  policy-pin-nonempty-mismatch-failclosed (1). The last also retains a genuine fixture policy.hash.
+  This fragment is not in the exported no-remote rehearsal manifest and is not an invented fixture.
+-->
+<figure class="code-example" id="ch9-consumer-failclosed-031">
+  <figcaption>
+    Consumer <code>apm.yml</code> fragment used by the recorded
+    <code>policy_followup.py</code> controls, based on the current <code>policy/</code> fixture.
+    <span class="apm-version">APM 0.31.0</span>;
+    <code>policy-cold-fetch-consumer-block</code> returned <code>1</code> on a synthetic HTTPS
+    <code>503</code>. <span class="needs-network">Loopback network only</span>.
+  </figcaption>
+  <pre tabindex="0"><code class="language-yaml">policy:
+  fetch_failure_default: block</code></pre>
+</figure>
+<p>
+  A consumer <code>policy.hash</code> pins the fetched policy's raw bytes; it is not a publisher
+  signature. In the nonempty-policy test, adding only a harmless comment broke that pin.
+  Status with <code>--check</code> rejected the mismatch, but audit with the default consumer
+  posture still exited <code>0</code> and skipped policy. Adding the setting above made the same
+  audit visibly fail with <code>Policy fetch failed: Policy hash mismatch</code>, exit <code>1</code>.
+</p>
+<div class="table-scroll" role="region" aria-label="Scrollable table" tabindex="0"><table id="ch9-fetch-controls-031">
+  <caption>Actual APM 0.31.0 audit exits with the disable switch absent; all baselines were clean.</caption>
+  <thead>
+    <tr><th scope="col">Bounded failure control</th><th scope="col">Default consumer posture</th><th scope="col">Consumer <code>block</code></th><th scope="col">Probe pair</th></tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>Cold first HTTPS fetch returns <code>503</code>; no cache</td>
+      <td><code>0</code>, warning and policy skipped</td><td><code>1</code>, fetch failure</td>
+      <td><code>policy-cold-fetch-default-warn</code> / <code>policy-cold-fetch-consumer-block</code></td>
+    </tr>
+    <tr>
+      <td>Explicit local policy has the wrong list type</td>
+      <td><code>0</code>, policy skipped</td><td><code>1</code>, malformed policy rejected</td>
+      <td><code>policy-explicit-malformed-default</code> / <code>policy-explicit-malformed-failclosed</code></td>
+    </tr>
+    <tr>
+      <td>Fetched nonempty policy no longer matches <code>policy.hash</code></td>
+      <td><code>0</code>, mismatch warning and policy skipped</td><td><code>1</code>, hash mismatch failure</td>
+      <td><code>policy-pin-nonempty-mismatch-audit</code> / <code>policy-pin-nonempty-mismatch-failclosed</code></td>
+    </tr>
+  </tbody>
+</table></div>
+<!-- Fetch inputs/byte pin: OpsRoot/policy_followup.py; valid nonempty bytes and SHA-256 are
+     constructed there, then one harmless comment is added. policy-pin-nonempty-valid: status 0;
+     policy-pin-nonempty-mismatch-status: status --check 1. TLS verification remained enabled.
+     Stale controls: OpsRoot/final_edge_probes.py policy-stale, actual TTL 1 expiration,
+     policy-stale-fetch-block-status (1), policy-stale-fetch-block-audit (0). -->
+<p>
+  Freshness is another separate check. After a real one-second cache TTL expired and refresh returned
+  <code>503</code>, a cached policy with <code>fetch_failure: block</code> gave status
+  <code>--check</code> exit <code>1</code> (<code>outcome: cached_stale</code>), while audit evaluated
+  the cached rules and exited <code>0</code> on that compliant fixture. If freshness is mandatory,
+  require the resolution preflight <em>as well as</em> rule audit. These anonymous loopback results
+  narrow the broad fail-closed wording in the
+  <a href="https://github.com/microsoft/apm/blob/v0.31.0/docs/src/content/docs/enterprise/policy-reference.md" rel="noreferrer">target policy reference</a>;
+  they do not certify a live organization's policy service.
 </p>
 
 <aside class="leader-callout">
@@ -598,13 +955,15 @@ unmanaged_files:
     <code>enforcement: block</code> on day one is the fastest way to break every repo at once and burn the
     org's trust in the whole program. Sequence it instead: ship in <code>warn</code>, <em>measure</em> the
     fleet-wide violations through Code Scanning for a sprint or two, have teams <em>fix the top offenders</em>,
-    then <code>block</code> the highest-risk rules <strong>narrowly</strong> &mdash; via staged rules or a
-    strict child policy &mdash; while the rest of the org keeps warning. Governance that earns trust by
+    then <code>block</code> a small, remediated rule set or a stricter child <strong>scope</strong>;
+    all rules in that effective child policy share its enforcement mode. Governance that earns trust by
     making a problem visible before it becomes blocking will stick; governance that fails everyone's build
     on a Tuesday will be disabled by Wednesday. Decide three things explicitly: <em>who owns the org policy
     repo</em> (protected by CODEOWNERS/branch protection), <em>which rules are high-risk enough to block
     first</em>, and <em>how exceptions are granted</em> &mdash; upward, at the parent, in a file that
-    doubles as your audit log. And record the pinned CLI version: at v0.23.1 the engine is early preview.
+    doubles as your audit log. Protect the required CI job's environment and selected policy too:
+    a green baseline with policy disabled is not governance. Record the pinned
+    <span class="apm-version">APM 0.31.0</span> version; the engine remains early preview.
   </p>
 </aside>
           </div>
@@ -618,165 +977,184 @@ unmanaged_files:
     Meridian's <strong>platform team</strong> owns the security-review thread that
     <a href="security-by-default.html">Chapter 8</a> opened. Catching one sketchy transitive MCP server in
     one install was good; encoding the org's rules so <em>every</em> repo inherits them is the goal. They
-    author a pilot <code>apm-policy.yml</code> for the <code>meridian-checkout</code> repo in
-    <code>enforcement: warn</code>: allow only <code>microsoft/**</code>,
-    <code>github/awesome-copilot/**</code>, and <code>meridian-finance/**</code> sources; deny the sketchy
-    org; require pinned dependencies; permit only the reviewed GitHub MCP server over
-    <code>http</code>/<code>stdio</code>; and restrict compilation targets to
-    <code>copilot</code>, <code>claude</code>, <code>cursor</code>. For two sprints they watch the warnings
-    roll in and fix the top offenders &mdash; then flip the highest-risk rules to <code>block</code>.
+    rehearse a <code>warn</code> pilot for <code>meridian-checkout</code>: reviewed sources
+    <code>microsoft/**</code>, <code>github/awesome-copilot/**</code>, and
+    <code>meridian-finance/**</code>; a deny for the sketchy org; bounded direct constraints; approved
+    MCP declarations; and their existing Copilot, Claude Code, and Cursor destinations.
+    For two sprints they <strong>measure</strong> findings, then <strong>remediate</strong> the top
+    offenders before moving the piloted scope to <strong>block</strong>. They keep the reviewed
+    authority in <code>meridian-finance/.github</code> and protect the CI job that consumes it.
   </p>
 </aside>
 <p>
-  Here is the pilot policy the team ships. Note the corrected target rule under
-  <code>compilation.target.allow</code> &mdash; the one field an earlier draft got wrong. Its
-  <code>require:</code> rule names <code>meridian-finance/meridian-standards</code>, the org's shared
-  standards package that Meridian actually authors and publishes in
-  <a href="becoming-a-producer.html">Chapter&nbsp;10</a> &mdash; it is foreshadowed here at the pilot's
-  <code>v0.1.0</code>, and the enforcement build later bumps that pin to the released
-  <code>v1.0.0</code>:
+  Keep the rehearsal smaller than the rollout. A missing required package cleanly isolates the
+  <a href="#ch9-enforcement-dial">warn/block dial</a>, without relying on plural-target audit coverage,
+  a transitive pin violation, or access to Meridian's private sources.
 </p>
-<figure class="code-example">
-  <figcaption>
-    <code>backend/examples/ch09/apm-policy.warn.yml</code> &mdash; Meridian's pilot policy in
-    <code>warn</code>. Target rules use <code>compilation.target.allow</code>, not a top-level
-    <code>targets:</code>. <span class="apm-version">apm v0.23.1</span>
-  </figcaption>
-  <pre><code class="language-yaml">name: Meridian Checkout APM Policy
-version: "0.1.0"
-enforcement: warn                       # measurement phase -- reports, never gates
 
+<h3 id="ch9-current-rehearsal">A minimal current warn/block rehearsal</h3>
+<p>
+  Use <code>backend/examples/updates/1.2/operations/policy/</code>, <strong>not</strong> the similarly
+  named historical Chapter 9 files. Copy the whole fixture, including its local
+  <code>.apm/</code> instruction and genuine <code>apm.lock.yaml</code>, into a fresh, short scratch
+  directory with isolated HOME/config/cache and no git remote. Do not execute it in the long book
+  checkout or alter the book's dependencies. The
+  <a href="https://github.com/webmaxru/agent-package-manager-book/blob/main/backend/examples/updates/1.2/operations/README.md" rel="noreferrer">fixture runner instructions</a>
+  describe this isolation; the runner's <code>policy</code> suite also reproduces the labelled bypass
+  limitation, rather than hiding it.
+</p>
+<!-- ch9-pilot-manifest-031: complete Fixtures/policy/apm.yml, including its authored comment.
+     Source content: Fixtures/policy/.apm/instructions/notice.instructions.md.
+     Genuine lock: Fixtures/policy/apm.lock.yaml; no lock edits or root dependency changes.
+     Primary materialization/baseline: policy-install, policy-restore, policy-frozen, policy-audit-ci,
+     all 0. Reusable: policy-frozen and policy-ci in all-final.json. -->
+<figure class="code-example" id="ch9-pilot-manifest-031">
+  <figcaption>
+    <code>policy/apm.yml</code> &mdash; the current local consumer, with Meridian's three targets.
+    <span class="apm-version">APM 0.31.0</span>; <code>policy-frozen</code> and
+    <code>policy-audit-ci</code> observed <code>0 / 0</code>, offline. The full fixture is required.
+  </figcaption>
+  <pre tabindex="0"><code class="language-yaml"># Local policy rehearsals use explicit --policy; this is not a published authority.
+name: operations-policy
+version: 1.0.0
+description: Safe local policy rehearsal.
+targets: [copilot, claude, cursor]
 dependencies:
-  allow:                                # only these sources (deny still wins)
-    - microsoft/**
-    - github/awesome-copilot/**
-    - meridian-finance/**
-  deny:
-    - sketchy-org/**
-  require:
-    - meridian-finance/meridian-standards#v0.1.0   # resolving this pkg: SKIPPED-needs-network
-  require_pinned_constraint: true       # ban bare-branch / wildcard / open-range refs
-
-mcp:
-  allow:
-    - io.github.github/github-mcp-server            # resolving this MCP: SKIPPED-needs-network
-  deny:
-    - io.github.sketchy/sketchy-mcp
-  transport:
-    allow: [http, stdio]                # blocks sse + streamable-http
-  self_defined: warn                    # allow | warn | deny
-
-compilation:                            # CORRECTED -- was a top-level `targets:` (a silent no-op)
-  target:
-    allow: [copilot, claude, cursor]
-
-manifest:
-  required_fields: [name, version, description]
-  scripts: allow
-
-unmanaged_files:
-  action: warn</code></pre>
+  apm: []
+  mcp: []
+includes: auto</code></pre>
 </figure>
 <p>
-  Before trusting a policy, confirm it <em>parses and registers its rules</em>. This is the check that
-  would have caught the <code>targets:</code> bug &mdash; it runs entirely offline against the local file:
+  First materialize the unchanged locked local content and establish that the baseline is clean.
+  This fixture deliberately has no org remote; its successful baseline audit is <em>not</em>
+  organization-policy compliance. Do not add the production consumer fail-closed setting to this
+  no-authority baseline and expect it to remain green.
 </p>
-<figure class="code-example">
+<!-- ch9-pilot-baseline-031: exact primary argv from policy-frozen and policy-audit-ci.
+     The latter really warned about no git remote and skipped policy; no bypass flag was used. -->
+<figure class="code-example" id="ch9-pilot-baseline-031">
   <figcaption>
-    <code>apm policy status</code> confirms the pilot parses and the corrected target rule registered
-    (<code>compilation_targets_allowed: 3</code>; the wrong top-level <code>targets:</code> reports
-    <code>-1</code>). Runs offline. <span class="apm-version">apm v0.23.1</span>
+    Baseline-only control in the complete scratch fixture.
+    <span class="apm-version">APM 0.31.0</span>; <code>policy-frozen</code> /
+    <code>policy-audit-ci</code>, observed <code>0 / 0</code>, offline.
   </figcaption>
-  <pre><code class="language-bash">$ apm policy status --policy-source ./apm-policy.warn.yml -o json
-{
-  "outcome": "found",
-  "enforcement": "warn",
-  "rule_counts": {
-    "dependencies_allow": 3,
-    "dependencies_deny": 1,
-    "compilation_targets_allowed": 3        # corrected key registered 3 targets (was -1)
-    # ... other rule_counts omitted
-  },
-  "extends_chain": []
-}                                            # exit 0</code></pre>
+  <pre tabindex="0"><code class="language-powershell">&amp; $Apm install --frozen
+# exit 0: local deployment restored; lock unchanged
+
+&amp; $Apm audit --ci --no-fail-fast -f json
+# exit 0: baseline clean
+# Warning: Could not determine org from git remote; enforcement skipped</code></pre>
 </figure>
 <p>
-  The pilot policy carries many rules at once, which makes any single exit code hard to read in isolation.
-  To watch the <code>warn</code>&nbsp;&rarr;&nbsp;<code>block</code> dial <em>cleanly</em>, take Meridian's
-  highest-risk rule &mdash; <code>require_pinned_constraint</code> &mdash; on its own. The
-  <code>meridian-checkout</code> repo already carries the transitive review skill on a bare
-  <code>#main</code> branch from <a href="lifecycle.html">Chapter 7</a>, so that rule has something to
-  catch. The committed <code>apm-policy.min-warn.yml</code> is exactly that one rule in <code>warn</code>:
+  Now use one policy-only finding: the manifest does not declare
+  <code>example-org/required-review-package#v1.0.0</code>. This is a deliberately absent fixture name,
+  <strong>not a package you should try to fetch</strong>. Audit checks the declaration; it does not
+  install that missing requirement.
 </p>
-<figure class="code-example">
+<!-- ch9-pilot-warn-031: exact Fixtures/policy/apm-policy.warn.yml.
+     Primary policy-status-warn (0), policy-audit-warn (0); reusable policy-warning (0). -->
+<figure class="code-example" id="ch9-pilot-warn-031">
   <figcaption>
-    <code>apm audit --ci --policy ./apm-policy.min-warn.yml</code> &mdash; the pin rule <em>reports</em> the
-    unbounded ref but the audit still passes. Replays from cache and scans locally, so it runs offline.
-    <span class="apm-version">apm v0.23.1</span>
+    <code>policy/apm-policy.warn.yml</code> &mdash; measure one missing requirement.
+    <span class="apm-version">APM 0.31.0</span>; <code>policy-audit-warn</code>,
+    observed exit <code>0</code> <em>with a finding</em>, offline.
   </figcaption>
-  <pre><code class="language-text">$ apm audit --ci --policy ./apm-policy.min-warn.yml
-  [>] Replaying install (cache-only)... [+] No drift detected
-  ...                                   # baseline + policy checks run
-  │ [+] │ dependency-pinned-constraint │ 1 dependency(ies) use unbounded constraints (hint: pin to a semver range, literal tag, or SHA) (enforcement: warn) │
-
-  [*] All 18 check(s) passed          # exit 0 -- warn MEASURES; it does not fail the build</code></pre>
+  <pre tabindex="0"><code class="language-yaml"># An absent required package is a policy-only violation; nothing is fetched.
+name: Operations warning rehearsal
+enforcement: warn
+dependencies:
+  require: [example-org/required-review-package#v1.0.0]</code></pre>
 </figure>
-<p>
-  After two sprints of watching that finding (and others) in Code Scanning and remediating the top
-  offenders, the team flips the highest-risk rules to fail closed. In the full pilot that means three
-  tightenings from the <code>warn</code> file &mdash; the top-level dial to <code>block</code>,
-  <code>mcp.self_defined</code> to <code>deny</code>, and <code>unmanaged_files.action</code> to
-  <code>deny</code>:
-</p>
-<figure class="code-example">
+<!-- ch9-pilot-block-031: exact Fixtures/policy/apm-policy.block.yml.
+     Primary policy-status-block (0), policy-audit-block (1); reusable policy-blocking (1). -->
+<figure class="code-example" id="ch9-pilot-block-031">
   <figcaption>
-    The three enforcement tightenings Meridian made in <code>backend/examples/ch09/apm-policy.block.yml</code>
-    when moving from pilot to enforcement &mdash; these are the point of the move. (The file also bumps its
-    own <code>version</code> and the required-standards pin from the pilot's <code>0.1.0</code> to
-    <code>1.0.0</code>.) <span class="apm-version">apm v0.23.1</span>
+    <code>policy/apm-policy.block.yml</code> &mdash; the identical rule becomes blocking.
+    <span class="apm-version">APM 0.31.0</span>; <code>policy-audit-block</code>,
+    observed exit <code>1</code>, offline. The different display name does not change the rule.
   </figcaption>
-  <pre><code class="language-yaml">enforcement: block                      # warn -> block (the whole file now fails closed)
-
-mcp:
-  self_defined: deny                    # warn -> deny
-
-unmanaged_files:
-  action: deny                          # warn -> deny</code></pre>
+  <pre tabindex="0"><code class="language-yaml"># Same violation as warn; only the outcome dial changes.
+name: Operations blocking rehearsal
+enforcement: block
+dependencies:
+  require: [example-org/required-review-package#v1.0.0]</code></pre>
 </figure>
 <p>
-  Now the identical pin violation &mdash; run through the same offline audit, using the committed
-  <code>apm-policy.min-block.yml</code> to isolate the one rule &mdash; fails the build. Same finding, one
-  different exit code &mdash; with a bonus: because <code>block</code> now fails, it also surfaces the
-  per-dependency detail line that <code>warn</code> only tallied. Warn measures the count; block hands you
-  the actionable per-dependency detail right before it gates:
+  Inspect each actual policy source, then audit that same file in the same controlled environment.
+  Both status checks succeed because the policies load; the audits tell you what enforcement does
+  to the same violation:
 </p>
-<figure class="code-example">
+<!-- ch9-pilot-audits-031: exact primary argv from policy-status-warn, policy-audit-warn,
+     policy-status-block, policy-audit-block; all run against the current full policy fixture.
+     Comments and following table select observed fields, not a fabricated complete transcript.
+     Raw audit counts were 31/31/0 for warn and 31/30/1 for block; do not generalize totals. -->
+<figure class="code-example" id="ch9-pilot-audits-031">
   <figcaption>
-    <code>apm audit --ci --policy ./apm-policy.min-block.yml</code> &mdash; the same finding now
-    <em>gates</em>. The only change from the previous run is <code>enforcement: block</code>. Runs offline.
-    <span class="apm-version">apm v0.23.1</span>
+    Load and evaluate the two policies. <span class="apm-version">APM 0.31.0</span>, offline;
+    <code>policy-status-warn</code> / <code>policy-audit-warn</code>: <code>0 / 0</code>;
+    <code>policy-status-block</code> / <code>policy-audit-block</code>: <code>0 / 1</code>.
   </figcaption>
-  <pre><code class="language-text">$ apm audit --ci --policy ./apm-policy.min-block.yml
-  [>] Replaying install (cache-only)... [+] No drift detected
-  ...                                   # baseline + policy checks run
-  │     │ dependency-pinned-constraint │ 1 dependency(ies) use unbounded constraints (hint: pin to a semver range, literal tag, or SHA) │
-  │     │                              │   - microsoft/apm-sample-package: bare branch 'main' tracks a moving tip │
+  <pre tabindex="0"><code class="language-powershell">&amp; $Apm policy status --policy-source ./apm-policy.warn.yml --json --check
+# exit 0: source file:apm-policy.warn.yml; outcome found; enforcement warn
+# rule_counts.dependencies_require: 1
+&amp; $Apm audit --ci --policy ./apm-policy.warn.yml --no-fail-fast -f json
+# exit 0: required-packages finding is reported as passed (enforcement: warn)
 
-  [x] 1 of 18 check(s) failed         # exit 1 -- block FAILS CLOSED</code></pre>
+&amp; $Apm policy status --policy-source ./apm-policy.block.yml --json --check
+# exit 0: source file:apm-policy.block.yml; outcome found; enforcement block
+# rule_counts.dependencies_require: 1
+&amp; $Apm audit --ci --policy ./apm-policy.block.yml --no-fail-fast -f json
+# exit 1: required-packages failed; the same package is still missing</code></pre>
 </figure>
+<div class="table-scroll" role="region" aria-label="Scrollable table" tabindex="0"><table>
+  <caption>Selected <code>required-packages</code> fields from the actual warn/block JSON reports.</caption>
+  <thead>
+    <tr><th scope="col">Policy</th><th scope="col"><code>passed</code></th><th scope="col"><code>message</code></th><th scope="col"><code>details</code> entry</th></tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><code>warn</code></td><td><code>true</code></td>
+      <td><code>1 required package(s) missing from manifest (enforcement: warn)</code></td>
+      <td><code>example-org/required-review-package</code></td>
+    </tr>
+    <tr>
+      <td><code>block</code></td><td><code>false</code></td>
+      <td><code>1 required package(s) missing from manifest</code></td>
+      <td><code>example-org/required-review-package</code></td>
+    </tr>
+  </tbody>
+</table></div>
 <p>
-  That exit <code>0</code>&nbsp;&rarr;&nbsp;exit <code>1</code> on an unchanged violation is the entire
-  point of the dial. In production the team would <em>fix</em> the unbounded ref before flipping (pin the
-  <code>#main</code> skill to a tag, exactly as <a href="the-lockfile-and-reproducibility.html">Chapter 6</a>
-  taught) &mdash; the demo holds the violation constant only to isolate the mode change. Two parts of this
-  scenario are real but not exercised offline and are marked
-  <span class="needs-network">needs network</span>: <strong>resolving</strong> the private
-  <code>meridian-finance/meridian-standards</code> package and the registry
-  <code>io.github.github/github-mcp-server</code> MCP (the <em>rules</em> for both parse and enforce; only
-  the specific remote artifacts are not fetched), and the <strong>org-remote discovery</strong> +
-  <strong>tighten-only inheritance merge</strong> that will apply once this file is published to
-  <code>&lt;org&gt;/.github/apm-policy.yml</code> and a stricter child <code>extends:</code> it.
+  This deliberately holds the violation constant so the final failure is visible. In Meridian's
+  rollout, <strong>remediation happens before the switch</strong>: satisfy the reviewed requirement
+  or amend it at the owning parent, then re-audit before enforcing. Both JSON modes identify the
+  offending package; block is not the first opportunity to find its name. The standards package
+  they will produce in <a href="becoming-a-producer.html">Chapter 10</a> gives that future requirement
+  something real to name.
 </p>
+<aside class="callout callout-info" id="ch9-evidence-scope">
+  <h3>Evidence scope and historical samples</h3>
+  <p>
+    The current exercise demonstrates local schema loading, baseline-clean warn/block audits, and
+    local tighten-only inheritance. The separate registry and HTTPS controls are loopback-only;
+    they do not prove private-host discovery, live MCP behavior, or policy publication. Full
+    probe mappings and limitations are recorded in the
+    <a href="https://github.com/webmaxru/agent-package-manager-book/blob/main/content/research/updates/1.2/operations-reference.md" rel="noreferrer">edition 1.2 operations reference, OP09</a>.
+    These are explorer observations, not a blanket certification of every policy feature.
+  </p>
+  <p>
+    <strong>Historical verification retained:</strong> the four files in
+    <code>backend/examples/ch09/</code> &mdash; <code>apm-policy.warn.yml</code>,
+    <code>apm-policy.block.yml</code>, <code>apm-policy.min-warn.yml</code>, and
+    <code>apm-policy.min-block.yml</code> &mdash; remain
+    <span class="apm-version">apm v0.23.1, verified 2026-07-02; not rerun at 0.31.0</span>.
+    Their old transcripts and comments are not this edition's behavioral evidence. Resolving
+    Meridian's private <code>meridian-finance/meridian-standards</code>, the registry
+    <code>io.github.github/github-mcp-server</code>, and publishing/discovering the real org policy
+    remain <span class="needs-network">SKIPPED-needs-network</span>; no such artifacts or access
+    were supplied for this update.
+  </p>
+</aside>
           </div>
         </section>
         <section class="chapter-section" data-section="recap-and-next">
@@ -786,40 +1164,44 @@ unmanaged_files:
 <ul>
   <li>
     <strong>Security vs. governance are two questions at one gate.</strong>
-    <span class="property property--security">Security</span> asks &ldquo;is it safe?&rdquo; (intrinsic,
-    universal); <span class="property property--governance">Governance</span> asks &ldquo;is it allowed
-    <em>here</em>?&rdquo; (declared in <code>apm-policy.yml</code>, per-org). Both fire pre-disk; both must
-    pass; allowed&nbsp;&ne;&nbsp;safe. Policy governs what <em>installs</em>, never what <em>runs</em>.
+    <span class="property property--security">Security</span> checks integrity and scoped trust;
+    <span class="property property--governance">Governance</span> asks &ldquo;is it allowed
+    <em>here</em>?&rdquo; Neither an allow list nor a clean scan proves benign intent.
+    Policy gates installation, not the live agent's capabilities.
   </li>
   <li>
-    <strong>Write the verified schema.</strong> Target rules live under
-    <code>compilation.target.allow</code> &mdash; a top-level <code>targets:</code> is
-    <strong>silently ignored</strong> (like any unknown key). <code>allow: null</code> = no opinion,
-    <code>[]</code> = allow nothing, a list = only these; <code>deny</code> wins.
+    <strong>Write and inspect the real schema.</strong> Target rules use
+    <code>compilation.target.allow</code>. Unknown top-level keys warn; known invalid types fail
+    parsing. <code>allow: null</code> = no opinion, <code>[]</code> = allow nothing;
+    deny wins. Status resolution is not rule compliance.
   </li>
   <li>
-    <strong>Two enforcement points, one rule set.</strong> The install preflight (auto-discovered from the
-    git remote &mdash; no <code>--policy</code> flag) and the CI gate
-    <code>apm audit --ci --policy org</code>. Transitive MCP is re-checked against <code>mcp.*</code>; the
-    <code>mcp.trust_transitive</code> field parses but does not enforce &mdash; the real gate is
-    <code>--trust-transitive-mcp</code> (<a href="security-by-default.html">Chapter 8</a>).
+    <strong>Know each check's scope.</strong> Install discovers policy automatically; explicit
+    sources belong to status and CI audit. The pin rule checks direct declarations, plural-only
+    target audit has a coverage gap, and <code>mcp.trust_transitive</code> is parsed but not enforced.
+    Keep <a href="security-by-default.html">Chapter 8</a>'s actual MCP trust boundary separate.
   </li>
   <li>
-    <strong>The dial is <code>enforcement</code>.</strong> Same violation: <code>warn</code> shows it and
-    exits <code>0</code> (measure); <code>block</code> fails it and exits <code>1</code> (gate). Roll out
-    by measurement &mdash; <code>warn</code> &rarr; read SARIF &rarr; remediate &rarr; <code>block</code>
-    narrowly &mdash; never by flipping a switch on day one.
+    <strong>The rollout is warn &rarr; measure &rarr; remediate &rarr; block.</strong>
+    The same missing requirement audited <code>0</code> in warn and <code>1</code> in block.
+    Baseline and mandatory-hash failures are not made harmless by the warn dial.
   </li>
   <li>
     <strong>Inheritance is tighten-only.</strong> Enterprise&nbsp;&rarr;&nbsp;org&nbsp;&rarr;&nbsp;repo:
-    allows intersect, denies union, <code>enforcement</code> escalates. A repo can only make policy
-    stricter; exceptions are granted upward, at the parent. Local-file <code>extends:</code> does not merge
-    &mdash; real inheritance needs a remote parent.
+    allows intersect, deny/require lists union, severity escalates. Local <code>extends</code>
+    works; empty child lists cannot erase parent restrictions. Warm cache must retain them too.
+    Exceptions require parent-owner review.
   </li>
   <li>
-    <strong>The engine is early preview at <span class="apm-version">apm v0.23.1</span>.</strong>
-    <code>apm policy</code> has only <code>status</code> and <code>explain</code>; pin the CLI before
-    relying on policy as a production gate.
+    <strong>Protect the enforcement point.</strong> Host-specific discovery, consumer
+    <code>policy.fetch_failure_default: block</code>, the actual loaded policy, and controlled CI
+    inputs matter. Explicit policy beats the bypass flag, not the observed environment disable.
+    A hash mismatch alone did not guarantee audit failure.
+  </li>
+  <li>
+    <strong>The engine remains early preview at <span class="apm-version">APM 0.31.0</span>.</strong>
+    Pin the executable and retain both successful and deliberately failing controls; historical
+    0.23.1 examples are not fresh verification.
   </li>
 </ul>
 <h3>Next</h3>
@@ -841,7 +1223,7 @@ unmanaged_files:
 
       <footer class="site-footer chapter-footer">
         <p>By <a href="https://www.linkedin.com/in/webmaxru/" rel="noreferrer">Maxim Salnikov</a> &middot; <a href="https://github.com/webmaxru/agent-package-manager-book" rel="noreferrer">Source on GitHub</a> &middot; <a href="../apm-book.pdf" download>Download the book (PDF)</a></p>
-        <p class="footer-edition"><a href="https://github.com/webmaxru/agent-package-manager-book/releases" rel="noreferrer">Edition v1.1 · Updated July 8, 2026</a></p>
+        <p class="footer-edition"><a href="https://github.com/webmaxru/agent-package-manager-book/releases" rel="noreferrer">Edition v1.2 · Updated September 16, 2026</a></p>
       </footer>
     </div>
   </div>

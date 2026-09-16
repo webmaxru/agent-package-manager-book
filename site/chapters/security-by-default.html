@@ -151,12 +151,14 @@
           <aside class="metadata-card" aria-labelledby="features-heading">
             <h2 id="features-heading">APM features</h2>
             <ul class="tag-list">
-            <li>hidden-Unicode scanning</li>
+            <li>deploy-scoped hidden-Unicode scanning</li>
             <li>content-hash pinning</li>
-            <li>transitive MCP blocking</li>
+            <li>transitive MCP trust</li>
+            <li>executable approval</li>
+            <li>hooks</li>
+            <li>lifecycle scripts</li>
             <li>apm install</li>
             <li>apm.lock.yaml</li>
-            <li>apm-policy.yml</li>
             </ul>
           </aside>
           <aside class="metadata-card" aria-labelledby="depends-heading">
@@ -171,31 +173,31 @@
           <h2 id="objective"><a class="anchor-link" href="#objective" aria-label="Link to Objective section">Objective</a></h2>
           <div class="section-content" data-content-slot="objective">
 <p>
-  After this chapter you can rely on the security checks APM runs on <em>every</em> install &mdash; and
-  say precisely where they stop. You will read the <strong>hidden-Unicode scan</strong> (a Critical
-  finding exits <code>1</code> and blocks deployment; a Warning-only finding exits <code>2</code> and
-  ships flagged), use the lockfile's <code>content_hash</code> as a <strong>tamper detector</strong> via
-  <code>apm audit --ci</code>, explain why a <strong>transitive MCP server is withheld</strong> &mdash; a
-  warning, <em>not</em> a build break, so the install still succeeds &mdash; and the two ways to opt one
-  in, and drive the opt-in <strong>Executable Trust Gate</strong> with <code>apm approve</code> /
-  <code>apm deny</code>. Above all you will hold the boundary this chapter exists to protect: APM is an
-  <em>install-time</em> gate, <strong>not</strong> a runtime sandbox. This is where
-  <span class="property property--security">Provenance / security</span> stops being a promise and
-  becomes a set of mechanical, always-on defaults.
+  After this chapter you can use APM's pre-deployment scan, integrity checks, and scoped consent
+  controls while distinguishing their tested coverage from publisher authentication and runtime
+  sandboxing.
+</p>
+<p id="ch08-evidence">
+  <strong>Version scope:</strong> book 1.2, <span class="apm-version">apm v0.31.0</span>, against the
+  previous reviewed baseline of v0.23.1. Current results come from the
+  <a href="https://github.com/webmaxru/agent-package-manager-book/blob/main/content/research/updates/1.2/operations-reference.md" rel="noreferrer">operations probes</a>
+  and <a href="https://github.com/webmaxru/agent-package-manager-book/blob/main/content/research/updates/1.2/core-reference.md" rel="noreferrer">core MCP probes</a>.
+  Command excerpts below use <code>apm</code> as shorthand for the exact-version executable used in
+  those isolated tests, not a different release selected from your PATH.
 </p>
           </div>
         </section>
         <section class="chapter-section" data-section="concept-theory">
           <h2 id="concept-theory"><a class="anchor-link" href="#concept-theory" aria-label="Link to Concept/Theory section">Concept/Theory</a></h2>
           <div class="section-content" data-content-slot="concept-theory">
-<h3>A prompt is a program, so installation is the gate</h3>
+<h3 id="ch08-pre-deploy-boundary">A prompt is a program, so installation is the gate</h3>
 <p>
   <a href="lifecycle.html">Chapter 7</a> introduced <code>apm audit</code> as the on-demand integrity
-  tool &mdash; hidden-Unicode plus drift, explicitly <em>not</em> a CVE feed. This chapter reveals the
-  part that was implied but not stated: <strong>those same checks run automatically on every
-  <code>apm install</code></strong>, before anything reaches disk. You do not have to remember to audit
-  to be safe by default. Understanding <em>why</em> the protection has to live at install time is the
-  whole concept.
+  tool &mdash; hidden-Unicode plus drift, explicitly <em>not</em> a CVE feed. The hidden-character
+  scanner also runs during installation: it checks the <strong>authorized deployable source
+  set before agent-readable deployment</strong>. Acquisition and cache writes can already have
+  happened. The distinction matters: the preventive boundary is activation, not the first disk write,
+  and a later audit answers a different question about the resulting state.
 </p>
 <p>
   Start from a claim APM makes about the thing it manages: <em>&ldquo;Agent context is executable &mdash;
@@ -210,42 +212,42 @@
   for an LLM, so an unvetted prompt or transitive MCP server is real supply-chain surface.&rdquo;</em>
 </p>
 <p>
-  Now the timing. A traditional package manager has a gap you can inspect:
-  <em>&ldquo;Between <code>npm install</code> and <code>npm start</code> there is a gap &mdash; time for
-  <code>npm audit</code>, code review, and policy checks. Agent configuration has no such gap. The moment
-  a skill, instruction, or prompt file lands in <code>.github/prompts/</code> or
-  <code>.claude/agents/</code>, any IDE agent watching the filesystem &hellip; may already be ingesting
-  it. There is no &lsquo;execution step.&rsquo; File presence IS execution&rdquo;</em>
-  (<a href="https://microsoft.github.io/apm/enterprise/security/" rel="noreferrer">Security model</a>).
-  If there is no install&rarr;run gap, a post-install audit is <em>too late</em> &mdash; a watching
-  harness may have read the tainted file already. The only place a check can be <strong>preventive</strong>
-  rather than forensic is <em>before the bytes reach an agent-readable directory</em>. So APM
-  <em>&ldquo;treats package deployment as a pre-deployment gate: scan first, deploy only if clean&rdquo;</em>
-  (<a href="https://microsoft.github.io/apm/enterprise/security/" rel="noreferrer">Security model</a>).
+  Now the timing. You might expect to install a dependency, inspect it, and only then run it.
+  Installation scripts already complicate that expectation in conventional package managers.
+  Agent context adds another problem: a watching harness may ingest a prompt as soon as it appears
+  in <code>.github/prompts/</code> or another native context directory. There need not be a separate
+  &ldquo;start&rdquo; command. A post-install review cannot undo a read that already happened.
+  That is why the <a href="https://raw.githubusercontent.com/microsoft/apm/v0.31.0/docs/src/content/docs/enterprise/security.md" rel="noreferrer">v0.31.0 security model</a>
+  places scanning before deployment.
 </p>
 <p>
-  That single idea justifies the whole chapter. An <em>unvetted prompt</em> is unreviewed code running
-  against your codebase through an agent; an <em>undeclared transitive MCP server</em> is an unaudited
+  That single idea justifies the whole chapter. An <em>unvetted prompt</em> is unreviewed behavioral
+  input to an agent; an <em>undeclared transitive MCP server</em> is an unaudited
   capability grant &mdash; network, filesystem, tool calls &mdash; that arrived as a side effect of
-  installing something else. Every mechanism below is a pre-deploy or on-demand-verify gate, never a
-  runtime monitor. Hold that distinction from the first page:
+  installing something else. Consent therefore needs a scope: which dependency, which capability,
+  and which destination? A clean scan or a familiar display name cannot answer all three.
+</p>
+<p>
+  The four properties still fit together. Chapters <a href="the-manifest-apm-yml.html">4</a> and
+  <a href="install-and-restore.html">5</a> established
+  <span class="property property--portability">Portability</span>; Chapters
+  <a href="the-lockfile-and-reproducibility.html">6</a> and <a href="lifecycle.html">7</a> established
+  <span class="property property--reproducibility">Reproducibility</span>. Here, those declarations
+  and recorded hashes also support <span class="property property--security">Provenance / security</span>.
+  <a href="governance-and-policy.html">Chapter 9</a> adds organizational
+  <span class="property property--governance">Governance</span> at the same installation boundary.
 </p>
 
 <aside class="callout callout-warn">
   <h3>Bust this myth up front: APM is not a runtime sandbox</h3>
   <p>
-    APM governs <strong>what reaches disk and whether it conforms</strong> &mdash; the install and
-    integrity plane &mdash; and hands everything after that to your agent harness. The docs are blunt:
-    <em>&ldquo;APM does NOT sandbox MCP servers at runtime, does not do malware analysis on dependency
-    code, does not sign packages, and does not inspect what an agent does once it has read your
-    context&rdquo;</em>
-    (<a href="https://microsoft.github.io/apm/enterprise/security/" rel="noreferrer">Security model</a>),
-    and it has <em>&ldquo;no runtime footprint &hellip; APM generates files then terminates&rdquo;</em>.
-    The rule to repeat: <em>&ldquo;<code>apm-policy.yml</code> governs what gets installed; your agent
-    harness governs what runs. The two planes do not overlap&rdquo;</em>
-    (<a href="https://github.com/microsoft/apm" rel="noreferrer">microsoft/apm README</a>). Expecting
-    runtime enforcement from APM is the single most common overclaim, and the one this chapter exists to
-    prevent. Everything here is a <em>gate</em>, not a <em>guard</em>.
+    APM controls installation and checks recorded state; it does not supervise an agent or confine an
+    MCP server after configuration. A clean Unicode scan is not semantic prompt-injection detection
+    or malware analysis. A matching hash does not authenticate a package's publisher. Harness
+    permissions, endpoint controls, and review of visible instructions still matter
+    (<a href="https://raw.githubusercontent.com/microsoft/apm/v0.31.0/docs/src/content/docs/enterprise/security.md" rel="noreferrer">security model</a>).
+    Nor does &ldquo;not a runtime sandbox&rdquo; mean &ldquo;APM never executes code&rdquo;:
+    <a href="#ch08-lifecycle-boundary">consented lifecycle scripts</a> are a separate execution surface.
   </p>
 </aside>
 
@@ -258,13 +260,14 @@
     team's review prompt. It looks like harmless markdown. But it <em>depends on</em> a small tools
     package, <code>checkout-review-tools</code>, which declares its own MCP server &mdash;
     <code>local-fetch</code> &mdash; that the team never chose. When the staff engineer adds the pack at
-    <code>v0.3.0</code> and runs <code>apm install</code>, APM does <strong>not</strong> silently wire up
-    that tool. It prints a <code>[!]</code> warning, <strong>withholds</strong> the transitive MCP server,
-    and the install still <em>succeeds</em>. The capability that used to be invisible until an audit is now
-    visible at install time &mdash; and the fix is a reviewable one. That review, and the
-    <code>v0.3.1</code> it produces, is this chapter's worked example. (The private package fetch is
-    <code>SKIPPED-needs-network</code>; every mechanism is demonstrated with the verified self-defined-MCP
-    behavior.)
+    <code>v0.3.0</code>, the important distinction is graph depth: the pack is direct; its tools package
+    is transitive. In the corresponding v0.31.0 local depth-two probe, APM warned and
+    <strong>withheld that self-defined MCP candidate</strong>, while package installation succeeded.
+    Meridian now has a capability to review, rather than a mysterious new connection to discover later.
+    The review produces <code>v0.3.1</code>. It includes checking actual native configuration &mdash;
+    neither an exit code nor an approval label alone proves what arrived.
+    The private Meridian fetch remains <code>SKIPPED-needs-network</code>; the
+    <a href="#ch08-trust-consumer">worked control</a> uses only inert local fixtures.
   </p>
 </aside>
           </div>
@@ -272,474 +275,398 @@
         <section class="chapter-section" data-section="in-apm">
           <h2 id="in-apm"><a class="anchor-link" href="#in-apm" aria-label="Link to In APM section">In APM</a></h2>
           <div class="section-content" data-content-slot="in-apm">
-<h3>Four checks, one chokepoint</h3>
+<h3>Four controls, different questions</h3>
 <p>
-  &ldquo;Secure by default&rdquo; is not a slogan; it is four concrete checks that run at the install
-  chokepoint. Three are always on; the fourth is an opt-in gate. APM's own summary of the always-on
-  three: each install <em>&ldquo;scans for invisible Unicode that can hijack agent behavior, pins content
-  hashes in the lockfile, and blocks transitive MCP servers unless they are explicitly declared or
-  trusted&rdquo;</em>
-  (<a href="https://microsoft.github.io/apm/concepts/the-three-promises/" rel="noreferrer">the three
-  promises</a>).
+  Each control implements part of the <a href="#ch08-pre-deploy-boundary">pre-deployment boundary</a>.
+  They are not interchangeable: a content scan, an integrity comparison, a graph-depth decision,
+  and an executable approval can legitimately report different things.
 </p>
-<table>
-  <caption>The four install-time checks, each mapped to the concept it implements and what it does to your install. Verified on apm v0.23.1.</caption>
+<div class="table-scroll" role="region" aria-label="Scrollable table" tabindex="0"><table id="ch08-controls">
+  <caption>APM v0.31.0 controls and their boundaries; the examples below separate documented intent from observed output.</caption>
   <thead>
     <tr>
-      <th scope="col">Check</th>
-      <th scope="col">Job</th>
-      <th scope="col">Always on?</th>
-      <th scope="col">Effect on install</th>
+      <th scope="col">Control</th>
+      <th scope="col">Concept</th>
+      <th scope="col">Default</th>
+      <th scope="col">What to inspect</th>
     </tr>
   </thead>
   <tbody>
     <tr>
-      <td><strong>Hidden-Unicode scan</strong></td>
-      <td>catch invisible instructions in text</td>
-      <td>Yes</td>
-      <td>Critical <strong>blocks deploy</strong> (exit <code>1</code>); Warning ships flagged</td>
+      <td><a href="#ch08-scan">Hidden-Unicode scan</a></td>
+      <td>Check content before activation</td>
+      <td>Automatic on the authorized deployable source set</td>
+      <td>Critical findings block affected deployment; Warnings do not</td>
     </tr>
     <tr>
-      <td><strong>Content-hash verify</strong></td>
-      <td>detect tampered bytes</td>
-      <td>Yes</td>
-      <td>fresh-download mismatch <strong>aborts</strong>; deployed drift surfaces in <code>audit</code></td>
+      <td><a href="#ch08-integrity">Recorded hashes and audit</a></td>
+      <td>Detect change relative to a trusted record</td>
+      <td>Install records integrity data; audit checks resulting state</td>
+      <td>Source-tree hashes, deployed-text hashes, and ownership have different scopes</td>
     </tr>
     <tr>
-      <td><strong>Transitive-MCP withhold</strong></td>
-      <td>no silent capability grants</td>
-      <td>Yes</td>
-      <td>MCP <strong>withheld</strong>, install <em>succeeds</em> (exit <code>0</code>)</td>
+      <td><a href="#ch08-mcp-depth">MCP depth-based trust</a></td>
+      <td>Distinguish chosen from inherited capabilities</td>
+      <td>Always-on depth rule</td>
+      <td>The tested depth-two self-defined candidate was withheld; install still exited <code>0</code></td>
     </tr>
     <tr>
-      <td><strong>Executable Trust Gate</strong></td>
-      <td>gate code-bearing primitives</td>
-      <td>No &mdash; opt-in</td>
-      <td>unapproved executables <strong>parked</strong> pending approval</td>
+      <td><a href="#ch08-executable-consent">Executable Trust Gate</a></td>
+      <td>Require scoped approval for code-bearing primitives</td>
+      <td>Broad gate is opt-in; plugin <code>bin/</code> has additional consent rules</td>
+      <td>Compare the decision with actual deployment; the local MCP and parked-hook limits matter</td>
     </tr>
   </tbody>
-</table>
+</table></div>
 
-<h4>Scan: hidden Unicode can hide instructions in plain sight</h4>
+<h4 id="ch08-scan">Scan: hidden Unicode can hide instructions in plain sight</h4>
 <p>
-  LLMs tokenize characters a human never sees on screen, so invisible Unicode is a genuine
-  prompt-injection surface. <em>&ldquo;Researchers have found hidden Unicode characters embedded in
-  popular shared rules files. Tag characters (U+E0001&ndash;E007F) map 1:1 to invisible ASCII.
-  Bidirectional overrides can reorder visible text. &hellip; The Glassworm campaign (2026) exploited this
-  mechanism &hellip;. LLMs tokenize all of these individually, meaning models process instructions that
-  developers cannot see on screen&rdquo;</em>
-  (<a href="https://microsoft.github.io/apm/enterprise/security/" rel="noreferrer">Security model</a>).
-  APM ranks findings by severity, and the severity maps to an exit code:
+  Text can contain characters that a reviewer cannot readily see. APM detects known hidden-character
+  classes; it does not decide whether the surrounding instruction is benign
+  (<a href="https://raw.githubusercontent.com/microsoft/apm/v0.31.0/docs/src/content/docs/reference/cli/audit.md" rel="noreferrer">audit reference</a>).
+  The safe controls below contain only benign character-class markers, not an injection payload.
 </p>
-<table>
-  <caption>Hidden-Unicode severity and the <code>apm audit</code> exit code it produces. Verified on apm v0.23.1.</caption>
+<div class="table-scroll" role="region" aria-label="Scrollable table" tabindex="0"><table id="ch08-scan-severity"
+       data-fixture="operations-probes; backend/examples/updates/1.2/operations/verify.py::Probe.security"
+       data-probes="scan-critical scan-warning scan-info scan-mixed-package-install warning-install">
+  <caption>Severity, bare-audit exit codes, and deployment consequences. Observed on apm v0.31.0 in OP08.1.</caption>
   <thead>
     <tr>
       <th scope="col">Severity</th>
-      <th scope="col">Example codepoints</th>
-      <th scope="col"><code>apm audit</code> exit</th>
-      <th scope="col">Blocks <code>apm install</code> deploy?</th>
+      <th scope="col">Illustrative control</th>
+      <th scope="col">Bare <code>apm audit</code> exit</th>
+      <th scope="col">Install consequence</th>
     </tr>
   </thead>
   <tbody>
     <tr>
       <td><strong>Critical</strong></td>
-      <td>bidi overrides (<code>U+202A&ndash;E</code>, e.g. RLO <code>U+202E</code>), tag chars (<code>U+E0001&ndash;E007F</code>), Glassworm variation selectors (<code>U+E0100&ndash;E01EF</code>)</td>
+      <td>Bidirectional override <code>U+202E</code></td>
       <td><code>1</code></td>
-      <td><strong>Yes</strong></td>
+      <td>Blocks affected deployment; the mixed-package probe exited <code>1</code></td>
     </tr>
     <tr>
       <td><strong>Warning</strong></td>
-      <td>zero-width (<code>U+200B&ndash;D</code>), soft hyphen (<code>U+00AD</code>), mid-file BOM</td>
+      <td>Zero-width space <code>U+200B</code></td>
       <td><code>2</code> (only if no Critical)</td>
-      <td>No &mdash; ships flagged</td>
+      <td>Reported, but deploys; the Warning-only install exited <code>0</code></td>
     </tr>
     <tr>
       <td><strong>Info</strong></td>
-      <td>unusual whitespace, emoji variation selector (<code>U+FE0F</code>), ZWJ inside emoji</td>
-      <td><code>0</code> (shown with <code>-v</code>)</td>
-      <td>No</td>
+      <td>Legitimate emoji sequence</td>
+      <td><code>0</code> (shown with <code>--verbose</code>)</td>
+      <td>Non-blocking</td>
     </tr>
   </tbody>
-</table>
+</table></div>
 <p>
-  You can point the scan at <em>any</em> file with <code>apm audit --file</code> &mdash; a downloaded
-  rules file, a PR diff, pasted instructions &mdash; which isolates the content scan from drift
-  detection. Here is a crafted &ldquo;review checklist&rdquo; with a zero-width space on line 4 and a
-  right-to-left override on line 7. The Critical finding decides the exit code:
+  Use <code>apm audit --file</code> for a standalone rules file or review document. This isolates the
+  character scan from project drift. The security fixture creates <code>critical.md</code> with a
+  benign <code>U+202E</code> marker and <code>warning.md</code> with <code>U+200B</code>.
+  No invisible characters are embedded in the chapter's code.
 </p>
-<figure class="code-example">
+<figure class="code-example" id="ch08-scan-file-controls"
+        data-fixture="backend/examples/updates/1.2/operations/verify.py::Probe.security"
+        data-probes="critical-scan warning-scan strip-preview strip clean-after-strip">
   <figcaption>
-    <code>apm audit --file</code> on a file containing a Critical bidi override (<code>U+202E</code>) and a
-    Warning zero-width space (<code>U+200B</code>). The Critical finding drives the exit code. Runs
-    offline. <span class="apm-version">apm v0.23.1</span>
+    Standalone scan and strip controls from the <code>security</code> suite. Comments record observed
+    exits, not a literal stdout transcript. Local, inert test text.
+    <span class="apm-version">apm v0.31.0</span>
   </figcaption>
-  <pre><code class="language-text">$ apm audit --file checkout-review.md
-
-                             [&gt;] Content Scan Findings
-┏━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━┳━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━┓
-┃ Severity ┃ File               ┃ Location ┃ Codepoint ┃ Description            ┃
-┡━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━╇━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━━━┩
-│ CRITICAL │ checkout-review.md │ 7:1      │ U+202E    │ Right-to-left override │
-│ WARNING  │ checkout-review.md │ 4:1      │ U+200B    │ Zero-width space       │
-└──────────┴────────────────────┴──────────┴───────────┴────────────────────────┘
-
-[x] 1 critical finding(s) in 1 file(s) -- hidden characters detected
-[i]   These characters may embed invisible instructions
-[i]   Review file contents, then run 'apm audit --strip' to remove
-# exit=1</code></pre>
+  <pre tabindex="0"><code class="language-bash">apm audit --file critical.md                   # observed exit 1
+apm audit --file warning.md                    # observed exit 2
+apm audit --file critical.md --strip --dry-run  # observed exit 0; file unchanged
+apm audit --file critical.md --strip            # observed exit 0; marker removed
+apm audit --file critical.md                    # observed exit 0; clean rescan</code></pre>
 </figure>
 <p>
-  A file whose only finding is a Warning &mdash; a lone zero-width space, no Critical &mdash; takes a
-  lower severity and a different exit code:
+  <strong>Warning-only is not automatically a CI failure.</strong> In a separate scratch copy of
+  <code>operations/repro</code>, the security suite adds a benign Warning marker to the source
+  instruction and generates a fresh lock through installation. The deployed content is flagged but
+  correctly hashed. Its bare audit exits <code>2</code>; its CI audit exits <code>0</code>.
+  Editing an already-deployed file instead would also introduce hash drift &mdash; a different test.
+  Here <code>-f json</code> selects machine-readable results, and <code>--no-fail-fast</code>
+  collects diagnostic coverage rather than stopping at the first failed check; neither disables a check.
 </p>
-<figure class="code-example">
+<figure class="code-example" id="ch08-installed-warning"
+        data-fixture="backend/examples/updates/1.2/operations/verify.py::Probe.security; backend/examples/updates/1.2/operations/repro"
+        data-probes="warning-install warning-installed-bare warning-installed-ci">
   <figcaption>
-    A Warning-only file (zero-width space, no Critical) exits <code>2</code>: flagged, not blocked. Runs
-    offline. <span class="apm-version">apm v0.23.1</span>
+    Installed Warning-only content with matching integrity records; <code>security</code> suite,
+    <code>warning-installed-bare</code>/<code>warning-installed-ci</code>.
+    Observed on <span class="apm-version">apm v0.31.0</span>.
   </figcaption>
-  <pre><code class="language-text">$ apm audit --file warn-only.md
-  [&gt;] Content Scan Findings
-  WARNING   warn-only.md   3:21   U+200B   Zero-width space
-[!] 1 warning(s) in 1 file(s) -- hidden characters detected
-[i]   Run 'apm audit --strip' to remove hidden characters
-# exit=2</code></pre>
+  <pre tabindex="0"><code class="language-bash">apm install                              # observed exit 0; Warning content deployed
+apm audit -f json                        # observed exit 2
+apm audit --ci --no-fail-fast -f json      # observed exit 0</code></pre>
 </figure>
 <p>
-  <code>apm audit --strip</code> removes both Critical and Warning characters in place (preserving emoji
-  and the ZWJ inside emoji sequences). Preview with <code>--dry-run</code> first &mdash; it writes
-  nothing &mdash; then apply, then re-audit clean:
+  Deployment authorization also determines scan scope. A cache is not a directory of universally
+  approved content. Package declarations and selected primitives determine what may enter a harness;
+  the scanner checks that deployable source set.
 </p>
-<figure class="code-example">
-  <figcaption>
-    The <code>--strip</code> round-trip: dry-run preview (writes nothing), strip in place, re-audit clean.
-    All exit <code>0</code>. Runs offline. <span class="apm-version">apm v0.23.1</span>
-  </figcaption>
-  <pre><code class="language-text">$ apm audit --file checkout-review.md --strip --dry-run
-  [&gt;] Dry run -- the following would be removed by --strip:
-      checkout-review.md    Critical: 1   Warning: 1   Total: 2
-  [i] 1 file(s) would be modified
-  [i] Run 'apm audit --strip' to apply
-# exit=0    (file UNCHANGED -- U+202E still present)
-
-$ apm audit --file checkout-review.md --strip
-  [+]   Cleaned: checkout-review.md
-  [*] Cleaned 1 file(s)
-# exit=0    (U+202E and U+200B both removed)
-
-$ apm audit --file checkout-review.md
-  [*] 1 file(s) scanned -- no issues found
-# exit=0</code></pre>
-</figure>
-<p>
-  This scan already runs <em>inside</em> <code>apm install</code> (and <code>apm compile</code>,
-  <code>apm unpack</code>), <em>before</em> any integrator copies a file to <code>.github/</code>,
-  <code>.claude/</code>, or <code>.cursor/</code>. A Critical finding <strong>blocks the deploy</strong>
-  &mdash; the package stays cached under <code>apm_modules/owner/package/</code> so you can inspect it, but
-  nothing reaches an agent-readable directory &mdash; and the install exits <code>1</code>. Warnings
-  deploy with a flag. The escape hatch is explicit and loud: <code>apm install --force</code>
-  <em>&ldquo;bypass[es] the security scan's critical-finding block &hellip; Use only after independent
-  verification&rdquo;</em>
-  (<a href="https://microsoft.github.io/apm/reference/cli/install/" rel="noreferrer">apm install</a>).
-  Two teaching points: <code>--strip</code> cleans <em>deployed</em> copies but does not touch the source
-  package, so the next install re-materializes the tainted bytes (a durable fix means pinning a clean
-  commit upstream); and the built-in gate is why <em>you do not have to call <code>apm audit</code> to be
-  safe by default</em> &mdash; the on-demand command is a power tool, not the protection itself.
-</p>
-
-<aside class="callout callout-info">
-  <h3>Correction to carry from Chapter 7: hidden-Unicode is not always &ldquo;exit 2&rdquo;</h3>
-  <p>
-    <a href="lifecycle.html">Chapter 7</a> summarized a hidden-Unicode finding as &ldquo;exit
-    <code>2</code>.&rdquo; That holds only for <strong>Warning-only</strong> files. A <strong>Critical</strong>
-    finding &mdash; a bidi override, a tag character, a Glassworm variation selector &mdash; exits
-    <code>1</code> and blocks the deploy; Warning-only exits <code>2</code> and ships; a clean file (or one
-    with Info-only findings, or a <code>--strip</code>/<code>--dry-run</code> run) exits <code>0</code>. In
-    <code>apm audit --ci</code> mode the mapping collapses to the usual gate: <code>0</code> pass,
-    <code>1</code> any failure. Keep the three severities distinct &mdash; conflating them either
-    overstates the gate (&ldquo;any hidden character fails my install&rdquo;) or understates it
-    (&ldquo;it's only a warning&rdquo;).
-  </p>
-</aside>
-
-<h4>Pin: the reproducibility hash doubles as a tamper detector</h4>
-<p>
-  <a href="the-lockfile-and-reproducibility.html">Chapter 6</a> introduced the lockfile's
-  <code>content_hash</code> (a SHA-256 fingerprint of a dependency's source tree) as a
-  <em>reproducibility</em> device: same bytes on every clone. The same field does a second job here.
-  <em>&ldquo;On subsequent installs, cached packages &hellip; are verified against the lockfile hash. When
-  the on-disk tree no longer matches, APM &hellip; re-downloads. If freshly downloaded content still does
-  not match the lockfile record, the install aborts (possible supply-chain tampering)&rdquo;</em>
-  (<a href="https://microsoft.github.io/apm/enterprise/security/" rel="noreferrer">Security model</a>).
-  On the deployed side, <code>apm audit</code> verifies each on-disk file &mdash; but with a two-tier
-  behavior you must get right. Tamper a deployed file and run a bare audit:
-</p>
-<figure class="code-example">
-  <figcaption>
-    A bare <code>apm audit</code> after a deployed instruction file was tampered: drift is reported but
-    <strong>advisory</strong> &mdash; exit <code>0</code>. Runs offline.
-    <span class="apm-version">apm v0.23.1</span>
-  </figcaption>
-  <pre><code class="language-text">$ apm audit          # after appending a line to a deployed instruction file
-  [&gt;] Scanning all installed packages...
-  [&gt;] Replaying install (cache-only)...
-  [!] Drift detected: 1 file(s)
-  [*] 3 file(s) scanned -- no issues found
-    modified (1):
-      - .github/instructions/meridian-checkout.instructions.md
-    [i] Run 'apm install' to re-sync deployed files with the lockfile.
-# exit=0    &lt;- drift alone is ADVISORY in a bare audit</code></pre>
-</figure>
-<p>
-  Wire <code>--ci</code> and the <em>same</em> tampered file becomes a hard failure. The
-  <code>content-integrity</code> check compares each deployed file's SHA-256 against the lockfile record
-  and prints <code>expected=</code> vs <code>actual=</code>:
-</p>
-<figure class="code-example">
-  <figcaption>
-    <code>apm audit --ci</code> on the same tampered file: the <code>content-integrity</code> check fails
-    with <code>expected=</code>/<code>actual=</code> hashes &mdash; exit <code>1</code>. This is the tamper
-    gate. The reported check total &mdash; here 8 &mdash; varies by project (typically 8&ndash;9), so it may
-    differ from the count cited in <a href="lifecycle.html">Chapter 7</a>. Runs offline.
-    <span class="apm-version">apm v0.23.1</span>
-  </figcaption>
-  <pre><code class="language-text">$ apm audit --ci
-  │ [x] │ content-integrity │ 1 file(s) with hash drift -- run 'apm install' to restore  │
-  │ [x] │ drift             │ drift detected: 1 file(s)                                   │
-  content-integrity details:
-    - hash-drift: .github/instructions/meridian-checkout.instructions.md
-      (dep=&lt;self&gt;, expected=4acba6aa1bee..., actual=bab6d9cb4f14...)
-  [x] 2 of 8 check(s) failed
-# exit=1</code></pre>
-</figure>
-<p>
-  The same hash that guarantees byte-for-byte reproducibility catches tampering. Note the division of
-  labor with <a href="the-lockfile-and-reproducibility.html">Chapter 6</a>: <code>apm install --frozen</code>
-  is a <em>structural</em> guardrail (does the manifest match the lockfile before deploying?) and
-  explicitly <em>not</em> a content check &mdash; the CLI itself points you to <code>apm audit</code> for
-  on-disk integrity. Use <code>--frozen</code> to prove the lock is honored; use <code>audit --ci</code> to
-  prove the deployed bytes are intact. And one honest limit: a content hash detects <em>change</em>, not
-  <em>intent</em>. A legitimate upstream update and a malicious tamper look identical to the hash &mdash;
-  which is exactly why moving to new bytes is the deliberate, reviewed <code>apm update</code>
-  (<a href="lifecycle.html">Chapter 7</a>), never a silent install-time acceptance.
-</p>
-
-<h4>Withhold: a transitive MCP server never auto-arrives</h4>
-<p>
-  Trust for MCP servers is scoped by <strong>dependency depth</strong>. A server declared by a
-  <em>direct</em> dependency &mdash; a package you listed in your own <code>apm.yml</code> &mdash; is
-  auto-trusted, because you chose it. Install a package that declares its own MCP server directly and APM
-  configures it:
-</p>
-<figure class="code-example">
-  <figcaption>
-    A <strong>direct</strong> dependency's self-defined MCP server is auto-trusted &mdash; you chose the
-    package. Runs offline (local package). <span class="apm-version">apm v0.23.1</span>
-  </figcaption>
-  <pre><code class="language-text">$ apm install                # checkout-review-tools is a DIRECT dependency
-  [i] Trusting direct dependency MCP 'local-fetch' from 'checkout-review-tools'
-  |  [+]  local-fetch -> Copilot, Vscode (configured)
-# exit=0    &lt;- direct-dep MCP is auto-trusted</code></pre>
-</figure>
-<p>
-  Now put that same server one level down &mdash; declared by a dependency <em>of</em> a dependency &mdash;
-  and APM will not wire it up on your behalf. It <strong>withholds</strong> the server, tells you exactly
-  how to opt in, and <em>the install still succeeds</em>:
-</p>
-<figure class="code-example">
-  <figcaption>
-    A <strong>transitive</strong> self-defined MCP server is withheld with a <code>[!]</code> warning
-    &mdash; but the install succeeds (exit <code>0</code>). Runs offline (local packages).
-    <span class="apm-version">apm v0.23.1</span>
-  </figcaption>
-  <pre><code class="language-text">$ apm install                # checkout-review-pack -> checkout-review-tools (MCP is transitive)
-  [+] checkout-review-pack (local)    |-- (files unchanged)
-  [+] checkout-review-tools (local)   |-- (files unchanged)
-  [!] Transitive package 'checkout-review-tools' declares self-defined MCP
-      server 'local-fetch' (registry: false). Re-declare it in your apm.yml or
-      use --trust-transitive-mcp.
-  [*] Installed 2 APM dependencies in 0.8s.
-# exit=0    &lt;- the MCP is WITHHELD, but the install SUCCEEDS</code></pre>
-</figure>
-<p>
-  The <code>[!]</code> message names two remedies, and they are <em>not</em> equivalent. Re-declaring the
-  server in your own <code>apm.yml</code> <code>dependencies.mcp</code> promotes it to a <strong>direct</strong>
-  dependency &mdash; a reviewed, committed, diffable trust decision the whole team sees. Passing
-  <code>--trust-transitive-mcp</code> is a <strong>blanket, per-install</strong> opt-in for all transitive
-  self-defined servers in that run, with no manifest record. Prefer re-declaration for anything shared;
-  reserve the flag for trusted, throwaway environments. The flag path:
-</p>
-<figure class="code-example">
-  <figcaption>
-    <code>--trust-transitive-mcp</code> opts the withheld server in for this install. Runs offline.
-    <span class="apm-version">apm v0.23.1</span>
-  </figcaption>
-  <pre><code class="language-text">$ apm install --trust-transitive-mcp
-  [i] Trusting self-defined MCP server 'local-fetch' from transitive package
-      'checkout-review-tools' (--trust-transitive-mcp)
-  |  [+]  local-fetch -> Copilot, Vscode (configured)
-# exit=0    &lt;- now .vscode/mcp.json IS written</code></pre>
-</figure>
-
-<aside class="callout callout-warn">
-  <h3>Correction: the transitive-MCP block is a <em>withhold</em>, not a build break</h3>
-  <p>
-    It is tempting to picture a red <code>[x] Blocked</code> line that fails the install. That is not what
-    v0.23.1 does for a self-defined transitive server. The prefix is <code>[!]</code> (a warning), the MCP
-    server is <strong>withheld</strong> (no <code>mcp_servers</code> in the lockfile, no
-    <code>.vscode/mcp.json</code> written), and the install <strong>succeeds &mdash; exit
-    <code>0</code></strong>. The story is <em>&ldquo;the tool was quarantined and told you how to opt
-    in,&rdquo;</em> not <em>&ldquo;the build broke.&rdquo;</em> If you wire a bare <code>apm install</code>
-    into CI expecting a non-zero exit to catch this, you will be surprised &mdash; the signal is the
-    <code>[!]</code> line and the missing MCP config, not the exit code. (Governance can turn withholding
-    into a hard failure; that is <a href="governance-and-policy.html">Chapter 9</a>.)
-  </p>
-</aside>
-
-<aside class="callout callout-info">
-  <h3>Scope note: registry-referenced and private-package MCP</h3>
-  <p>
-    The mechanism above is verified with a <strong>self-defined</strong> server (<code>registry: false</code>,
-    launched over stdio). A transitive server that resolves from an <em>MCP registry</em>
-    (<code>registry: true</code>), and any server pulled through a <em>private</em> package, require network
-    access and credentials &mdash; those exact strings are <code>SKIPPED-needs-network</code> in this book.
-    The <em>behavior</em> is the same in both cases: direct is trusted, transitive is withheld until you
-    declare or trust it. Only the wire format of the message differs.
-  </p>
-</aside>
-
-<h4>Gate: the opt-in Executable Trust Gate</h4>
-<p>
-  MCP servers are not the only capability a dependency can ship. The <strong>Executable Trust Gate</strong>
-  (added in v0.22) governs the primitives that actually run code: hooks (<code>.apm/hooks/</code>),
-  <code>bin/</code> executables, self-defined MCP servers, and canvas extensions. Text primitives &mdash;
-  skills, agents, instructions &mdash; are never gated, because they carry no code-execution risk. The gate
-  is <strong>opt-in</strong>: with no <code>executables:</code> block in your <code>apm.yml</code> (or a
-  non-empty org policy), it is disabled and executables deploy unconditionally &mdash; a backward-compatible
-  default. You can see the disabled state:
-</p>
-<figure class="code-example">
-  <figcaption>
-    With no <code>executables:</code> block, the gate is disabled &mdash; executables deploy unconditionally.
-    Runs offline. <span class="apm-version">apm v0.23.1</span>
-  </figcaption>
-  <pre><code class="language-text">$ apm approve --list
-  [i] Executable-trust gate disabled -- all executables deploy. Add an
-      `executables:` block to apm.yml to enable it.
-    checkout-review-tools#0.3.0: mcp[+:gate-disabled]</code></pre>
-</figure>
-<p>
-  Add an <code>executables:</code> block (even an empty <code>{}</code>) and the gate turns on. Now an
-  unapproved executable &mdash; here the very same self-defined MCP server, from a <em>direct</em>
-  dependency &mdash; is held behind an interactive prompt that defaults to <strong>No</strong>. Declining
-  parks the package; the install still succeeds:
-</p>
-<figure class="code-example">
-  <figcaption>
-    With the gate enabled, an unapproved executable is gated <code>[y/N]</code> (default No). Declining parks
-    it &mdash; the install still succeeds (exit <code>0</code>). Runs offline.
-    <span class="apm-version">apm v0.23.1</span>
-  </figcaption>
-  <pre><code class="language-text">$ apm install                # after adding `executables: {}` to apm.yml
-  1 package(s) declare executable primitives:
-    checkout-review-tools#0.3.0 (direct dependency)
-      1 MCP server(s)
-    These will execute code on your machine when triggered by
-    your IDE or by 'apm run'.
-    Trust checkout-review-tools? [y/N]: n
-  [i] 1 package(s) left parked. Their executables will not run until trusted.
-  [i] Deploy later: apm approve checkout-review-tools (then re-run apm install)
-# exit=0    &lt;- declined = parked, not failed</code></pre>
-</figure>
-<p>
-  Approve when you are ready. <code>apm approve</code> writes a committed
-  <code>executables.allow</code> entry to <code>apm.yml</code> &mdash; keyed on the <strong>package
-  name</strong>, not a path (see the pitfall in the next section):
-</p>
-<figure class="code-example">
-  <figcaption>
-    <code>apm approve</code> records the trust decision in <code>apm.yml</code>; <code>--list</code> shows
-    the deciding layer flip from <code>gate-disabled</code> to <code>project-allow</code>. Runs offline.
-    <span class="apm-version">apm v0.23.1</span>
-  </figcaption>
-  <pre><code class="language-text">$ apm approve checkout-review-tools
-  Approved checkout-review-tools#0.3.0: 1 MCP server(s)
-  [i] Updated apm.yml executables block (1 approved).
-# exit=0
-
-$ apm approve --list
-  [i] 1 package(s) with executables (1 allowed type(s), 0 blocked type(s)).
-    checkout-review-tools#0.3.0: mcp[+:project-allow]     # deciding layer: gate-disabled -> project-allow</code></pre>
-</figure>
-<figure class="code-example">
-  <figcaption>
-    The committed, shareable trust decision <code>apm approve</code> writes to <code>apm.yml</code>.
-    <span class="apm-version">apm v0.23.1</span>
-  </figcaption>
-  <pre><code class="language-yaml"># apm.yml after `apm approve checkout-review-tools`
-executables:
-  allow:
-    checkout-review-tools#0.3.0:
-      mcp: true</code></pre>
-</figure>
-<p>
-  <code>apm deny</code> is the inverse (deny wins over allow), and <code>apm policy explain &lt;pkg&gt;</code>
-  prints which layer decided a package's fate
-  (<a href="https://microsoft.github.io/apm/reference/cli/approve/" rel="noreferrer">apm approve</a>). In
-  CI (non-interactive), unapproved executables are <em>parked</em> silently and the remedy is printed &mdash;
-  the install does not fail; only a <em>required-but-untrusted</em> executable hard-fails.
-</p>
-
-<h4>Two gates, kept separate</h4>
-<p>
-  The subtlest point in this chapter: the MCP trust model and the Executable Trust Gate are <strong>two
-  independent mechanisms</strong>, and merging them will mislead you. They even overlap on one primitive
-  &mdash; a self-defined MCP server sits under <em>both</em> &mdash; which is exactly why the same
-  <code>local-fetch</code> server was auto-trusted as a direct dep earlier (the executable gate was off, so
-  only the depth-based MCP model applied) yet prompted for approval once the gate was enabled.
-</p>
-<table>
-  <caption>The two orthogonal trust gates. The MCP trust model is depth-based and always on; the Executable Trust Gate is kind-based and opt-in. Verified on apm v0.23.1.</caption>
+<div class="table-scroll" role="region" aria-label="Scrollable table" tabindex="0"><table id="ch08-authorized-scan"
+       data-fixture="operations-probes"
+       data-probes="scan-source-only-install scan-admissible-selected-skill scan-mixed-package-install">
+  <caption>Three inert OP08.1 controls that locate the scan boundary, observed on apm v0.31.0.</caption>
   <thead>
-    <tr>
-      <th scope="col"></th>
-      <th scope="col">MCP trust model</th>
-      <th scope="col">Executable Trust Gate (v0.22)</th>
-    </tr>
+    <tr><th scope="col">Controlled input</th><th scope="col">Observed result</th></tr>
   </thead>
   <tbody>
     <tr>
-      <td><strong>On by default?</strong></td>
-      <td>Always on</td>
-      <td>Opt-in (needs an <code>executables:</code> block or org policy)</td>
+      <td>Critical-class marker in an ordinary README outside the deployable primitives</td>
+      <td>Clean primitive installed; exit <code>0</code></td>
     </tr>
     <tr>
-      <td><strong>Keyed on</strong></td>
-      <td>dependency <strong>depth</strong> (direct vs transitive)</td>
-      <td>executable <strong>kind</strong> (from any dependency)</td>
+      <td>Declared skill subset selects a clean skill, excluding a marker-bearing skill</td>
+      <td>Only the selected skill deployed; exit <code>0</code></td>
     </tr>
     <tr>
-      <td><strong>Covers</strong></td>
-      <td>MCP servers</td>
-      <td>hooks, <code>bin/</code>, self-defined MCP, canvas extensions</td>
-    </tr>
-    <tr>
-      <td><strong>Direct dependency</strong></td>
-      <td>auto-trusted</td>
-      <td>gated (when enabled)</td>
-    </tr>
-    <tr>
-      <td><strong>Transitive dependency</strong></td>
-      <td>withheld (re-declare or <code>--trust-transitive-mcp</code>)</td>
-      <td>gated (when enabled)</td>
-    </tr>
-    <tr>
-      <td><strong>Manage with</strong></td>
-      <td><code>--trust-transitive-mcp</code>, re-declaration</td>
-      <td><code>apm approve</code> / <code>apm deny</code> / <code>apm policy explain</code></td>
+      <td>One clean package and one with a Critical-bearing primitive</td>
+      <td>Clean package deployed, affected primitive withheld; overall exit <code>1</code></td>
     </tr>
   </tbody>
-</table>
+</table></div>
+<p>
+  The last row is not an atomic all-or-nothing batch. Nor is a blocked deployment proof that no cache
+  or staging files were written. <code>--force</code> can bypass the Critical-finding block
+  (<a href="https://raw.githubusercontent.com/microsoft/apm/v0.31.0/docs/src/content/docs/reference/cli/install.md" rel="noreferrer">install reference</a>);
+  it is an explicit break-glass exception, not normal remediation or a reason to run unsafe content.
+</p>
+<p>
+  For remediation, <code>--strip --dry-run</code> previews the selected file changes without writing
+  them. <code>--file</code> plus <code>--strip</code> rewrites the named file. Project-mode stripping
+  cleans deployed copies, not the package source: the probes observed the marker returning on frozen
+  restore. A durable fix changes the reviewed source or selects a clean upstream revision.
+</p>
+
+<h4 id="ch08-integrity">Pin: reproducibility records also detect tampering</h4>
+<p>
+  <a href="the-lockfile-and-reproducibility.html">Chapter 6</a>'s lockfile gives an integrity check a
+  reference point. Keep two hash contracts distinct: a package-tree <code>content_hash</code> covers
+  sorted relative paths and <strong>actual materialized bytes</strong>; deployed UTF-8 text hashes
+  normalize <strong>CRLF to LF</strong>. That normalization does not rewrite every source byte, and
+  different harness representations need not have identical hashes
+  (<a href="https://raw.githubusercontent.com/microsoft/apm/v0.31.0/docs/src/content/docs/reference/lockfile-spec.md" rel="noreferrer">lockfile specification</a>).
+  The CRLF-only control passed CI with unchanged lock bytes; an ordinary text edit did not.
+</p>
+<p>
+  The local <code>operations/repro</code> fixture has one dependency and Copilot, Claude, and Cursor
+  instruction projections. Its runner appends only <code>Benign fixture edit.</code> to a scratch
+  deployed instruction. This tests changed bytes without introducing a malicious instruction:
+</p>
+<figure class="code-example" id="ch08-deployed-drift"
+        data-fixture="backend/examples/updates/1.2/operations/repro; backend/examples/updates/1.2/operations/verify.py::Probe.repro"
+        data-probes="copilot-bare-drift copilot-ci-drift claude-bare-drift claude-ci-drift cursor-bare-drift cursor-ci-drift canonical-crlf-hashes">
+  <figcaption>
+    After the inert edit to <code>.github/instructions/library.instructions.md</code>: ordinary drift
+    is advisory in bare audit and a failure in CI. The <code>repro</code> suite also checks Claude
+    and Cursor. Observed on <span class="apm-version">apm v0.31.0</span>.
+  </figcaption>
+  <pre tabindex="0"><code class="language-bash">apm audit -f json                        # observed exit 0; ordinary drift reported
+apm audit --ci --no-fail-fast -f json      # observed exit 1; integrity/drift failure</code></pre>
+</figure>
+<p>
+  A hash mismatch establishes <em>change</em>, not its cause. Review the source and the lock together:
+  someone able to replace both content and its expected hash is not authenticated by that hash.
+  <code>apm install --frozen</code> remains a structural manifest/lock control with the bounded cases
+  discussed in <a href="the-lockfile-and-reproducibility.html">Chapter 6</a>, not a comprehensive
+  native-file integrity audit.
+</p>
+<div class="table-scroll" role="region" aria-label="Scrollable table" tabindex="0"><table id="ch08-audit-boundaries"
+       data-fixture="backend/examples/updates/1.2/operations/repro; backend/examples/updates/1.2/operations/hooks; operations-probes"
+       data-probes="ownership-invalid-bare ownership-invalid-ci scan-unrecorded-whole-bare scan-unrecorded-whole-ci hooks-user-entry-audit-ci hooks-owned-sidecar-drift-ci hooks-owned-sidecar-missing-ci">
+  <caption>Other audit results are not ordinary drift. Observed on apm v0.31.0 in OP07.2 and OP08.1&ndash;2.</caption>
+  <thead>
+    <tr><th scope="col">Controlled state</th><th scope="col">Bare audit</th><th scope="col">CI audit</th></tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>Invalid canonical deployment owner or active owner</td>
+      <td><code>1</code></td><td><code>1</code></td>
+    </tr>
+    <tr>
+      <td>Critical-class marker in an unrecorded governed file, whole-project audit</td>
+      <td><code>1</code></td><td><code>1</code></td>
+    </tr>
+    <tr>
+      <td>Unrelated user-owned hook added to merged Claude settings</td>
+      <td>Not exercised</td><td><code>0</code></td>
+    </tr>
+    <tr>
+      <td>APM-owned hook sidecar edited or missing</td>
+      <td>Not exercised</td><td><code>1</code></td>
+    </tr>
+  </tbody>
+</table></div>
+<p id="ch08-package-audit-scope"
+   data-fixture="backend/examples/updates/1.2/operations/repro; verify-ch08-ch09"
+   data-probes="scan-unrecorded-whole-bare scan-unrecorded-whole-ci scan-package-selector-canonical">
+  Ownership is part of the contract: not every edit to a shared native settings file is APM drift.
+  Also keep audit scope explicit. In an independent v0.31.0 rerun of the Critical control above,
+  <code>apm audit ./package -f json</code> scanned the dependency's three deployed files and
+  excluded the unrelated unrecorded marker, exiting <code>0</code>. The earlier
+  <code>_local/package</code> selector matched no deployed files; its green exit was not evidence
+  of a scoped scan. A whole-project claim needs a whole-project check. Check names and findings
+  are useful evidence; a fixed &ldquo;eight checks&rdquo; total is not an API.
+</p>
+
+<h4 id="ch08-mcp-depth">Withhold: distinguish direct from transitive MCP</h4>
+<p>
+  MCP trust uses <strong>dependency-graph depth</strong>, not filesystem nesting. A package listed in
+  your manifest is direct, at depth <code>1</code>. A dependency of that package is transitive, at
+  depth <code>2</code>. &ldquo;A dependency declares this server&rdquo; therefore does not by itself
+  mean &ldquo;this is a transitive server.&rdquo; The
+  <a href="https://raw.githubusercontent.com/microsoft/apm/v0.31.0/docs/src/content/docs/consumer/install-mcp-servers.md" rel="noreferrer">MCP trust model</a>
+  distinguishes these choices.
+</p>
+<div class="table-scroll" role="region" aria-label="Scrollable table" tabindex="0"><table id="ch08-mcp-depth-controls"
+       data-fixture="core-probes/projects/transitive; core-probes/projects/nested; core-probes/projects/nested-redeclared"
+       data-probes="ch3-direct-package-mcp-trusted ch3-nested-mcp-normal-cwd ch3-transitive-mcp-redeclared">
+  <caption>Configuration-only self-defined MCP controls, observed on apm v0.31.0; no server was launched.</caption>
+  <thead>
+    <tr><th scope="col">Declaration</th><th scope="col">Observed result</th></tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>Server supplied by a direct package dependency, depth <code>1</code></td>
+      <td>Trusted by the depth rule and configured; install exit <code>0</code></td>
+    </tr>
+    <tr>
+      <td>Self-defined server supplied at depth <code>2</code>, not re-declared by the consumer</td>
+      <td>Candidate withheld with re-declaration guidance; ordinary skills installed; exit <code>0</code></td>
+    </tr>
+    <tr>
+      <td>Consumer explicitly re-declares the named server in <code>dependencies.mcp</code></td>
+      <td>Named server configured; the transitive-candidate warning still appeared; exit <code>0</code></td>
+    </tr>
+  </tbody>
+</table></div>
+<p>
+  The headline is <strong>withholding, not a build break</strong>. Re-declaration makes one capability
+  a reviewable manifest decision. The documented <code>--trust-transitive-mcp</code> alternative
+  opts into transitive self-defined servers for that invocation; it is broader and does not add the
+  same explicit manifest entry. Prefer the narrow, reviewed declaration. A warning alone does not
+  prove the server is absent: another authorized declaration may have configured it.
+  These controls do not establish the behavior of every registry-resolved or private-source MCP path.
+</p>
+<p>
+  Inspect the correct destination. Copilot CLI and VS Code MCP are separate targets in this release:
+</p>
+<div class="table-scroll" role="region" aria-label="Scrollable table" tabindex="0"><table id="ch08-mcp-paths"
+       data-fixture="backend/examples/updates/1.2/operations/mcp"
+       data-probes="mcp-install mcp-restore">
+  <caption>Native paths observed in the inert MCP fixture on apm v0.31.0, OP08.3.</caption>
+  <thead>
+    <tr><th scope="col">Runtime</th><th scope="col">Project file</th><th scope="col">Container</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>Copilot CLI</td><td><code>.github/mcp.json</code></td><td><code>mcpServers</code></td></tr>
+    <tr><td>VS Code</td><td><code>.vscode/mcp.json</code></td><td><code>servers</code></td></tr>
+    <tr><td>Claude Code</td><td><code>.mcp.json</code></td><td><code>mcpServers</code></td></tr>
+  </tbody>
+</table></div>
+<aside class="callout callout-warn" id="ch08-mcp-audit-limit"
+       data-fixture="backend/examples/updates/1.2/operations/mcp"
+       data-probes="mcp-edited-native-ci mcp-missing-native-audit-ci frozen-mcp-missing-native-file frozen-mcp-native-changed frozen-mcp-manifest-changed">
+  <h3>Coverage limit: native MCP bytes are not fully audited</h3>
+  <p>
+    In the v0.31.0 MCP-only control, deleting a native config file or editing its arguments still
+    produced CI-audit exit <code>0</code>. Frozen install restored the missing file but left edited
+    native arguments unchanged. Changing the <em>manifest</em> arguments without updating the lock
+    did fail frozen install. Those are different comparisons, not contradictory exit codes.
+    The MCP ownership records had null content hashes, rather than deployed-text hash coverage.
+    Inspect native configuration directly; neither audit nor installation is a server health test
+    (<a href="#ch08-evidence">OP06.2 and OP08.3 evidence</a>).
+  </p>
+</aside>
+
+<h4 id="ch08-executable-consent">Gate: executable approval is a separate decision</h4>
+<p>
+  The broad <strong>Executable Trust Gate</strong> is opt-in through an
+  <code>executables:</code> block &mdash; even <code>executables: {}</code> &mdash; or applicable
+  organization executable policy. Its documented scope is dependency hooks, <code>bin/</code>,
+  self-defined MCP, and canvas extensions. Text primitives are outside this particular approval gate,
+  <em>not</em> free of behavioral risk. Their scanning and review still matter
+  (<a href="https://raw.githubusercontent.com/microsoft/apm/v0.31.0/docs/src/content/docs/reference/cli/approve.md" rel="noreferrer">approval reference</a>).
+</p>
+<p>
+  Use <code>apm approve --list</code> and <code>apm policy explain</code> to inspect deciding layers;
+  use <code>apm approve</code> or <code>apm deny</code> to record a reviewed decision. This asks which
+  executable kinds a dependency may supply, whereas MCP depth asks whether the capability was
+  directly chosen or inherited. Keep the mechanisms separate.
+</p>
+<aside class="callout callout-warn" id="ch08-local-gate-limit"
+       data-fixture="backend/examples/updates/1.2/operations/trust; operations-probes"
+       data-probes="trust-explain-canonical trust-mcp-only-list trust-audit-ci trust-approved-audit-ci">
+  <h3>Observed limitation: a blocked decision did not withhold local MCP</h3>
+  <p>
+    With <code>executables: {}</code>, the direct local test package's hooks were parked, but its
+    self-defined MCP was configured even while inspection reported <code>mcp[x:default-deny]</code>.
+    An MCP-only control reproduced that mismatch and audited <code>0</code>. The hook-bearing
+    fixture instead audited <code>1</code> because replay incorrectly expected the parked hooks.
+    The <a href="#ch08-trust-initial">worked example</a> preserves both findings. This is a known
+    v0.31.0 local-path limitation, not proof that every remote package behaves identically and not
+    a successful demonstration that all executable MCP was withheld.
+  </p>
+</aside>
+
+<aside class="callout callout-info" id="ch08-lifecycle-boundary"
+       data-fixture="backend/examples/updates/1.2/operations/hooks; backend/examples/updates/1.2/operations/lifecycle"
+       data-probes="hooks-install lifecycle-trust lifecycle-other-edit-keeps-trust lifecycle-subtree-edit-revokes lifecycle-install-dry-run lifecycle-update-dry-run lifecycle-uninstall-dry-run update-preview-kill-switch">
+  <h3>Native hooks and APM lifecycle scripts have separate consent</h3>
+  <p>
+    Native hooks are callbacks a <em>harness</em> can trigger. In the harmless hook fixture, APM
+    deployed a Copilot <code>.github/hooks/package-notice.json</code> and merged Claude settings
+    with an APM-owned <code>.claude/apm-hooks.json</code> sidecar; it did not start a harness or run
+    the callback. This is why the <a href="#ch08-audit-boundaries">ownership checks</a> distinguish
+    an unrelated user hook from an altered APM contribution
+    (<a href="https://raw.githubusercontent.com/microsoft/apm/v0.31.0/docs/src/content/docs/producer/author-primitives/hooks-and-commands.md" rel="noreferrer">native hook reference</a>).
+  </p>
+  <p>
+    APM <code>lifecycle:</code> commands are different: APM can execute them during package operations.
+    Project scripts have a separate <code>apm lifecycle trust</code> consent gate bound to the
+    lifecycle subtree; changing that subtree revoked trust, while editing unrelated metadata did not.
+    In the benign event-recorder probes, trusted <code>update --dry-run</code> and uninstall preview
+    ran pre-events. Install preview did not. The process environment setting
+    <code>APM_NO_SCRIPTS=1</code> suppressed the tested update-preview events. Do not read every
+    &ldquo;dry run&rdquo; as &ldquo;no code can execute&rdquo;
+    (<a href="https://raw.githubusercontent.com/microsoft/apm/v0.31.0/docs/src/content/docs/enterprise/lifecycle-scripts.md" rel="noreferrer">lifecycle reference</a>;
+    <a href="#ch08-evidence">OP07.3 probes</a>).
+  </p>
+  <p>
+    The documented Windows admin discovery path is
+    <code>%ProgramData%\APM\policy.d\*.json</code>, not an organization
+    <code>apm-policy.yml</code> location. That admin path is source-inspected; no machine policy
+    was created or executed for these examples.
+  </p>
+</aside>
+
+<h4 id="ch08-bin-consent">Plugin bin: invocation consent does not imply deployment</h4>
+<p>
+  Do not turn the broad gate's opt-in status into &ldquo;all executables deploy unconditionally.&rdquo;
+  Plugin <code>bin/</code> has additional explicit invocation consent. The v0.31.0 project-scope
+  probes observed:
+</p>
+<div class="table-scroll" role="region" aria-label="Scrollable table" tabindex="0"><table id="ch08-bin-controls" data-fixture="operations-probes"
+       data-probes="bin-project-default bin-project-trust-explicit bin-project-no-trust-explicit bin-project-frozen">
+  <caption>Project-scope bin consent outcomes, OP08.3; observed on apm v0.31.0 without running an executable.</caption>
+  <thead>
+    <tr><th scope="col">Invocation condition</th><th scope="col">Observed outcome</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>Noninteractive default</td><td>Exit <code>0</code>; bin executables skipped as not trusted</td></tr>
+    <tr><td>Explicit <code>--trust-bin</code></td><td>Exit <code>0</code>; diagnostic said global scope was needed for Claude Code bin deployment</td></tr>
+    <tr><td><code>--no-trust-bin</code> or the tested frozen invocation</td><td>Exit <code>0</code>; no bin deployment</td></tr>
+  </tbody>
+</table></div>
+<p>
+  Actual global/user-scope deployment and its permissions were <strong>not exercised</strong>.
+  Do not widen scope merely to make a test appear successful. The
+  <a href="https://raw.githubusercontent.com/microsoft/apm/v0.31.0/docs/src/content/docs/reference/cli/install.md" rel="noreferrer">target contract</a>
+  also says invocation consent cannot override policy denial. Neither a consent flag nor an
+  exit <code>0</code> is proof that a binary was installed or is safe to run.
+</p>
           </div>
         </section>
         <section class="chapter-section" data-section="when-to-use-pitfalls">
@@ -747,71 +674,93 @@ executables:
           <div class="section-content" data-content-slot="when-to-use-pitfalls">
 <h3>Getting the boundaries right</h3>
 <p>
-  Every mechanism in this chapter is easy to over- or under-trust. Four corrections keep you honest, and a
-  fifth reminder keeps the whole chapter in its lane.
+  Use a check for the question it can actually answer. Rely on the install scan before authorized
+  deployment, audit recorded state after materialization, and review each capability before granting
+  consent. Do not substitute a green command for inspection of the relevant output.
 </p>
 
-<aside class="callout callout-warn">
-  <h3>Pitfall: a bare <code>apm audit</code> does not gate &mdash; use <code>--ci</code></h3>
+<aside class="callout callout-warn" id="ch08-audit-pitfall"
+       data-fixture="backend/examples/updates/1.2/operations/repro; operations-probes"
+       data-probes="drift-copilot-bare drift-copilot-ci ownership-invalid-bare ownership-invalid-ci public-cold-ci public-cold-offline-ci">
+  <h3>Pitfall: treating every audit result as the same kind of gate</h3>
   <p>
-    Bare <code>apm audit</code> is <strong>advisory</strong> on drift and hash mismatch: it reports a
-    tampered or missing deployed file and still exits <code>0</code>. The same problem exits <code>1</code>
-    only under <code>apm audit --ci</code>, where the <code>content-integrity</code> and <code>drift</code>
-    checks fail closed. Wiring bare <code>apm audit</code> into a pipeline gives you a check that
-    <em>never fails the build</em> on a tampered file. In CI, always use <code>apm audit --ci</code>
-    (<a href="https://microsoft.github.io/apm/reference/cli/audit/" rel="noreferrer">apm audit</a>) &mdash;
-    the fleet-scale wiring is <a href="enterprise-at-fleet-scale.html">Chapter 11</a>.
+    Bare audit is advisory for <em>ordinary deployed-file drift</em>, not for every failure:
+    invalid ownership failed both modes. Use <code>apm audit --ci</code> for the tested
+    instruction-integrity gate, but remember that correctly hashed Warning-only content passed CI
+    and native MCP bytes have a <a href="#ch08-mcp-audit-limit">coverage limit</a>.
+    A clean instruction fixture is not a universal clean-CI guarantee for hooks, MCP, or plugins.
+  </p>
+  <p>
+    Audit is not necessarily offline either. Cold CI replay can hydrate lock-pinned content in scratch
+    without rewriting the checkout; the public-source control failed when hydration was unavailable,
+    rather than producing a harmless green skip. Protect the required job's command, environment,
+    and policy inputs as well as selecting <code>--ci</code>. The operational wiring belongs to
+    <a href="enterprise-at-fleet-scale.html">Chapter 11</a>.
   </p>
 </aside>
 
-<aside class="callout callout-warn">
-  <h3>Pitfall: <code>apm approve</code> keys on the package <em>name</em>, not the path</h3>
+<aside class="callout callout-warn" id="ch08-approval-identity"
+       data-fixture="backend/examples/updates/1.2/operations/trust; operations-probes"
+       data-probes="trust-display-name-not-authority trust-approve-canonical trust-version-change-install trust-version-change-list">
+  <h3>Pitfall: a friendly name or version suffix is not the approval boundary</h3>
   <p>
-    The parked-install remedy prints a hint, but the trust store is keyed by package identity
-    (<code>owner/repo</code>), not by a local path. Approving with a filesystem path prints <code>&hellip;
-    not found in installed packages</code> and silently no-ops (it still exits <code>0</code>), so it
-    <em>looks</em> like it worked while nothing changed. Approve with the package name &mdash;
-    <code>apm approve checkout-review-tools</code> &mdash; and confirm with <code>apm approve --list</code>
-    that the deciding layer flipped to <code>project-allow</code>.
+    APM v0.31.0 accepted both the local selector <code>./package</code> and the fixture's
+    <code>friendly-display-name</code> alias, then persisted the
+    <a href="#ch08-canonical-grant">canonical dependency key</a>. In a two-package control, identical
+    self-asserted names and versions did not make the packages one authority: approving
+    <code>./one</code> did not approve <code>./two</code>.
+  </p>
+  <p>
+    Do not infer per-release consent from an ordinary key such as <code>./package#1.0.0</code>.
+    Changing that local dependency's version to <code>1.1.0</code> left the original grant in place,
+    and inspection still reported <code>project-allow</code>. Review updates accordingly.
+    The documented local-bundle identity is different: its approval key binds a digest.
+    This local-path test is not a bundle-approval test, and neither kind of key authenticates the
+    publisher (<a href="https://raw.githubusercontent.com/microsoft/apm/v0.31.0/docs/src/content/docs/reference/cli/approve.md" rel="noreferrer">approval contract</a>;
+    <a href="#ch08-evidence">OP08.3 observations</a>).
   </p>
 </aside>
 
-<aside class="callout callout-warn">
-  <h3>Pitfall: <code>--strip</code> cleans copies, <code>--force</code> is break-glass</h3>
+<aside class="callout callout-warn" id="ch08-installer-trust"
+       data-fixture="operations-probes/authenticode.json; apm-native/provenance.json"
+       data-probes="authenticode.json">
+  <h3>An installer checksum is not a publisher signature</h3>
   <p>
-    <code>apm audit --strip</code> rewrites the <em>deployed</em> files; it does not modify the source
-    package in <code>apm_modules/</code>, so the next <code>apm install</code> re-materializes the tainted
-    bytes. For a durable fix, pin a clean upstream commit. And treat <code>apm install --force</code> as
-    what it is &mdash; a labeled fire exit that bypasses the Critical-Unicode block. Use it only after you
-    have independently verified the finding is benign, and leave a trace in your PR that you did.
+    The <a href="https://raw.githubusercontent.com/microsoft/apm/v0.31.0/CHANGELOG.md" rel="noreferrer">release notes</a>
+    describe signing work, and the
+    <a href="https://raw.githubusercontent.com/microsoft/apm/v0.31.0/docs/src/content/docs/getting-started/installation.md" rel="noreferrer">installation sources</a>
+    describe checksum-verifying native installers. Those channel-level statements are not a
+    signature inspection of the file you actually run.
   </p>
-</aside>
-
-<aside class="callout callout-info">
-  <h3>Keep the two gates &mdash; and the two planes &mdash; distinct</h3>
   <p>
-    The MCP trust model (depth-based, always on) and the Executable Trust Gate (kind-based, opt-in) answer
-    different questions; do not describe one in the other's terms. And remember the myth from the top of the
-    chapter: all of this is the <strong>install and integrity plane</strong>. APM decides whether an MCP
-    server's config reaches your disk; your <em>harness</em> decides what that server may do once the agent
-    calls it. The scan catches <em>known invisible-character classes</em> &mdash; it does not detect
-    plain-text prompt injection, homoglyphs, semantic manipulation, or binary payloads, and a clean scan
-    means &ldquo;no hidden Unicode and no drift,&rdquo; never &ldquo;this prompt is benign.&rdquo; Human
-    review of <em>visible</em> content, plus harness and endpoint controls, still apply
-    (<a href="https://microsoft.github.io/apm/enterprise/security/" rel="noreferrer">Security model</a>).
+    For this edition's exact official <code>apm-windows-x86_64.zip</code>, the archive matched its
+    publisher-provided SHA-256 sidecar. But Windows <code>Get-AuthenticodeSignature</code> reported
+    <strong><code>NotSigned</code>, with no signer</strong> for the enclosed v0.31.0
+    <code>apm.exe</code>, whose SHA-256 was
+    <code>0712ec0bab35fbc5ed995641097878641e8ebfa6c6576c64cde0aedba5c095c2</code>.
+    That executable was not demonstrated to be signed; do not transfer a release-note claim to it.
+    This result also does not establish the signature status of every other distribution artifact.
+  </p>
+  <p>
+    Archive checksums, executable signatures, and <em>agent-package</em> publisher authentication
+    are separate claims. Neither the checksum match nor the signature inspection establishes
+    agent-package signing, SLSA provenance, benign instructions, or a runtime sandbox
+    (<a href="#ch08-evidence">recorded binary provenance and Authenticode result</a>).
   </p>
 </aside>
 
 <p>
-  With those in hand, the &ldquo;when&rdquo; is simple. Rely on the <strong>built-in install scan</strong>
-  for baseline safety on every install &mdash; you do not have to call <code>apm audit</code> to be
-  protected against Critical Unicode. Reach for <code>apm audit</code> on demand to scan an arbitrary file
-  (a downloaded rules file, a PR diff) or to check deployed integrity locally, and for
-  <code>apm audit --ci</code> as the branch-protection gate. Re-declare a transitive MCP server you have
-  reviewed and intend to keep; save <code>--trust-transitive-mcp</code> for throwaway environments. And
-  enable the Executable Trust Gate (an <code>executables:</code> block, or org policy in
-  <a href="governance-and-policy.html">Chapter 9</a>) when you want approval &mdash; not just visibility
-  &mdash; before a dependency's code can run.
+  Keep credential authority separate too. In the registry probes, a user/project destination-binding
+  mismatch withheld credentials but could still permit an <em>anonymous</em> request; it did not
+  universally block network access. Authentication over HTTP was refused. These tests used only a
+  public non-credential marker. Do not put secrets in manifests or locks, and do not assume a
+  placeholder in one native MCP file proves no plaintext was materialized elsewhere
+  (<a href="#ch08-evidence">OP08.3 and core MCP observations</a>).
+</p>
+<p>
+  When a control reports a limit, keep it visible. Do not disable drift checking, broaden trust,
+  or switch to global installation just to produce a clean exit. Review the dependency, inspect
+  the relevant native files and lock records, and retain harness-level restrictions.
 </p>
           </div>
         </section>
@@ -822,89 +771,180 @@ executables:
 <p>
   Back to the beat. Meridian's staff engineer adds <code>checkout-review-pack</code> at
   <code>v0.3.0</code>. The pack is useful markdown, but it depends on <code>checkout-review-tools</code>,
-  which declares the self-defined MCP server <code>local-fetch</code>. On install, APM withholds that
-  transitive server &mdash; and, crucially, the install <em>succeeds</em>:
-</p>
-<figure class="code-example">
-  <figcaption>
-    Meridian adds <code>checkout-review-pack</code> (<code>v0.3.0</code>). The transitive
-    <code>local-fetch</code> MCP server is withheld; the install succeeds (exit <code>0</code>). The
-    private package fetch is <code>SKIPPED-needs-network</code>; the withhold behavior is the
-    offline-verified mechanism shown above. <span class="needs-network">needs network</span>
-    <span class="apm-version">apm v0.23.1</span>
-  </figcaption>
-  <pre><code class="language-text">$ apm install                # SKIPPED-needs-network: private meridian-finance/checkout-review-pack
-  [+] meridian-finance/checkout-review-pack #v0.3.0   |-- (review prompt adopted)
-  [!] Transitive package 'checkout-review-tools' declares self-defined MCP
-      server 'local-fetch' (registry: false). Re-declare it in your apm.yml or
-      use --trust-transitive-mcp.
-  [*] Installed 2 APM dependencies.
-# exit=0    &lt;- the review pack installed; the transitive MCP server was withheld</code></pre>
-</figure>
-<p>
-  <strong><code>SKIPPED-needs-network</code>:</strong> the <code>meridian-finance/checkout-review-pack</code>
-  package is private, so cloning it needs a host token and is skipped for deterministic verification. The
-  <code>[!]</code> withhold message, the exit code, and the remedies are reproduced offline with a local
-  self-defined-MCP package (the &ldquo;Withhold&rdquo; figures above), so the mechanism Meridian relies on
-  is verified even though this exact fetch is not.
+  which declares <code>local-fetch</code>. The <a href="#ch08-mcp-depth-controls">depth-two control</a>
+  demonstrates the withhold-with-warning boundary: useful package content can install while that
+  self-defined MCP candidate is withheld.
+  <span class="needs-network">needs network</span>
+  <strong><code>SKIPPED-needs-network</code>:</strong> the private
+  <code>meridian-finance/checkout-review-pack</code> fetch needs unavailable private repository
+  authorization; it is not an executed production transcript.
 </p>
 <p>
-  This is the moment <a href="the-context-problem.html">Chapter 1</a>'s open question &mdash;
-  <em>&ldquo;which MCP servers are installed, and did each come from an approved source?&rdquo;</em> &mdash;
-  gets an answer. The capability is <em>visible</em> at install time instead of surfacing in a later audit.
-  The team runs a short security review of <code>local-fetch</code>, decides it is legitimate, and takes the
-  <strong>reviewable</strong> path rather than a blanket <code>--trust-transitive-mcp</code>: they re-declare
-  the server in their own <code>apm.yml</code>, promoting it to a direct dependency. That ships as
-  <code>v0.3.1</code>:
+  Meridian reviews the tool and makes <code>v0.3.1</code>'s decision explicit: re-declare the reviewed
+  <code>local-fetch</code> connection in the consumer's <code>dependencies.mcp</code>, rather than
+  blanket-trusting transitive servers. Then inspect the native destinations and lock records.
+  If the review rejects the capability, remove the unwanted dependency instead of granting consent.
+  Either way, <a href="the-context-problem.html">Chapter 1</a>'s invisible capability has become a
+  decision the team can review.
 </p>
-<figure class="code-example">
+
+<h4>1. Use a direct local control to test the other gate</h4>
+<p>
+  The following is deliberately a <strong>direct dependency</strong> control, not a recreation of
+  Meridian's private depth-two graph. The complete v0.31.0 <code>operations/trust</code> fixture contains two
+  manifests, an ordinary instruction, and a hook whose only command is a harmless echo.
+  Its MCP command is intentionally nonexistent. No harness or MCP server is started.
+</p>
+<figure class="code-example" id="ch08-trust-consumer"
+        data-fixture="backend/examples/updates/1.2/operations/trust/apm.yml"
+        data-probes="parked-hook-install parked-decision parked-hook-audit-replay">
   <figcaption>
-    <code>v0.3.1</code>: the reviewed MCP server re-declared in <code>dependencies.mcp</code>, promoting it
-    to a committed direct dependency. The trust boundary is now a diff. This entry's shape mirrors the
-    verified lockfile <code>mcp_configs</code> record; the re-declaration itself was not exercised offline.
-    <span class="apm-version">apm v0.23.1</span>
+    Consumer <code>apm.yml</code> from the local <code>trust</code> fixture. The empty executable block
+    opts into the broad gate; it does not certify withholding. Observed
+    <span class="apm-version">apm v0.31.0</span>.
   </figcaption>
-  <pre><code class="language-yaml"># apm.yml -- Meridian checkout context, v0.3.1
+  <pre tabindex="0"><code class="language-yaml">name: operations-trust
+version: 1.0.0
+targets: [copilot, claude]
 dependencies:
   apm:
-    - meridian-finance/checkout-review-pack#v0.3.1     # the review pack (private)
+    - path: ./package
+includes: auto
+executables: {}</code></pre>
+</figure>
+<figure class="code-example" id="ch08-trust-package"
+        data-fixture="backend/examples/updates/1.2/operations/trust/package/apm.yml"
+        data-probes="parked-hook-install parked-decision parked-hook-audit-replay">
+  <figcaption>
+    The dependency's <code>package/apm.yml</code>, alongside its existing <code>.apm/</code> fixture
+    files. This self-defined entry configures a connection without executing it.
+    Observed <span class="apm-version">apm v0.31.0</span>.
+  </figcaption>
+  <pre tabindex="0"><code class="language-yaml">name: friendly-display-name
+version: 1.0.0
+dependencies:
   mcp:
-    # Re-declared after security review: promotes the transitive server to a
-    # reviewed, committed DIRECT dependency. The trust decision is now in the diff.
-    - name: local-fetch
+    - name: operations-trust-fixture
       registry: false
       transport: stdio
-      command: npx
-      args:
-        - -y
-        - '@modelcontextprotocol/server-fetch'</code></pre>
+      command: operations-trust-not-a-real-server</code></pre>
+</figure>
+
+<h4>2. Compare the decision with the files</h4>
+<p>
+  In the isolated noninteractive test, installation returned success. Inspection reported
+  <code>default-deny</code> for both executable kinds. That was not the final deployment state:
+</p>
+<figure class="code-example" id="ch08-trust-initial"
+        data-fixture="backend/examples/updates/1.2/operations/trust; backend/examples/updates/1.2/operations/verify.py::Probe.trust_limit"
+        data-probes="parked-hook-install parked-decision trust-explain-canonical parked-hook-audit-replay">
+  <figcaption>
+    Decision/output comparison in <code>trust-limit</code>, with the OP08.3 explanation probe.
+    <strong>Known local-path limitation</strong>, not an audit-clean pre-approval example.
+    <span class="apm-version">apm v0.31.0</span>
+  </figcaption>
+  <pre tabindex="0"><code class="language-bash">apm install                              # observed exit 0
+apm approve --list                        # hooks and MCP report default-deny
+apm policy explain ./package              # verdict: blocked for both kinds
+apm audit --ci --no-fail-fast -f json      # observed exit 1; parked-hook replay failure</code></pre>
+</figure>
+<ul>
+  <li>The instruction deployed; the unapproved hook did not.</li>
+  <li>
+    The inspected <code>.github/mcp.json</code> nevertheless contained the local
+    <code>operations-trust-fixture</code> connection. The lock recorded MCP configuration even
+    while the dependency's <code>exec_status</code> was <code>gated_pending_approval</code>.
+  </li>
+  <li>
+    CI replay incorrectly expected the parked hooks, reporting <code>unintegrated</code> for
+    <code>.claude/apm-hooks.json</code>, <code>.claude/settings.json</code>, and
+    <code>.github/hooks/package-notice.json</code>.
+  </li>
+</ul>
+<p>
+  These are two upstream limitations: MCP output disagreed with the executable decision, and
+  parked-hook replay failed. They are not network skips. The separate MCP-only control's clean
+  audit also means that &ldquo;CI passed&rdquo; cannot prove this approval boundary was enforced.
+</p>
+
+<h4>3. Record reviewed consent, without disguising the limitation</h4>
+<p>
+  For this inspected inert fixture only, the approval control records consent and reinstalls.
+  It demonstrates how the approved state is represented; approving an unwanted real dependency
+  merely to silence an audit failure would be the wrong response.
+</p>
+<figure class="code-example" id="ch08-trust-approved"
+        data-fixture="backend/examples/updates/1.2/operations/trust; backend/examples/updates/1.2/operations/verify.py::Probe.trust_limit"
+        data-probes="canonical-approval approved-install approved-audit">
+  <figcaption>
+    Canonical local-path approval followed by installation and audit; all three returned
+    <code>0</code> in the inert <code>trust-limit</code> control.
+    <span class="apm-version">apm v0.31.0</span>
+  </figcaption>
+  <pre tabindex="0"><code class="language-bash">apm approve ./package
+apm install
+apm audit --ci --no-fail-fast -f json</code></pre>
+</figure>
+<figure class="code-example" id="ch08-canonical-grant"
+        data-fixture="backend/examples/updates/1.2/operations/trust"
+        data-probes="trust-display-name-not-authority trust-approve-canonical trust-approved-list canonical-approval">
+  <figcaption>
+    Resulting <code>apm.yml</code> excerpt: the persisted grant uses the canonical dependency
+    identity, not its friendly display name. Observed <span class="apm-version">apm v0.31.0</span>.
+  </figcaption>
+  <pre tabindex="0"><code class="language-yaml">executables:
+  allow:
+    ./package#1.0.0:
+      hooks: true
+      mcp: true</code></pre>
 </figure>
 <p>
-  Because <code>local-fetch</code> is now a <em>direct</em> dependency, the next install auto-trusts and
-  configures it &mdash; exactly the direct-dependency baseline verified earlier
-  (<code>[i] Trusting direct dependency MCP 'local-fetch'&hellip;</code>). The difference from
-  <code>--trust-transitive-mcp</code> is the whole point: a teammate opening the <code>v0.3.1</code> pull
-  request sees one added <code>mcp:</code> entry and knows precisely which capability was granted, by whom,
-  and after what review. The alternative ending is equally valid and worth naming: if the review had gone
-  the other way, the right move is simply to <em>not</em> grant the capability &mdash; drop the dependency,
-  and <code>local-fetch</code> stays withheld. Either way, an invisible transitive capability became an
-  explicit, auditable decision at install time.
+  Approval inspection now reported <code>project-allow</code>. A separate denial control reported
+  <code>project-deny</code> and reproduced the parked-hook replay failure. Deny ceilings remain part
+  of the intended trust ladder, but a decision label is not a substitute for observing deployment.
+  The clean approved control does not erase the pre-approval defect.
+</p>
+
+<h4>4. Reproduce the boundary without starting a service</h4>
+<p>
+  Use the complete fixture runner, not an install in this book's root. It requires Python 3.10+,
+  PyYAML 6, and an already prepared absolute APM 0.31.0 executable. It copies fixtures into a new
+  short scratch directory, isolates HOME/config/cache, removes inherited credentials, and records
+  results there. Self-defined MCP conflict detection can still attempt a registry identity lookup;
+  these probes bound it to an unavailable loopback endpoint with short timeouts. They do not
+  demonstrate that MCP configuration is intrinsically network-free.
+</p>
+<figure class="code-example" id="ch08-trust-reproduction"
+        data-fixture="backend/examples/updates/1.2/operations/verify.py"
+        data-probes="fixture-verification/trust-limit.json parked-hook-install parked-hook-audit-replay canonical-approval approved-audit">
+  <figcaption>
+    Reproduction entry point for the recorded <code>trust-limit</code> suite. Run from the book
+    checkout; APM operations run only in scratch. The suite reproduces a known failure, not a
+    successful MCP-withholding guarantee. <span class="apm-version">apm v0.31.0</span>
+  </figcaption>
+  <pre tabindex="0"><code class="language-powershell">$Apm = '&lt;absolute path to the prepared APM 0.31.0 executable&gt;'
+python .\backend\examples\updates\1.2\operations\verify.py --apm $Apm --suite trust-limit</code></pre>
+</figure>
+<p>
+  The same runner provides the <code>security</code>, <code>repro</code>, and <code>hooks</code>
+  controls cited earlier. Those use only inert markers, ordinary text edits, or unexecuted harmless
+  hook definitions. None of this exercise requires a real server, credentials, global installation,
+  or an agent session.
 </p>
 
 <aside class="leader-callout">
   <h3>For engineering leaders</h3>
   <p>
-    Security by default changes the rollout conversation: developers keep moving quickly, but risky content
-    is checked <em>before</em> it becomes local tool access, not after an incident. The reframe is that a
-    transitive MCP server is an <strong>ungoverned capability grant</strong> &mdash; the kind of thing that
-    used to stay invisible until a review or an audit surfaced it &mdash; and APM now makes that grant an
-    explicit, reviewable decision at install time (a one-line <code>apm.yml</code> diff, in Meridian's case).
-    Position it accurately in your control stack: APM is a <strong>pre-deploy gate for agent packages</strong>
-    &mdash; controlled sources, locked versions, byte-level integrity, and an install-time capability gate
-    &mdash; which is a real, auditable control, but one that <em>composes with</em> harness runtime
-    governance and endpoint tooling rather than replacing them. Leaders who understand the boundary buy the
-    right complements; leaders who don't develop a false sense of coverage. What this chapter gives you as a
-    built-in default, <a href="governance-and-policy.html">Chapter 9</a> lets you make organizational policy.
+    Security by default changes the rollout conversation: an inherited MCP connection is a
+    <strong>capability grant</strong>, not just more markdown. Meridian makes the intended grant
+    reviewable in a manifest diff and checks the actual installed state. Measure those artifacts,
+    not merely green install counts. Scanning authorized content, locking source identity, and
+    detecting changed deployments are useful controls, but the local MCP and parked-hook findings
+    show why release-specific coverage matters. Budget for harness runtime permissions and endpoint
+    controls as complements, not replacements. Neither hashes nor an installer-channel signing
+    claim proves a trustworthy agent-package publisher.
+    <a href="governance-and-policy.html">Chapter 9</a> turns reviewed choices into organizational
+    policy while keeping enforcement evidence and its limits visible.
   </p>
 </aside>
           </div>
@@ -915,44 +955,42 @@ dependencies:
 <h3>Recap</h3>
 <ul>
   <li>
-    <strong>The trust boundary is install time.</strong> Agent context is executable &mdash; a prompt is a
-    program for an LLM &mdash; and there is no install&rarr;run gap, so <em>file presence is execution</em>.
-    APM's protection is therefore a <strong>pre-deploy gate</strong>: scan first, deploy only if clean.
+    <strong>Scan before authorized deployment.</strong> Agent-readable file presence can activate
+    context. APM scans the deployable source set, not the whole cache before any write; a mixed
+    package batch can partially deploy and still exit <code>1</code>.
   </li>
   <li>
-    <strong>Hidden-Unicode scanning, by severity.</strong> Critical (bidi overrides, tag chars, Glassworm
-    variation selectors) exits <code>1</code> and blocks deploy; Warning-only exits <code>2</code> and ships
-    flagged; clean/info exits <code>0</code>. <code>apm audit --strip</code> cleans deployed copies (not the
-    source); <code>apm install --force</code> is break-glass.
+    <strong>Severity and command mode both matter.</strong> Critical findings give bare-audit
+    exit <code>1</code>; Warning-only gives <code>2</code>. Correctly hashed installed Warning
+    content passed CI with <code>0</code>. Stripping deployed copies is not a durable source fix.
   </li>
   <li>
-    <strong>The content hash catches tampering.</strong> Bare <code>apm audit</code> reports drift as
-    <em>advisory</em> (exit <code>0</code>); <code>apm audit --ci</code> is the tamper gate (exit <code>1</code>,
-    <code>content-integrity</code> with <code>expected=</code>/<code>actual=</code>). Distinct from Chapter 6's
-    structural <code>--frozen</code>.
+    <strong>Hashes detect change within a defined scope.</strong> Deployed text normalizes line
+    endings for hashing; raw package-tree hashes have a different contract. Ordinary instruction
+    drift was advisory in bare audit and failed CI; invalid ownership failed both. Neither a hash
+    nor frozen restore proves publisher trust or complete native-config coverage.
   </li>
   <li>
-    <strong>Transitive MCP is withheld, not blocked.</strong> Direct-dep MCP is auto-trusted; a transitive
-    self-defined server is withheld with a <code>[!]</code> warning while the install <em>succeeds</em> (exit
-    <code>0</code>). Opt in by <strong>re-declaring</strong> it (reviewed, committed) or with
-    <code>--trust-transitive-mcp</code> (blanket, per-install).
+    <strong>MCP depth and executable consent are separate.</strong> Direct means graph depth
+    <code>1</code>; the tested depth-two candidate was withheld without failing install.
+    Re-declaration is a narrow, reviewable choice. In the direct local executable-gate control,
+    MCP configured despite <code>default-deny</code>, and parked hooks exposed a replay failure.
   </li>
   <li>
-    <strong>Two orthogonal gates, one plane.</strong> The MCP trust model (depth-based, always on) and the
-    opt-in Executable Trust Gate (<code>apm approve</code>/<code>apm deny</code>, kind-based) are separate
-    mechanisms &mdash; and all of it is the install/integrity plane. APM is <em>not</em> a runtime sandbox;
-    the harness governs what runs.
+    <strong>Consent is not confinement.</strong> Canonical approvals, lifecycle-script trust,
+    and plugin-bin invocation consent have distinct scopes. APM is not a runtime sandbox, and
+    the checksum-verified Windows executable inspected here reported <code>NotSigned</code>.
   </li>
 </ul>
 <h3>Next</h3>
 <p>
-  These are the built-in, always-on defaults every install applies with no configuration. The natural next
-  question is organizational: <em>which sources, scopes, and primitives are allowed here</em> &mdash; and
-  how do you turn a withhold into a hard block, or a warning into policy?
+  The natural next question is organizational: <em>which sources, scopes, and primitives are allowed
+  here</em>, and how do you enforce that reviewed choice?
   <a href="governance-and-policy.html">Chapter 9 &mdash; Governance &amp; Policy</a> adds the configurable
-  layer on top of this chapter's defaults: an <code>apm-policy.yml</code> that enforces
+  layer through <code>apm-policy.yml</code>:
   <span class="property property--governance">Governance</span> at install time, with tighten-only
-  inheritance and a warn&rarr;block rollout &mdash; still install-time, never runtime.
+  inheritance and a warn&rarr;block rollout. Policy needs a protected enforcement point and evidence
+  that the intended rule ran; it does not turn these controls into runtime sandboxing.
 </p>
           </div>
         </section>
@@ -965,7 +1003,7 @@ dependencies:
 
       <footer class="site-footer chapter-footer">
         <p>By <a href="https://www.linkedin.com/in/webmaxru/" rel="noreferrer">Maxim Salnikov</a> &middot; <a href="https://github.com/webmaxru/agent-package-manager-book" rel="noreferrer">Source on GitHub</a> &middot; <a href="../apm-book.pdf" download>Download the book (PDF)</a></p>
-        <p class="footer-edition"><a href="https://github.com/webmaxru/agent-package-manager-book/releases" rel="noreferrer">Edition v1.1 · Updated July 8, 2026</a></p>
+        <p class="footer-edition"><a href="https://github.com/webmaxru/agent-package-manager-book/releases" rel="noreferrer">Edition v1.2 · Updated September 16, 2026</a></p>
       </footer>
     </div>
   </div>

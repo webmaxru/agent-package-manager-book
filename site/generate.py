@@ -151,6 +151,22 @@ def load_fragment(slug: str) -> dict[str, str]:
     return slots
 
 
+def present_fragment(body: str) -> str:
+    """Add web-only keyboard scroll regions; keep source/print fragments intact."""
+    # Authored tables retain their native semantics, captions, IDs and cell markup.
+    body = re.sub(
+        r"<table\b[\s\S]*?</table>",
+        lambda match: (
+            '<div class="table-scroll" role="region" aria-label="Scrollable table" tabindex="0">'
+            f"{match[0]}</div>"
+        ),
+        body,
+    )
+    return re.sub(
+        r"<pre(?=[\s>])(?![^>]*\btabindex\s*=)", '<pre tabindex="0"', body
+    )
+
+
 def abs_url(path: str = "") -> str:
     """Absolute URL for a site-relative path.
 
@@ -502,7 +518,7 @@ def render_chapter(chapters: list[dict[str, Any]], index: int) -> str:
         used_ids.add(section_id)
         section_nav.append(f'              <li><a href="#{esc(section_id)}">{esc(title)}</a></li>')
         authored = slots.get(section_id)
-        section_body = authored if authored else pending_note
+        section_body = present_fragment(authored) if authored else pending_note
         sections.append(f'''        <section class="chapter-section" data-section="{esc(section_id)}">
           <h2 id="{esc(section_id)}"><a class="anchor-link" href="#{esc(section_id)}" aria-label="Link to {esc(title)} section">{esc(title)}</a></h2>
           <div class="section-content" data-content-slot="{esc(section_id)}">
@@ -649,7 +665,6 @@ def index_jsonld(chapters: list[dict[str, Any]]) -> str:
             "description": BOOK_INTRO,
             "inLanguage": "en",
             "bookFormat": "https://schema.org/EBook",
-            "numberOfPages": len(chapters),
             "genre": "Technology",
             "bookEdition": f"v{CONTENT_VERSION}",
             "version": CONTENT_VERSION,
