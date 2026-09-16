@@ -12,8 +12,8 @@
 # To cut a new edition: bump `version` + `date` here, add a matching entry at the
 # top of content/CHANGELOG.md, commit, then tag `vX.Y` and push — the
 # `release-content` workflow builds the site + PDF and publishes the GitHub Release.
-version: "1.1"
-date: "2026-07-08"
+version: "1.2"
+date: "2026-09-16"
 # Upstream release reviewed for this edition, not the version of this repository's
 # installed skills. Advance only after the incremental update's quality gates pass.
-apm_version: "0.23.1"
+apm_version: "0.31.0"

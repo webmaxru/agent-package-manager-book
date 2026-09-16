@@ -1,5 +1,55 @@
 # Chapter 10 independent verification — book 1.2 / APM 0.31.0
 
+## Provenance-only closure — privacy cleanup, 2026-09-16
+
+**PASS — exact opening-comment-only delta. New APM invocations: 0; new native
+runtime: 0.000 s.** The CLI evidence remains the original **0.31.0** execution;
+no command, version check, installation, audit, or network probe was rerun.
+
+| Source boundary | SHA-256 / location |
+| --- | --- |
+| Accepted, originally executed chapter | `250ba7641d1e9af6f1633f723eacdebfd82e9a93ea5af66598bf89e084c61b75` |
+| **Current chapter after privacy cleanup** | **`501bb139d337d83c930f1e8b54e6f715263622995afd08539ba71d814b099037`** |
+| Preserved accepted snapshot | `RunRoot\integration-inputs\accepted\becoming-a-producer.html` |
+
+Read-only byte/hash assertions established:
+
+- The accepted snapshot is byte-identical to the original executed source at
+  `RunRoot\verify-ch10-ch12\sources\becoming-a-producer.html`.
+- The **only** change is the `RunRoot` line inside the opening HTML comment:
+  the workstation-specific path became
+  `RunRoot = the orchestrator's session artifacts directory, under files/book-v1.2`.
+  Substituting that one complete line in the accepted bytes reconstructs the
+  current file exactly, without any other normalization or edit.
+- Every byte after the opening comment is unchanged, SHA-256
+  `ee2a265819f5837e68426108dfc55b734f362d9db99222675d6ef01a0218bbb4`.
+  Consequently rendered prose, all **20 raw pre/code blocks**, their IDs, and
+  the inline command cells are unchanged.
+- The path sets and byte hashes of all **31 producer fixture files** and
+  **7 historical Ch10 fixture files** match the retained `fixture-inputs.json`;
+  this includes their genuine locks. No fixture was edited or regenerated.
+- Before this closure was added, in-memory reversal of the parent's symbolic
+  RunRoot exemplar in each of the three verification reports reproduced its
+  original SHA from `report-validation.json`. Those report cleanups changed no
+  result, command, exit, version, runtime, or verdict field.
+
+The successful comparisons were Python byte/hash assertions, exit **0**, not
+new CLI validation. Original raw logs, counts, statuses, failures, historical
+stamps, and source receipts remain untouched. F10.1/F10.2 remain actual **FAILs**
+with their existing documented boundaries.
+
+**Review boundary:** the caller's editorial **ACCEPT** remains attached to the
+prior accepted SHA. This delta assigns no new editorial verdict; final
+integration review must assess the post-comment-cleanup SHA above. The original
+verification record below, including its then-pending reviewer handoff and
+original “Final chapter SHA-256,” remains historically scoped to the prior SHA.
+Only this provenance section was added by this closure; no chapter, fixture,
+other report, or execution artifact was edited.
+
+---
+
+## Original verification record — retained at the pre-cleanup SHA
+
 **Chapter claim/recipe verdict: PASS, with documented CLI FAILs retained.**
 The new producer recipes and their stated negative outcomes were independently
 executed. Native-plugin CI replay and legacy Copilot shared-skill delivery are
@@ -19,7 +69,7 @@ already describes both defects accurately. **Reviewer acceptance is pending.**
 ## Environment, independence, and evidence
 
 ```powershell
-$RunRoot = 'C:\Users\masalnik\.copilot\session-state\2d4facdd-cd43-4bef-9f47-dc669687d65a\files\book-v1.2'
+$RunRoot = '<absolute session artifacts directory>\book-v1.2'
 $Apm = Join-Path $RunRoot 'apm-native\unpacked\apm-windows-x86_64\apm.exe'
 & $Apm --version
 # Agent Package Manager (APM) CLI version 0.31.0
@@ -352,3 +402,58 @@ fixes or silently repaired CLI regressions**.
 above. Preserve F10.1/F10.2 as actual FAILs and the visible integration skips.
 No chapter, fixture, historical stamp, metadata, TOC, site, root dependency,
 commit, or publication was changed by this verification.
+
+---
+
+## Final integration delta F2 — latest source boundary, 2026-09-16
+
+**PASS — bounded narrative correction and executable-input equivalence.**
+New APM invocations: **0**; new native runtime: **0.000 s**. The existing
+**0.31.0** CLI results are retained, not newly executed or restamped.
+
+| Chapter 10 source boundary | SHA-256 |
+| --- | --- |
+| Originally executed / previously reviewed source | `250ba7641d1e9af6f1633f723eacdebfd82e9a93ea5af66598bf89e084c61b75` |
+| Pre-F2 snapshot, after the earlier privacy closure | `501bb139d337d83c930f1e8b54e6f715263622995afd08539ba71d814b099037` |
+| **Current source after F2** | **`f42b35736a232965057c72b754b87bbe9e105f759b03de01ef2f66ef80b10dee`** |
+
+Comparison input:
+`RunRoot\integration-inputs\before-findings\becoming-a-producer.html`.
+Current path: `content/chapters/becoming-a-producer.html`.
+The earlier privacy delta remains valid for its own two SHAs; this later
+delta includes rendered-prose changes, not another comment-only cleanup.
+
+The complete diff is confined to the three requested F2 regions:
+
+1. Current lines **132–133** make requiring `meridian-standards` prospective:
+   Meridian plans that rule **once the package is available**, not as an
+   already-enforced historical requirement.
+2. Lines **1072–1074** label `ch10-ex16-meridian-return-history` a
+   **historical, reduced extraction/return illustration**, explicitly not a
+   replacement for the accumulated consumer manifest.
+3. Lines **1090–1096** instruct readers to merge the dependency with the
+   existing reviewed declarations, including Chapter 8's `local-fetch` MCP,
+   other packages, and review script. The reduced `mcp: []`/omitted script is
+   not a deletion instruction; retiring a capability needs its own review.
+
+Byte comparisons passed for **all 20 raw pre/code blocks**, all HTML IDs,
+and the unchanged metadata-command table. The historical ex16 manifest's raw
+pre/code SHA-256 remains
+`ed9e4fbbc343e640125c8f19b0e8835ed6f11f38a976e261e6c2eea16d732fcb`.
+The path sets and byte hashes of the **31 producer** and **7 historical Ch10**
+fixture files, including locks, still match
+`RunRoot\verify-ch10-ch12\fixture-inputs.json`.
+
+These were read-only Python hash/diff assertions, final exit **0**. No merged
+consumer manifest was generated or newly validated; the corrected text tells
+readers to preserve and review accumulated intent rather than treating the
+reduced historical block as that complete manifest. Its historical 0.23.1
+stamp and private-source **SKIPPED-needs-network** status are unchanged.
+Native canonical-IR audit and legacy shared-skill delivery remain actual
+**FAILs**; runtime/infrastructure skips and original execution records remain
+unchanged.
+
+**Global reviewer handoff:** `9e44d845-c355-419d-bc8f-af8563b73d11` should use
+the current F2 SHA above. This is a verifier delta, not a new editorial
+ACCEPT. Prior reviews remain attached to their original SHAs. Only the
+requested verification-report appendices were edited by this delta task.

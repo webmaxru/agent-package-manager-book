@@ -20,7 +20,7 @@ pending.**
 ## Evidence and method
 
 **RunRoot**:
-`C:\Users\masalnik\.copilot\session-state\2d4facdd-cd43-4bef-9f47-dc669687d65a\files\book-v1.2`.
+the session's `<artifacts directory>\book-v1.2`.
 **VerifyRoot** = `RunRoot\verify-ch10-ch12`.
 
 The shared Ch10/11 real-CLI work used the supplied absolute executable:
@@ -195,3 +195,62 @@ snapshot/link scope only.** Keep the historical competitor boundary and the
 actual compatibility FAIL explicit. No chapter, historical verification
 stamp, other chapter, fixture, metadata, TOC, site, root dependency, commit, or
 publication was changed.
+
+---
+
+## Final integration delta F3 — latest source boundary, 2026-09-16
+
+**PASS — corrected semantic source reference; no runnable example added.**
+New APM invocations: **0**; new native runtime: **0.000 s**. This is a
+source/hash comparison, not a new download, compiler, Action, or runtime test.
+
+| Chapter 12 source boundary | SHA-256 |
+| --- | --- |
+| Preserved pre-F3 / previously reviewed source | `7460ab5177c7e68718dedbc9237ecba98f2da903d7dbd1610c119803e4062aed` |
+| **Current source after F3** | **`4de95a5d3d756c538d1137e0b42c4516f915b23d47bee9288d828ed997efc1fa`** |
+
+Comparison input:
+`RunRoot\integration-inputs\before-findings\the-landscape-and-whats-next.html`.
+Current path: `content/chapters/the-landscape-and-whats-next.html`.
+The complete diff is one prose/link replacement at current lines **486–490**.
+It no longer claims Chapter 11 teaches the host-manifest pre-step alternative.
+Instead it points to this **frozen upstream base document URL**:
+
+<https://github.com/microsoft/apm/blob/8fd10ac5eafee7ca77d41cc34ba139d812fdacd5/docs/src/content/docs/integrations/gh-aw.md>
+
+The chapter explicitly calls this **source-only guidance requiring separate
+integration validation**, not a verified recipe here or automatic host-state
+inheritance by the isolated import.
+
+Independent source binding uses
+`RunRoot\verify-ch10-ch12\source-receipts.json`, key
+`docs/src/content/docs/integrations/gh-aw.md`:
+
+| Representation | SHA-256 |
+| --- | --- |
+| Pinned Git/LF blob | `455e7f454205466fa6529e3a5c054351a8a2c7037203ea64e8d9c3cb76ce1f83` |
+| Supplied CRLF source checkout | `afb8993991a363f188d15b5b4de592af8938d1fdf0dc780f71d01d1fdfe425c0` |
+
+Both were rehashed locally and matched that retained receipt; the pinned
+`git cat-file blob` read exited **0**. The guide's line **104** distinguishes
+isolated imports from the default-non-isolated pre-step. Its
+**apm-action Pre-Step** section at lines **128–159** describes the explicit
+step and a repository with `apm.yml`/`apm.lock.yaml`. This supports the new
+semantic destination. It does **not** certify the upstream sketch's major-tag
+Action selection or establish a reviewed 0.31.0 consumer workflow.
+
+Both chapter snapshots contain **zero raw pre/code blocks**; their empty
+block inventories and all HTML IDs match. No executable or fixture changed.
+Everything outside the identified prose/link replacement is byte-identical,
+so the historical competitor snapshot and compatibility caveats are retained.
+No fresh HTTP link sweep or competitor research was performed; the new link
+was checked against its pinned local source object.
+
+Read-only byte/hash/diff assertions exited **0**. The original 0.31.0 evidence,
+actual native canonical-IR/shared-skill **FAILs**, and compiler/runtime/private
+infrastructure **SKIPPED-needs-network** markers remain scoped as before.
+Earlier verification/review SHAs remain historically valid.
+
+**Global reviewer handoff:** `9e44d845-c355-419d-bc8f-af8563b73d11` should assess
+the current F3 SHA above. This appendix records a bounded verifier PASS,
+not a new editorial ACCEPT or a validated pre-step recipe.

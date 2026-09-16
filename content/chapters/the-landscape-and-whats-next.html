@@ -483,9 +483,11 @@
   carried over either: establish the policy authority available to the isolated job.
   For imports without GitHub App credentials, the optional <code>token-source: github-token</code>
   selects read-only access to private content in the <em>current repository</em>, not other private
-  repositories. For a workflow that
-  intentionally consumes the host manifest, use the explicit pre-step approach discussed in
-  <a href="enterprise-at-fleet-scale.html">Chapter 11</a>, not an assumption about this import.
+  repositories. For a workflow that intentionally consumes the host manifest, the
+  <a href="https://github.com/microsoft/apm/blob/8fd10ac5eafee7ca77d41cc34ba139d812fdacd5/docs/src/content/docs/integrations/gh-aw.md" rel="noreferrer">frozen upstream
+  integration guide</a> describes an <code>apm-action</code> pre-step alternative. That is
+  source-only guidance requiring separate integration validation, not a verified recipe here
+  or an assumption about this isolated import.
 </p>
 <p>
   Through the four properties, APM is still the <em>context layer</em>:

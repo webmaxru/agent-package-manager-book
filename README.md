@@ -303,8 +303,8 @@ Never replace those gates with a green build or relabel old verification stamps 
 
 Use **`/release-content`** after the content gates pass. Its default **prepare** mode updates
 `content/version.yml` and the matching changelog section, requires a fresh HTML/PDF build, and
-commits only the reviewed update locally. An incremental update after v1.1 is normally **v1.2**;
-APM's `0.31.0` and the book's `1.2` are independent version numbers.
+commits only the reviewed update locally. Choose the next minor book edition for an incremental
+content update; APM's `0.31.0` and the book's `1.2` are independent version numbers.
 
 Before committing, with the real previous tag and proposed edition substituted:
 
@@ -347,8 +347,11 @@ python -m unittest discover -s tests -v
 python .\site\validate_release.py
 ```
 
-The current edition is **v1.1** (added GitHub Agentic Workflows as an APM consumer to Chapters 11 &
-12), with reviewed APM baseline **0.23.1**; **v1.0** was the initial 12-chapter edition. Browse the
+The current edition is **v1.2**, with all twelve chapters reviewed against **APM 0.31.0** and
+current practice fixtures, explicit historical snapshots, and documented compatibility limits.
+The [edition evidence](content/research/updates/1.2/integration-review.md) records the independent
+verification and integration acceptance. **v1.1** added GitHub Agentic Workflows as a consumer;
+**v1.0** was the initial 12-chapter edition. Browse the
 [releases](https://github.com/webmaxru/agent-package-manager-book/releases) for downloadable PDFs.
 
 ---

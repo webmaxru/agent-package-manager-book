@@ -14,7 +14,7 @@
   Example-comment aliases:
   Historical = backend/examples/ch10/meridian-standards
   ProducerFixtures = backend/examples/updates/1.2/producer
-  RunRoot = C:\Users\masalnik\.copilot\session-state\2d4facdd-cd43-4bef-9f47-dc669687d65a\files\book-v1.2
+  RunRoot = the orchestrator's session artifacts directory, under files/book-v1.2
   Producer probe IDs map to RunRoot/producer-probes/logs/<id>.json and .txt;
   inventories/read-only assertions are in that directory's evidence-assertions.json.
   Core probe IDs map to RunRoot/core-probes/logs/<id>.json and .txt.
@@ -129,8 +129,8 @@
   <li>
     <span class="property property--governance">Governance</span> &mdash; the package installs through
     the same <code>apm-policy.yml</code> gate from <a href="governance-and-policy.html">Chapter 9</a>;
-    a policy can even <em>require</em> it, exactly as Meridian's
-    <code>require: meridian-finance/meridian-standards</code> rule did.
+    a policy can even <em>require</em> it, as Meridian plans to do with
+    <code>require: meridian-finance/meridian-standards</code> once the package is available.
   </li>
 </ul>
 <p>
@@ -1069,8 +1069,9 @@ includes: auto</code></pre>
      This is the story snapshot, not a freshly verified 0.31.0 dependency. -->
 <figure class="code-example" id="ch10-ex16-meridian-return-history">
   <figcaption>
-    Historical <code>meridian-checkout/apm.yml</code> story snapshot: the conventions return as a
-    pinned dependency. Private resolution is <code>SKIPPED-needs-network</code>, not a current
+    Historical, reduced <code>meridian-checkout/apm.yml</code> extraction/return illustration:
+    the conventions return as a pinned dependency. This is not a replacement for the accumulated
+    consumer manifest. Private resolution is <code>SKIPPED-needs-network</code>, not a current
     execution result. <span class="needs-network">Needs private source access.</span>
     <span class="apm-version">apm v0.23.1 snapshot</span>
   </figcaption>
@@ -1086,6 +1087,13 @@ dependencies:
 includes: auto</code></pre>
 </figure>
 
+<p>
+  Carry the earlier consumer decisions forward: merge this dependency into the existing reviewed
+  declarations, including Chapter 8's <code>local-fetch</code> MCP declaration, the other packages,
+  and the review script. The reduced snapshot's <code>mcp: []</code> and omitted script do not
+  direct you to erase them. Retiring any existing dependency or capability requires its own
+  reviewed change.
+</p>
 <p>
   That dependency is the payoff of the whole book. The checkout team no longer <em>copies</em> its
   own conventions between services &mdash; it <em>depends</em> on them. Once the private source is

@@ -20,7 +20,7 @@ gh-aw compilation, private authorization, or branch-protection acceptance.
 ## Executable, isolation, and provenance
 
 ```powershell
-$RunRoot = 'C:\Users\masalnik\.copilot\session-state\2d4facdd-cd43-4bef-9f47-dc669687d65a\files\book-v1.2'
+$RunRoot = '<absolute session artifacts directory>\book-v1.2'
 $Apm = Join-Path $RunRoot 'apm-native\unpacked\apm-windows-x86_64\apm.exe'
 & $Apm --version
 # Agent Package Manager (APM) CLI version 0.31.0
@@ -294,3 +294,51 @@ compiler/runner/private-infrastructure skips, and cross-wave provenance.
 No chapter/fixture/root dependency/metadata/TOC/site edit, commit, or publication
 was made. Only this report and the companion Ch10/12 reports are repository
 outputs of this task.
+
+---
+
+## Final integration delta F1 — source-checksum receipt, 2026-09-16
+
+**PASS — corrected expected hash matches the retained independent source
+receipt.** New APM invocations: **0**; new native runtime: **0.000 s**.
+No download, gh-aw compilation, Action execution, or runtime validation was
+performed or newly claimed. Chapter 11 itself and its recorded source SHA
+are not changed by this finding.
+
+| Producer reference boundary | SHA-256 |
+| --- | --- |
+| `RunRoot\integration-inputs\before-findings\producer-reference.md` | `c0b4ad088479c5edb6850c89d2bdc1cd42b4be2563686b5f92025e31bd166d41` |
+| **Current `content/research/updates/1.2/producer-reference.md`** | **`6a8bac3280c02b5340df845baf3db7f11b5cf8eeb356ef0179015c9539b0cc0c`** |
+
+Section 9 now distinguishes the two representations correctly:
+
+| `.github/workflows/shared/apm.md` at commit `8fd10ac5eafee7ca77d41cc34ba139d812fdacd5` | SHA-256 |
+| --- | --- |
+| **Raw Git/LF bytes; corrected expected raw-download hash** | **`fb036a7a688eb24d0fb9fa0749dbf1840bd9e7c025ab95ca7546859f150727d8`** |
+| Retained Windows CRLF scratch-copy bytes | `6ebe127ee1ae527249b81239a8fa52f3a3ead298042b2d43122d6a68faf0f3ae` |
+
+The authority is this verifier's existing
+`RunRoot\verify-ch10-ch12\source-receipts.json`, key
+`.github/workflows/shared/apm.md`, and the **Shared-source byte provenance**
+section above. That receipt records `raw_equal: false` and
+`LF_normalized_equal: true`. Re-reading the local pinned Git blob with
+`git --no-pager -C <Source> cat-file blob 8fd10ac5eafee7ca77d41cc34ba139d812fdacd5:.github/workflows/shared/apm.md`
+returned **0**; both fresh local byte hashes matched the retained receipt.
+Here `<Source>` is `RunRoot\source\apm-0.31.0`, not a remote fetch.
+
+The reference diff is limited to identifying the Windows scratch copy,
+explaining LF-normalized rather than raw equality, and correcting the expected
+hash comment. Across its **15 fenced blocks**, substituting only that one
+checksum-comment line reproduces all current block bytes. The download URL,
+`Invoke-WebRequest`, `Get-FileHash`, and `gh aw compile` command lines are
+unchanged and **were not executed** by this delta.
+
+The local source-object/hash checks exited **0**; they are not a fresh
+raw-download result. The shared 0.28.0 default still needs the existing explicit
+0.31.0 override for both pack and restore, with a concrete target. The actual
+native replay/shared-skill **FAILs**, compiler/runtime
+**SKIPPED-needs-network** limitations, and original CLI evidence are retained.
+
+**Global reviewer handoff:** `9e44d845-c355-419d-bc8f-af8563b73d11`.
+F1 is closed at the source-checksum/provenance level only; no new editorial
+or end-to-end integration verdict is assigned.

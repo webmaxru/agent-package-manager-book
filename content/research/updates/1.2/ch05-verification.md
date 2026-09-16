@@ -1,5 +1,74 @@
 # Chapter 5 independent verification — book 1.2 / APM 0.31.0
 
+**Current code-gate verdict: PASS — opening-comment privacy-only delta,
+2026-09-16 UTC.** Only the two workstation-specific path references were
+replaced. Every byte outside the opening HTML comment is unchanged.
+This closes the source-identity update without reopening the chapter or
+assigning reviewer acceptance.
+
+## Final privacy-only delta — current source identity
+
+| Revision | SHA256 |
+| --- | --- |
+| Supplied accepted snapshot and preceding independent code-gate PASS | `c06627ac2367a41f9d8a427a6021b695c4c4d28237ca4c3cda951a56effe1e25` |
+| **Current independently checked source** | **`286f2d6a873b7152a09033a0e5c2330bbef8004a42818e103e6b7e594e9c3d1a`** |
+
+**Chapter:** `content/chapters/install-and-restore.html`.
+The comparison input is
+`RunRoot/integration-inputs/accepted/install-and-restore.html`; its
+measured hash matches the supplied `c066…` identity and the previously
+captured `VerifyRoot/provenance-delta/chapter-source.html`.
+
+**Exact change scope — PASS:** the final file reconstructs byte-for-byte
+from that accepted snapshot by replacing only opening-comment lines
+**16** and **20**:
+
+- The `RunRoot` definition now names the orchestrator's symbolic session
+  artifact directory under `files/book-v1.2`.
+- The executable reference is now
+  `RunRoot/apm-native/unpacked/apm-windows-x86_64/apm.exe`.
+
+There are no changes after the opening comment's closing delimiter.
+Rendered prose, captions, all **16 raw `<pre><code>` blocks**, their
+attributes/entities/whitespace/line endings, and all operative claims are
+therefore unchanged. All **eight Core fixture files**, including the three
+genuine locks, still match the prior input hashes and `canonical-core.zip`
+bytes. No path cleanup, code normalization, or lock regeneration was
+applied to an executable fixture.
+
+**CLI evidence:** retained exact **APM 0.31.0** execution.
+**New APM invocations: 0**, including no new `--version` invocation.
+**New native runtime: 0.000 s.** No scratch project was created or resumed.
+The original command exits/runtimes, expected-negative results, native and
+legacy-marker audit **FAIL** records, historical **0.23.1** stamps, and
+private/live skip dispositions remain unchanged.
+
+The read-only comparison
+`python <VerifyRoot>/privacy-delta/check.py <Repo>` exited **0** in
+**0.056 s**, completed `2026-09-16T03:11:30.944698Z`.
+`VerifyRoot` means `RunRoot/verify-ch05`; `Repo` is the book checkout.
+Receipts are `VerifyRoot/privacy-delta/check.json`, `chapter-source.html`,
+`report-before.md`, and `check.py`. Prior evidence was not overwritten.
+
+The separate [checkout verification](checkout-verification.md) establishes
+canonical **Git/LF on Windows**, not Linux execution. The existing
+fixture attributes pin generated locks/catalog JSON to LF; ordinary
+source files remain platform text. This privacy delta changes neither
+that attribute policy nor any source/lock line endings.
+
+**Verifier change: this report only**, plus owned raw receipts. The
+author supplied the two comment edits. No new behavior or general
+cross-platform guarantee is asserted. Final integration review remains
+responsible for the new provenance identity; no reviewer acceptance is
+claimed here.
+
+---
+
+## Previous provenance/status delta — retained for source `c066…`
+
+The following verdict and source identity describe the preceding revision.
+Its full execution evidence and underlying failures remain intact.
+
 **Current code-gate verdict: PASS — final provenance/status-only delta,
 2026-09-16 UTC.** The previous independent PASS carries forward to the
 source below. This continuation covers the author's removal of obsolete

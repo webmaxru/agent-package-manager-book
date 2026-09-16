@@ -607,9 +607,14 @@ historical; an edited YAML file is not a rerun.
 **Inspected CLI:** 0.31.0; shared file pinned to the APM target commit;
 Action v1.10.0 separately pinned.
 
-The canonical file was **actually re-vendored in scratch**, byte-for-byte,
+The canonical file was **actually re-vendored in the Windows scratch checkout**
 at `producer-probes/gh-aw/.github/workflows/shared/apm.md`.
-SHA-256: **`6ebe127ee1ae527249b81239a8fa52f3a3ead298042b2d43122d6a68faf0f3ae`**.
+Its **CRLF scratch-copy SHA-256** is
+**`6ebe127ee1ae527249b81239a8fa52f3a3ead298042b2d43122d6a68faf0f3ae`**.
+The **raw Git/LF download SHA-256** is
+**`fb036a7a688eb24d0fb9fa0749dbf1840bd9e7c025ab95ca7546859f150727d8`**.
+The independent [Ch11 source receipt](ch11-verification.md) establishes
+LF-normalized equivalence, not raw equality between those two representations.
 Static assertions verified:
 
 - `import-schema.target.required: true`; the prep script rejects blank and
@@ -644,7 +649,7 @@ then use a separately reviewed gh-aw compiler:
 # SKIPPED-needs-network as a consumer workflow: run only in its owned scratch checkout.
 New-Item -ItemType Directory -Force .github/workflows/shared | Out-Null
 Invoke-WebRequest 'https://raw.githubusercontent.com/microsoft/apm/8fd10ac5eafee7ca77d41cc34ba139d812fdacd5/.github/workflows/shared/apm.md' -OutFile .github/workflows/shared/apm.md
-# Expected SHA-256: 6ebe127ee1ae527249b81239a8fa52f3a3ead298042b2d43122d6a68faf0f3ae
+# Expected raw-download SHA-256: fb036a7a688eb24d0fb9fa0749dbf1840bd9e7c025ab95ca7546859f150727d8
 Get-FileHash .github/workflows/shared/apm.md -Algorithm SHA256
 gh aw compile
 ```
