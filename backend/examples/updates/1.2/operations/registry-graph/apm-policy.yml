@@ -1,0 +1,5 @@
+# A bounded DIRECT constraint passes; this rule does not police the parent's range.
+name: Direct constraint rehearsal
+enforcement: block
+dependencies:
+  require_pinned_constraint: true

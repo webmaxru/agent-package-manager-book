@@ -1,0 +1,5 @@
+# Same violation as warn; only the outcome dial changes.
+name: Operations blocking rehearsal
+enforcement: block
+dependencies:
+  require: [example-org/required-review-package#v1.0.0]

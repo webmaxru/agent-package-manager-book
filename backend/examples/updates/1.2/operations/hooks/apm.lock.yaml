@@ -1,0 +1,111 @@
+lockfile_version: '1'
+apm_version: 0.31.0
+dependencies:
+- repo_url: _local/package
+  name: operations-hook-library
+  version: 1.0.0
+  package_type: apm_package
+  deployed_files:
+  - .claude/hooks/package/.apm/hooks/helper.mjs
+  - .claude/hooks/package/.apm/hooks/notice.mjs
+  - .claude/hooks/package/.apm/hooks/package.json
+  - .cursor/hooks/package/.apm/hooks/helper.mjs
+  - .cursor/hooks/package/.apm/hooks/notice.mjs
+  - .cursor/hooks/package/.apm/hooks/package.json
+  - .github/hooks/package-notice.json
+  - .github/hooks/scripts/package/.apm/hooks/helper.mjs
+  - .github/hooks/scripts/package/.apm/hooks/notice.mjs
+  deployed_file_hashes:
+    .claude/hooks/package/.apm/hooks/helper.mjs: sha256:e25bf304c73334b1af054af70675676db70dc8a96a5609c7b75431887b8ad61a
+    .claude/hooks/package/.apm/hooks/notice.mjs: sha256:3e31cd1a7ec09b7d69fefdafddf894c007d4d0f4c5de9400aba8b8fba5b89550
+    .claude/hooks/package/.apm/hooks/package.json: sha256:8005a3491db7d92f36ac66369861589f9c47123d3a7c71e643fc2c06168cd45a
+    .cursor/hooks/package/.apm/hooks/helper.mjs: sha256:e25bf304c73334b1af054af70675676db70dc8a96a5609c7b75431887b8ad61a
+    .cursor/hooks/package/.apm/hooks/notice.mjs: sha256:3e31cd1a7ec09b7d69fefdafddf894c007d4d0f4c5de9400aba8b8fba5b89550
+    .cursor/hooks/package/.apm/hooks/package.json: sha256:8005a3491db7d92f36ac66369861589f9c47123d3a7c71e643fc2c06168cd45a
+    .github/hooks/package-notice.json: sha256:9159a0a7d7d62f05e948240b08b95ab520876386f6b8f4fb68e5b60a53cfe696
+    .github/hooks/scripts/package/.apm/hooks/helper.mjs: sha256:e25bf304c73334b1af054af70675676db70dc8a96a5609c7b75431887b8ad61a
+    .github/hooks/scripts/package/.apm/hooks/notice.mjs: sha256:3e31cd1a7ec09b7d69fefdafddf894c007d4d0f4c5de9400aba8b8fba5b89550
+  source: local
+  local_path: ./package
+deployments:
+- kind: project-relative
+  target: claude
+  value: .claude/hooks/package/.apm/hooks/helper.mjs
+  runtime: null
+  scope: project
+  owners:
+  - ./package
+  active_owner: ./package
+  content_hash: sha256:e25bf304c73334b1af054af70675676db70dc8a96a5609c7b75431887b8ad61a
+- kind: project-relative
+  target: claude
+  value: .claude/hooks/package/.apm/hooks/notice.mjs
+  runtime: null
+  scope: project
+  owners:
+  - ./package
+  active_owner: ./package
+  content_hash: sha256:3e31cd1a7ec09b7d69fefdafddf894c007d4d0f4c5de9400aba8b8fba5b89550
+- kind: project-relative
+  target: claude
+  value: .claude/hooks/package/.apm/hooks/package.json
+  runtime: null
+  scope: project
+  owners:
+  - ./package
+  active_owner: ./package
+  content_hash: sha256:8005a3491db7d92f36ac66369861589f9c47123d3a7c71e643fc2c06168cd45a
+- kind: project-relative
+  target: copilot
+  value: .github/hooks/package-notice.json
+  runtime: null
+  scope: project
+  owners:
+  - ./package
+  active_owner: ./package
+  content_hash: sha256:9159a0a7d7d62f05e948240b08b95ab520876386f6b8f4fb68e5b60a53cfe696
+- kind: project-relative
+  target: copilot
+  value: .github/hooks/scripts/package/.apm/hooks/helper.mjs
+  runtime: null
+  scope: project
+  owners:
+  - ./package
+  active_owner: ./package
+  content_hash: sha256:e25bf304c73334b1af054af70675676db70dc8a96a5609c7b75431887b8ad61a
+- kind: project-relative
+  target: copilot
+  value: .github/hooks/scripts/package/.apm/hooks/notice.mjs
+  runtime: null
+  scope: project
+  owners:
+  - ./package
+  active_owner: ./package
+  content_hash: sha256:3e31cd1a7ec09b7d69fefdafddf894c007d4d0f4c5de9400aba8b8fba5b89550
+- kind: project-relative
+  target: cursor
+  value: .cursor/hooks/package/.apm/hooks/helper.mjs
+  runtime: null
+  scope: project
+  owners:
+  - ./package
+  active_owner: ./package
+  content_hash: sha256:e25bf304c73334b1af054af70675676db70dc8a96a5609c7b75431887b8ad61a
+- kind: project-relative
+  target: cursor
+  value: .cursor/hooks/package/.apm/hooks/notice.mjs
+  runtime: null
+  scope: project
+  owners:
+  - ./package
+  active_owner: ./package
+  content_hash: sha256:3e31cd1a7ec09b7d69fefdafddf894c007d4d0f4c5de9400aba8b8fba5b89550
+- kind: project-relative
+  target: cursor
+  value: .cursor/hooks/package/.apm/hooks/package.json
+  runtime: null
+  scope: project
+  owners:
+  - ./package
+  active_owner: ./package
+  content_hash: sha256:8005a3491db7d92f36ac66369861589f9c47123d3a7c71e643fc2c06168cd45a

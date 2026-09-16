@@ -1,0 +1,11 @@
+# A restrictive local rehearsal parent, not an automatically discovered org policy.
+name: Operations parent
+enforcement: block
+fetch_failure: block
+cache:
+  ttl: 120
+dependencies:
+  deny: [example-org/denied-package]
+  require: [example-org/required-review-package#v1.0.0]
+  max_depth: 3
+  require_pinned_constraint: true

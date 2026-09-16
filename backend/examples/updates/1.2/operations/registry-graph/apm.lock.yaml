@@ -1,0 +1,52 @@
+lockfile_version: '2'
+apm_version: 0.31.0
+dependencies:
+- repo_url: operations/parent
+  name: parent
+  host: github.com
+  resolved_ref: 1.0.0
+  version: 1.0.0
+  package_type: apm_package
+  deployed_files:
+  - .github/instructions/parent.instructions.md
+  deployed_file_hashes:
+    .github/instructions/parent.instructions.md: sha256:3f6293c7e4a1e64ccb4a4124dd8506d1f330c189e41e899fa62a67baa7ed12da
+  source: registry
+  content_hash: sha256:c139aea9805b4cc7c4cb55a226313329a5f674b11f408c14a2dea3087a3cbe70
+  resolved_url: http://127.0.0.1:18431/v1/packages/operations/parent/versions/1.0.0/download
+  resolved_hash: sha256:e684333d07f73881db6c186057f4567a7ae61e71a572c4b2746ade5e532a1616
+- repo_url: operations/leaf
+  name: leaf
+  host: github.com
+  resolved_ref: 1.0.0
+  version: 1.0.0
+  depth: 2
+  resolved_by: operations/parent
+  package_type: apm_package
+  deployed_files:
+  - .github/instructions/leaf.instructions.md
+  deployed_file_hashes:
+    .github/instructions/leaf.instructions.md: sha256:c5536244e819ca822c6fcb26d61183db19f25caa30f2cabaab0dcc31d437af55
+  source: registry
+  content_hash: sha256:a6dad15c7afc48365c230394e628e764c714e3c30676cdd306f4c6d2c3d799a0
+  resolved_url: http://127.0.0.1:18431/v1/packages/operations/leaf/versions/1.0.0/download
+  resolved_hash: sha256:630749274e47c6794624e0500d623a1e603432aca0f3c2bf498bc338df7592b4
+deployments:
+- kind: project-relative
+  target: copilot
+  value: .github/instructions/leaf.instructions.md
+  runtime: null
+  scope: project
+  owners:
+  - operations/leaf
+  active_owner: operations/leaf
+  content_hash: sha256:c5536244e819ca822c6fcb26d61183db19f25caa30f2cabaab0dcc31d437af55
+- kind: project-relative
+  target: copilot
+  value: .github/instructions/parent.instructions.md
+  runtime: null
+  scope: project
+  owners:
+  - operations/parent
+  active_owner: operations/parent
+  content_hash: sha256:3f6293c7e4a1e64ccb4a4124dd8506d1f330c189e41e899fa62a67baa7ed12da

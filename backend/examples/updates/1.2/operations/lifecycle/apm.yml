@@ -1,0 +1,33 @@
+# Lifecycle commands are deliberately harmless and initially untrusted.
+name: operations-lifecycle
+version: 1.0.0
+targets: [copilot]
+dependencies:
+  apm:
+    - path: ./package
+includes: auto
+lifecycle:
+  pre-install:
+    - type: command
+      command: python record.py
+      timeoutSec: 5
+  post-install:
+    - type: command
+      command: python record.py
+      timeoutSec: 5
+  pre-update:
+    - type: command
+      command: python record.py
+      timeoutSec: 5
+  post-update:
+    - type: command
+      command: python record.py
+      timeoutSec: 5
+  pre-uninstall:
+    - type: command
+      command: python record.py
+      timeoutSec: 5
+  post-uninstall:
+    - type: command
+      command: python record.py
+      timeoutSec: 5

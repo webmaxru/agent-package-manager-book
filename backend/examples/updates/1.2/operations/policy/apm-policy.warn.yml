@@ -1,0 +1,5 @@
+# An absent required package is a policy-only violation; nothing is fetched.
+name: Operations warning rehearsal
+enforcement: warn
+dependencies:
+  require: [example-org/required-review-package#v1.0.0]

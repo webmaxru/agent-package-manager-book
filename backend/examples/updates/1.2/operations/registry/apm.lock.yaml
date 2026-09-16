@@ -1,0 +1,73 @@
+lockfile_version: '2'
+apm_version: 0.31.0
+dependencies:
+- repo_url: operations/exact
+  name: exact
+  host: github.com
+  resolved_ref: 1.0.0
+  version: 1.0.0
+  package_type: apm_package
+  deployed_files:
+  - .github/instructions/exact.instructions.md
+  deployed_file_hashes:
+    .github/instructions/exact.instructions.md: sha256:1f1e2370c858c1c55e3e37ed66b23a93c003349e0600a161bf8eb92920337bc4
+  source: registry
+  content_hash: sha256:44130bee98159567e75a7daa3e66204356b2c4adfe6b9e755e1383539f5a5efe
+  resolved_url: http://127.0.0.1:18431/v1/packages/operations/exact/versions/1.0.0/download
+  resolved_hash: sha256:8e1dec8b5d49dea68be67302bd96ec4bad440e78f2a91c623251a0a47bc5857b
+- repo_url: operations/other
+  name: other
+  host: github.com
+  resolved_ref: 1.0.0
+  version: 1.0.0
+  package_type: apm_package
+  deployed_files:
+  - .github/instructions/other.instructions.md
+  deployed_file_hashes:
+    .github/instructions/other.instructions.md: sha256:0885ec38d4d5c06e2dd3ff1bda8c4fa91d77ce13ffcf5abb3dc7c39f363f3a20
+  source: registry
+  content_hash: sha256:9b2f5e8607c24337172570215c7c9257ee4ddb51be1dc5a3a9573af467a98501
+  resolved_url: http://127.0.0.1:18431/v1/packages/operations/other/versions/1.0.0/download
+  resolved_hash: sha256:fce80fffd6784f291a5979f9c1e7aab12b68ea31ce9e5db357dc4c93d45e4ec5
+- repo_url: operations/range
+  name: range
+  host: github.com
+  resolved_ref: 1.0.0
+  version: 1.0.0
+  package_type: apm_package
+  deployed_files:
+  - .github/instructions/range.instructions.md
+  deployed_file_hashes:
+    .github/instructions/range.instructions.md: sha256:5b13cbf168d3d9ff9aacee53d26a0c732bd8c13bf2fda7ff272578ec9ebf43f1
+  source: registry
+  content_hash: sha256:120abd3fbfd5778c476c6243d858106e24493e8a3681d3ceec1c9674ecf383cb
+  resolved_url: http://127.0.0.1:18431/v1/packages/operations/range/versions/1.0.0/download
+  resolved_hash: sha256:a83bd13e13fac2a33d6b580b42a729365f618955635146199526e4711340483c
+deployments:
+- kind: project-relative
+  target: copilot
+  value: .github/instructions/exact.instructions.md
+  runtime: null
+  scope: project
+  owners:
+  - operations/exact
+  active_owner: operations/exact
+  content_hash: sha256:1f1e2370c858c1c55e3e37ed66b23a93c003349e0600a161bf8eb92920337bc4
+- kind: project-relative
+  target: copilot
+  value: .github/instructions/other.instructions.md
+  runtime: null
+  scope: project
+  owners:
+  - operations/other
+  active_owner: operations/other
+  content_hash: sha256:0885ec38d4d5c06e2dd3ff1bda8c4fa91d77ce13ffcf5abb3dc7c39f363f3a20
+- kind: project-relative
+  target: copilot
+  value: .github/instructions/range.instructions.md
+  runtime: null
+  scope: project
+  owners:
+  - operations/range
+  active_owner: operations/range
+  content_hash: sha256:5b13cbf168d3d9ff9aacee53d26a0c732bd8c13bf2fda7ff272578ec9ebf43f1

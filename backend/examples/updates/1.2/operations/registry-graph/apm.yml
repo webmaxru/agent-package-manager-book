@@ -1,0 +1,14 @@
+# The parent declares its own registry and an unbounded child range.
+name: operations-registry-graph
+version: 1.0.0
+targets: [copilot]
+registries:
+  fixture:
+    url: http://127.0.0.1:18431
+  default: fixture
+dependencies:
+  apm:
+    - registry: fixture
+      id: operations/parent
+      version: ^1.0.0
+includes: auto

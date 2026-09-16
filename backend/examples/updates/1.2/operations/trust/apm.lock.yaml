@@ -1,0 +1,68 @@
+lockfile_version: '1'
+apm_version: 0.31.0
+dependencies:
+- repo_url: _local/package
+  name: friendly-display-name
+  version: 1.0.0
+  package_type: apm_package
+  deployed_files:
+  - .claude/rules/notice.md
+  - .github/instructions/notice.instructions.md
+  deployed_file_hashes:
+    .claude/rules/notice.md: sha256:0e9191aa752178c2d6af08a79ef3936df870498ab2ce692d72eb44616e585629
+    .github/instructions/notice.instructions.md: sha256:c1243001e9e1f8c9b72cf74291438138e48432d10c36cff6fd9661925f0b243a
+  source: local
+  local_path: ./package
+  exec_status: gated_pending_approval
+deployments:
+- kind: project-relative
+  target: claude
+  value: .claude/rules/notice.md
+  runtime: null
+  scope: project
+  owners:
+  - ./package
+  active_owner: ./package
+  content_hash: sha256:0e9191aa752178c2d6af08a79ef3936df870498ab2ce692d72eb44616e585629
+- kind: project-relative
+  target: copilot
+  value: .github/instructions/notice.instructions.md
+  runtime: null
+  scope: project
+  owners:
+  - ./package
+  active_owner: ./package
+  content_hash: sha256:c1243001e9e1f8c9b72cf74291438138e48432d10c36cff6fd9661925f0b243a
+- kind: uri
+  target: mcp
+  value: operations-trust-fixture
+  runtime: claude
+  scope: project
+  owners:
+  - .
+  active_owner: .
+  content_hash: null
+- kind: uri
+  target: mcp
+  value: operations-trust-fixture
+  runtime: copilot
+  scope: project
+  owners:
+  - .
+  active_owner: .
+  content_hash: null
+mcp_servers:
+- operations-trust-fixture
+mcp_configs:
+  operations-trust-fixture:
+    name: operations-trust-fixture
+    transport: stdio
+    registry: false
+    command: operations-trust-not-a-real-server
+mcp_target_servers:
+  claude:
+  - operations-trust-fixture
+  copilot:
+  - operations-trust-fixture
+mcp_config_provenance:
+  operations-trust-fixture: friendly-display-name

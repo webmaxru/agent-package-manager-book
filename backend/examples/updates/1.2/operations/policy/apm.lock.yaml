@@ -1,0 +1,38 @@
+lockfile_version: '1'
+dependencies: []
+deployments:
+- kind: project-relative
+  target: claude
+  value: .claude/rules/notice.md
+  runtime: null
+  scope: project
+  owners:
+  - .
+  active_owner: .
+  content_hash: sha256:ff9cedc22d2cdcbd0594abd4de7a46e3c0c8b473201e9dcf5e3bf10800b37757
+- kind: project-relative
+  target: copilot
+  value: .github/instructions/notice.instructions.md
+  runtime: null
+  scope: project
+  owners:
+  - .
+  active_owner: .
+  content_hash: sha256:5c105ee4e450b09a6db0257a6e57e79f982fc29ee15f8586701d0d69f38ee3e4
+- kind: project-relative
+  target: cursor
+  value: .cursor/rules/notice.mdc
+  runtime: null
+  scope: project
+  owners:
+  - .
+  active_owner: .
+  content_hash: sha256:4c2d6fd3743b7c2f1e02b2d72bb03f684bd1b4dbeecfc1ead7e53db635f64696
+local_deployed_files:
+- .claude/rules/notice.md
+- .cursor/rules/notice.mdc
+- .github/instructions/notice.instructions.md
+local_deployed_file_hashes:
+  .claude/rules/notice.md: sha256:ff9cedc22d2cdcbd0594abd4de7a46e3c0c8b473201e9dcf5e3bf10800b37757
+  .cursor/rules/notice.mdc: sha256:4c2d6fd3743b7c2f1e02b2d72bb03f684bd1b4dbeecfc1ead7e53db635f64696
+  .github/instructions/notice.instructions.md: sha256:5c105ee4e450b09a6db0257a6e57e79f982fc29ee15f8586701d0d69f38ee3e4
