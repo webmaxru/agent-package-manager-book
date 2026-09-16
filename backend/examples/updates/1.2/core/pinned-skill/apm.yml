@@ -1,0 +1,11 @@
+# A single public skill at an immutable commit, with no transitive dependencies.
+name: pinned-public-skill
+version: 1.0.0
+targets: [copilot, claude, cursor]
+dependencies:
+  apm:
+    - git: microsoft/apm-sample-package
+      ref: fb2851683be0e0e7711421d518bd8dba23b0b1f6
+      path: .apm/skills/style-checker
+  mcp: []
+includes: auto

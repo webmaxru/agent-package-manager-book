@@ -2,10 +2,27 @@
   Chapter 5 - Install & Restore (authored content fragment).
   Injected by site/generate.py into site/chapters/install-and-restore.html at each
   slot marker below. No page chrome, no h1/h2 (the shell renders those).
-  APM CLI referenced: v0.23.1. Ground truth: apm-cli-explorer verification of the
+  Historical APM CLI: v0.23.1. Ground truth: apm-cli-explorer verification of the
   Meridian v0.1.0 -> v0.2.0 loop (add microsoft/apm-sample-package#v1.0.0,
   resolved_commit fb285168, content_hash 744cca54; bare restore byte-stable;
   no-target install exits 2; apm run needs a harness CLI on PATH), 2026-07-02.
+  Edition 1.2 pilot target: APM 0.31.0. Current authority:
+  content/research/updates/1.2/theory.md and core-reference.md.
+  Independent checks: content/research/updates/1.2/ch05-verification.md (2026-09-16).
+  The evidence records the frozen local-path exception and the legacy-marker audit defect.
+  No commands were executed during chapter authoring.
+
+  Verifier path aliases used in the example comments below:
+  RunRoot = C:\Users\masalnik\.copilot\session-state\2d4facdd-cd43-4bef-9f47-dc669687d65a\files\book-v1.2
+  CoreFixtures = backend/examples/updates/1.2/core
+  VerifyRoot = RunRoot/verify-ch05
+  Frozen executable (use this exact binary, not PATH resolution):
+  C:\Users\masalnik\.copilot\session-state\2d4facdd-cd43-4bef-9f47-dc669687d65a\files\book-v1.2\apm-native\unpacked\apm-windows-x86_64\apm.exe
+  Use fresh short-path normal-CWD copies and isolated home/cache per core-reference.md.
+  Explorer probe IDs map to RunRoot/core-probes/logs/<id>.json and .txt;
+  independent record IDs map to VerifyRoot/logs/<id>.json and .txt.
+  Historical block numbers refer to RunRoot/core-probes/historical-core-blocks.json;
+  their original source is content/research/05-install-and-restore-reference.md.
   Cite official docs, not source-docs.
 -->
 
@@ -14,13 +31,20 @@
   After this chapter you can run APM's four-command consumer loop &mdash; <code>apm init</code>,
   <code>apm install &lt;pkg&gt;</code>, bare <code>apm install</code>, and <code>apm run &lt;script&gt;</code>
   &mdash; and tell its two install jobs apart: <em>add</em> (grow the manifest and re-lock) versus
-  <em>restore</em> (reproduce exactly what is already declared). You will read the lockfile entry an
+  <em>restore</em> (replay unchanged intent from its lockfile). You will read the lockfile entry an
   install writes, know why a no-target install stops with exit <code>2</code> instead of guessing a
-  harness, and know why <code>apm run</code> needs a runtime CLI on your <code>PATH</code>. This is the
-  operation that turns <a href="the-manifest-apm-yml.html">Chapter 4</a>'s declaration into identical
-  on-disk context in every developer's tools &mdash; the moment
+  harness, and know why a script that names a harness needs that runtime CLI on your <code>PATH</code>.
+  This is the operation that turns <a href="the-manifest-apm-yml.html">Chapter 4</a>'s declaration into
+  the same supported context in each tool's native format &mdash; the moment
   <span class="property property--portability">Portability</span> stops being a promise and becomes a
   fact.
+</p>
+<p>
+  <strong>Edition 1.2 &mdash; current behavior: APM 0.31.0.</strong> Current examples below were
+  independently checked on 2026-09-16. The original full-package Meridian loop and live Copilot
+  recording remain explicitly historical v0.23.1 examples; their outputs, hashes, and timings have
+  not been relabeled. Use the
+  <a href="#ch5-current-setup">small current fixtures</a> to follow along with this edition.
 </p>
 
 <!-- SLOT: concept-theory -->
@@ -29,33 +53,35 @@
   <a href="the-manifest-apm-yml.html">Chapter 4</a> gave Meridian an <code>apm.yml</code>. On its own,
   that file changes nothing about what an agent sees: no instruction is in force, no prompt is
   available, no MCP server is wired up. A manifest is a <em>declaration</em> of what should exist;
-  something still has to make it exist. <strong>Install is that something.</strong> It &ldquo;resolves
-  the dependencies declared in <code>apm.yml</code>, downloads them &hellip; and deploys the resulting
-  primitives plus the project's own <code>.apm/</code> content into every harness target it detects. It
-  writes <code>apm.lock.yaml</code> so the next install on any machine reproduces the same files&rdquo;
-  (<a href="https://microsoft.github.io/apm/reference/cli/install/" rel="noreferrer">apm install</a>).
+  something still has to make it exist. <strong>Install is that something.</strong> It resolves
+  declared dependencies, materializes their content, and integrates eligible primitives and local
+  sources for the selected, supported targets. The resulting lockfile records installed state for
+  the next contributor
+  (<a href="https://github.com/microsoft/apm/blob/8fd10ac5eafee7ca77d41cc34ba139d812fdacd5/docs/src/content/docs/reference/cli/install.md" rel="noreferrer">APM 0.31.0 install reference</a>).
 </p>
 <p>
   We call this move <strong>materialization</strong>: turning the declared state (<code>apm.yml</code>
   plus its lockfile) into real files each tool reads natively. It is where the book's first property
   becomes observable. Chapters 1&ndash;4 argued that scattered, hand-copied context <em>drifts</em>; a
-  manifest only ends that drift if there is a single, mechanical way to realize it identically
-  everywhere &mdash; &ldquo;the next contributor runs bare <code>apm install</code> and gets the same
-  bytes, pinned by commit and content hash&rdquo;
-  (<a href="https://microsoft.github.io/apm/consumer/install-packages/" rel="noreferrer">Install
-  packages</a>). Editing the manifest without installing leaves the declared and materialized states out
-  of sync &mdash; the very gap <a href="the-lockfile-and-reproducibility.html">Chapter 6</a> formalizes.
+  manifest only ends that drift if there is a single, mechanical way to realize its intent.
+  <strong>Portability is not cross-harness byte equality:</strong> Copilot instructions, Claude rules,
+  and Cursor rules can have different frontmatter while expressing the same source instruction.
+  Reproducibility compares each target's output with the corresponding output from the same sources,
+  lockfile, targets, and CLI version. Editing the manifest without installing leaves the declared and
+  materialized states out of sync &mdash; the very gap
+  <a href="the-lockfile-and-reproducibility.html">Chapter 6</a> formalizes.
 </p>
 <p>
-  Install is not &ldquo;just downloading packages,&rdquo; either. It is a fail-closed pipeline &mdash;
-  <em>resolve, policy gate, scan, integrate, lockfile</em> &mdash; and a security scan (plus an org
-  policy gate, if present) runs &ldquo;before writing anything to disk&rdquo;
-  (<a href="https://microsoft.github.io/apm/consumer/install-packages/" rel="noreferrer">Install
-  packages</a>). That gate is <a href="security-by-default.html">Chapter 8</a>'s subject; here it is
-  enough to see install as <em>gated deployment</em>, not a copy. And notice the by-product: every
-  install writes <code>apm.lock.yaml</code>, which seeds
-  <span class="property property--reproducibility">Reproducibility</span> &mdash; the lockfile itself is
-  <a href="the-lockfile-and-reproducibility.html">Chapter 6</a>, so for now just notice it appear.
+  Install is not &ldquo;just downloading packages,&rdquo; either. Think
+  <em>resolve, policy gate, scan, integrate, lockfile</em>: applicable policy and security checks gate
+  agent-readable deployment. Acquisition, cache, and staging writes can happen earlier; the scan
+  covers the authorized deployable content, not every file in a source repository. That boundary is
+  <a href="security-by-default.html">Chapter 8</a>'s subject; here it is enough to see install as
+  <em>gated deployment</em>, not a copy
+  (<a href="https://github.com/microsoft/apm/blob/8fd10ac5eafee7ca77d41cc34ba139d812fdacd5/docs/src/content/docs/reference/cli/install.md" rel="noreferrer">install behavior and safety</a>).
+  The package and native-rule installs in this chapter record <code>apm.lock.yaml</code>, seeding
+  <span class="property property--reproducibility">Reproducibility</span>. An empty or compile-only
+  operation need not produce a lockfile; successful exit alone does not prove materialization.
 </p>
 
 <h4>The daily loop: four commands, one habit</h4>
@@ -93,7 +119,7 @@
     </tr>
     <tr>
       <td><code>apm install</code></td>
-      <td><strong>restore</strong> from the lockfile</td>
+      <td><strong>restore</strong> unchanged intent from the lockfile</td>
       <td>Anika clones a fresh repo</td>
     </tr>
     <tr>
@@ -104,7 +130,7 @@
   </tbody>
 </table>
 <p>
-  Only <code>apm init</code> is one-time; the other three recur. Heavier maintenance &mdash;
+  Scaffolding with <code>apm init</code> is one-time; the other three verbs recur. Heavier maintenance &mdash;
   <code>update</code>, <code>outdated</code>, <code>audit</code> &mdash; is deliberate work saved for
   <a href="lifecycle.html">Chapter 7</a>, not part of the daily path. And the loop does not grow when
   <span class="property property--governance">Governance</span> arrives: &ldquo;Consumer commands are
@@ -120,9 +146,10 @@
   one or more <code>PACKAGE_REF</code> arguments it adds those packages to <code>apm.yml</code> &hellip;
   and installs only what was added&rdquo;
   (<a href="https://microsoft.github.io/apm/reference/cli/install/" rel="noreferrer">apm install</a>).
-  Bare install is a <strong>restore</strong> &mdash; it replays the manifest and lockfile and deploys the
-  same bytes. <code>apm install &lt;pkg&gt;</code> is an <strong>add</strong> &mdash; it resolves a new
-  dependency, writes it into <code>dependencies.apm</code>, and re-locks.
+  With an unchanged manifest and matching lockfile, bare install is a <strong>restore</strong>:
+  it reuses the locked dependency graph. <code>apm install &lt;pkg&gt;</code> is an
+  <strong>add</strong> &mdash; it declares a dependency in <code>dependencies.apm</code>, installs it,
+  and re-locks.
 </p>
 <p>
   These are the two halves of team dependency work. <em>Add</em> is how the manifest grows &mdash; a
@@ -130,12 +157,13 @@
   <code>package.json</code>. <em>Restore</em> is how everyone else catches up without thinking, and it is
   where the whole book's onboarding promise lands: <strong><code>git clone</code> + <code>apm install</code></strong>
   replaces the wiki page, the Slack thread, and the &ldquo;copy my prompt files&rdquo; dance from
-  <a href="the-context-problem.html">Chapter 1</a>. Crucially, restore <em>reproduces</em>; it does not
-  <em>upgrade</em>. &ldquo;To refresh dependencies to their latest matching versions or refs, use
-  <code>apm update</code>&rdquo;
-  (<a href="https://microsoft.github.io/apm/consumer/install-packages/" rel="noreferrer">Install
-  packages</a>) &mdash; that consent-gated move is <a href="lifecycle.html">Chapter 7</a>. Conflating
-  &ldquo;restore&rdquo; with &ldquo;update&rdquo; is the one error this chapter most wants to prevent.
+  <a href="the-context-problem.html">Chapter 1</a>. Crucially, unchanged intent replays; changed intent
+  is <strong>reconciled</strong>. Editing a dependency's ref, changing local sources, or installing
+  without a lockfile can cause ordinary install to resolve or materialize something new. For a
+  deliberate refresh of an unchanged declaration, use the consent-gated <code>apm update</code>
+  workflow in <a href="lifecycle.html">Chapter 7</a>. Do not confuse replay with refresh &mdash; but
+  do not expect an old lock to overrule a ref you explicitly changed, either
+  (<a href="https://github.com/microsoft/apm/blob/8fd10ac5eafee7ca77d41cc34ba139d812fdacd5/docs/src/content/docs/reference/lockfile-spec.md" rel="noreferrer">locked replay and fresh resolution</a>).
 </p>
 
 <aside class="meridian-beat">
@@ -145,12 +173,20 @@
     <a href="the-context-problem.html">Chapter 1</a> meant a wiki page, a Slack thread, and borrowed
     prompt files &mdash; joins the checkout team. This time she runs two commands:
   </p>
-  <pre><code class="language-bash">git clone git@github.com:meridian/meridian-checkout.git
+  <!-- ch5-meridian-clone: historical block 1, unchanged code; fictional private story URL, not a live fixture. -->
+  <figure class="code-example" id="ch5-meridian-clone">
+    <figcaption>
+      Anika's clone-and-restore habit. The Meridian URL is fictional and private:
+      <span class="needs-network">SKIPPED-needs-network &mdash; illustration, not an accessible repository</span>.
+      Use the local or public fixtures below for execution.
+    </figcaption>
+    <pre><code class="language-bash">git clone git@github.com:meridian/meridian-checkout.git
 cd meridian-checkout && apm install        # bare install = restore from the lockfile</code></pre>
+  </figure>
   <p>
     She opens the repo in Cursor; a teammate opens the same commit in Copilot. They see the
-    <em>same</em> checkout instruction and the same shared context, byte for byte &mdash; no wiki, no
-    Slack, no copied files. The <a href="the-context-problem.html">Chapter 1</a> drift is simply gone.
+    <em>same</em> checkout rules and shared context in the tools' native forms &mdash; no wiki, no
+    Slack, no copied files. The <a href="the-context-problem.html">Chapter 1</a> hand-copying drift is gone.
     Separately, the team does its two everyday things this chapter: someone runs
     <code>apm install &lt;pkg&gt;</code> to <em>add</em> a pinned public dependency, and declares a
     <code>review</code> script &mdash; advancing the manifest from v0.1.0 to <strong>v0.2.0</strong>.
@@ -164,22 +200,100 @@ cd meridian-checkout && apm install        # bare install = restore from the loc
   You already met <code>apm init</code> in <a href="the-manifest-apm-yml.html">Chapter 4</a>: it
   &ldquo;creates a minimal <code>apm.yml</code> &hellip; so you can start running <code>apm install</code>
   immediately&rdquo; (<a href="https://microsoft.github.io/apm/reference/cli/init/" rel="noreferrer">apm
-  init</a>), and you run it once. The rest of this section is the other three verbs, each tied to the
-  concept it implements: <em>add</em> and <em>restore</em> materialize the manifest, targeting decides
-  where files land, and <code>apm run</code> executes a declared script.
+  init</a>). Plain <code>apm init --yes</code> in an empty directory still creates only
+  <code>apm.yml</code> &mdash; no source tree, deployment, or lockfile. Existing context has a separate
+  onboarding path below. Then the other three verbs do their usual jobs: <em>add</em> and
+  <em>restore</em> materialize the manifest, targeting decides where files land, and
+  <code>apm run</code> executes a declared script.
 </p>
+
+<aside class="callout callout-info">
+  <h3>Already have a skill? Discover, then consent</h3>
+  <p>
+    Bringing existing content under management is a declaration change, not permission to move or
+    translate its source. APM 0.31.0 separates a read-only inventory from an explicitly authorized
+    merge. For example, an existing <code>.claude/skills/checkout-review/SKILL.md</code> can become a
+    local dependency without first being copied into <code>.apm/</code>
+    (<a href="https://github.com/microsoft/apm/blob/8fd10ac5eafee7ca77d41cc34ba139d812fdacd5/docs/src/content/docs/reference/cli/init.md" rel="noreferrer">discovery and apply</a>).
+  </p>
+  <!--
+    ch5-discover-apply: independent PASS at 0.31.0, 2026-09-16 (see report).
+    Exact pre-apply input: RunRoot/core-probes/projects/onboard, ONLY
+    .claude/skills/checkout-review/SKILL.md and .claude/rules/manual-rule.md.
+    Recreate that initial state in a fresh copy; the preserved project later gained a manifest/output.
+    Sources: ch5-discover, ch5-discover-apply, ch5-discover-no-consent,
+    ch5-discover-idempotent, ch5-discover-target-conflict.
+    First command: exit 0, no file changes. Consented apply: exit 0, only apm.yml added.
+    The exported CoreFixtures/onboard-skill is the pinned END state, not the pre-apply input.
+  -->
+  <figure class="code-example" id="ch5-discover-apply">
+    <figcaption>
+      Inventory an existing Claude-layout skill, then authorize the manifest merge &mdash; two
+      separate decisions, neither an install. Pre-apply fixture: the skill and loose rule, no
+      <code>apm.yml</code> or lockfile. Offline.
+      <span class="apm-version">apm v0.31.0 &mdash; verified 2026-09-16</span>
+    </figcaption>
+    <pre><code class="language-bash">apm init --discover --format json
+apm init --discover --apply --yes --format json</code></pre>
+  </figure>
+  <p>
+    The first command reports findings without writes. The second adds
+    <code>path: ./.claude/skills/checkout-review</code> under <code>dependencies.apm</code>;
+    it does not move the skill, create a lockfile, or deploy it. Without consent, noninteractive
+    apply exits <code>1</code>; repeating the consented merge does not duplicate the reference.
+    The probe's loose <code>.claude/rules/manual-rule.md</code> was reported as
+    <code>unsupported</code> and preserved, not silently converted into a package.
+  </p>
+  <p>
+    Before installing, deliberately pin the destinations. Discovery/apply does not add targets,
+    and combining discovery with <code>--target</code> is invalid. Here is the small, already-declared
+    end-state fixture with Copilot selected &mdash; <em>not</em> the automatic output of apply:
+  </p>
+  <!--
+    ch5-onboard-manifest: exact CoreFixtures/onboard-skill/apm.yml; source .claude/skills/checkout-review/SKILL.md.
+    Sources: fixture-onboard-skill-install, fixture-onboard-skill-restore,
+    fixture-onboard-skill-frozen, fixture-onboard-skill-audit (all observed exit 0).
+    Independent PASS at 0.31.0, 2026-09-16 (see report).
+  -->
+  <figure class="code-example" id="ch5-onboard-manifest">
+    <figcaption>
+      <code>backend/examples/updates/1.2/core/onboard-skill/apm.yml</code> &mdash; an existing
+      source plus a durable target choice. Offline.
+      <span class="apm-version">apm v0.31.0 &mdash; verified 2026-09-16</span>
+    </figcaption>
+    <pre><code class="language-yaml"># Reference an existing skill without moving or translating its source.
+name: core-onboard-skill
+version: 1.0.0
+targets: [copilot]
+dependencies:
+  apm:
+    - path: ./.claude/skills/checkout-review</code></pre>
+  </figure>
+  <p>
+    Only the later bare <code>apm install</code> materializes that declaration, producing
+    <code>.agents/skills/checkout-review/SKILL.md</code> while retaining the Claude-layout source.
+    Pinning the target avoids letting those source directories drive later auto-detection.
+    This is a migration aid, not a replacement for the four-command habit. Do not run plain
+    <code>apm init --yes</code> over an authored manifest as a merge shortcut: it can overwrite it.
+  </p>
+</aside>
 
 <h4>Add: <code>apm install &lt;pkg&gt;</code> grows the manifest and re-locks</h4>
 <p>
-  Meridian's team wants a public package's primitives. One command pins it, resolves it (transitively),
-  deploys it into all three harnesses, and updates both <code>apm.yml</code> and the lockfile. This is
-  <em>materialization</em> in action &mdash; a one-line declaration becomes real files the tools read:
+  Meridian's team wants a public package's primitives. Its original recorded add pinned the direct
+  dependency, resolved its transitive graph, deployed supported primitives into all three harnesses,
+  and updated both <code>apm.yml</code> and the lockfile. This is <em>materialization</em> in action.
+  The following full-package recording remains historical; the
+  <a href="#ch5-current-setup">current exercise</a> deliberately selects just one immutable public skill
+  rather than claiming to have rerun this larger graph.
 </p>
-<figure class="code-example">
+<!-- ch5-add-historical: historical block 2 and original Ch5 reference Step 1; code unchanged, not rerun at 0.31.0. -->
+<figure class="code-example" id="ch5-add-historical">
   <figcaption>
-    Adding one pinned public dependency to Meridian. The add mutates <code>apm.yml</code> and re-locks;
-    <code>--target</code> wins the precedence chain. <span class="needs-network">needs network</span>
-    <span class="apm-version">apm v0.23.1</span>
+    Historical Meridian add: the full public sample and its transitive dependency, recorded
+    2026-07-02. The add changed the manifest and re-locked; the target flag won.
+    <span class="needs-network">needs network</span>
+    <span class="apm-version">apm v0.23.1 &mdash; not rerun at 0.31.0</span>
   </figcaption>
   <pre><code class="language-text">$ apm install microsoft/apm-sample-package#v1.0.0 --target copilot,claude,cursor
   [*] Validating 1 package...
@@ -195,13 +309,14 @@ cd meridian-checkout && apm install        # bare install = restore from the loc
   [*] Installed 2 APM dependencies in 56.0s.                      # exit 0</code></pre>
 </figure>
 <p>
-  The add wrote one pinned line into the manifest &mdash; <code>owner/repo#&lt;ref&gt;</code>, the
-  deterministic form from <a href="the-manifest-apm-yml.html">Chapter 4</a>:
+  That historical add wrote one pinned line into the manifest &mdash; <code>owner/repo#&lt;ref&gt;</code>,
+  the explicit-ref form from <a href="the-manifest-apm-yml.html">Chapter 4</a>:
 </p>
-<figure class="code-example">
+<!-- ch5-added-manifest-historical: historical block 3, Step 1(a); excerpt, unchanged, not a current fixture. -->
+<figure class="code-example" id="ch5-added-manifest-historical">
   <figcaption>
-    <code>apm.yml</code> after the add &mdash; the pinned entry APM inserted into
-    <code>dependencies.apm</code>. <span class="apm-version">apm v0.23.1</span>
+    Historical <code>apm.yml</code> excerpt after the full-package add &mdash; the inserted dependency.
+    <span class="apm-version">apm v0.23.1 &mdash; not rerun at 0.31.0</span>
   </figcaption>
   <pre><code class="language-yaml">dependencies:
   apm:
@@ -212,14 +327,16 @@ cd meridian-checkout && apm install        # bare install = restore from the loc
   And it wrote the lockfile record &mdash; the by-product that seeds
   <span class="property property--reproducibility">Reproducibility</span>. Notice the two fields that make
   restore exact: <code>resolved_commit</code> (the precise SHA the tag <code>v1.0.0</code> pointed at) and
-  <code>content_hash</code> (the fingerprint of what was deployed). You do not author this file; APM
+  <code>content_hash</code> (the fingerprint of the materialized package tree). Separate deployed-file
+  hashes describe the native outputs. You do not author this file; APM
   generates it. <a href="the-lockfile-and-reproducibility.html">Chapter 6</a> studies it in full &mdash;
   here, just notice it appear:
 </p>
-<figure class="code-example">
+<!-- ch5-lock-historical: historical block 4, Step 1(b); original full-package hash, not the new single-skill hash. -->
+<figure class="code-example" id="ch5-lock-historical">
   <figcaption>
-    The lockfile record install writes for the pinned dependency &mdash; exact commit + content hash. A
-    generated artifact; never hand-edited. <span class="apm-version">apm v0.23.1</span>
+    Historical generated lock excerpt for the full package &mdash; exact commit plus package-tree
+    hash, not a complete restore file. <span class="apm-version">apm v0.23.1 &mdash; not rerun at 0.31.0</span>
   </figcaption>
   <pre><code class="language-yaml"># apm.lock.yaml (generated)
 dependencies:
@@ -234,22 +351,27 @@ dependencies:
   hand-copying, pinned by commit and hash for the next person. The manifest edit was
   <em>declaration</em>; this command was <em>materialization</em>. (The
   <code>[!] 1 dependency unpinned</code> warning is about the sample's own transitive dependency &mdash;
-  the lockfile still pins it by <code>resolved_commit</code>, so restore stays deterministic; it is a
-  <a href="the-lockfile-and-reproducibility.html">Chapter 6</a> concern about future drift, not a failure
-  here.)
+  the recorded lock pinned it by <code>resolved_commit</code>. Replaying that unchanged graph differs
+  from resolving it afresh without the lock &mdash; a
+  <a href="the-lockfile-and-reproducibility.html">Chapter 6</a> concern, not an install failure in this
+  recording.)
 </p>
 
-<h4>Restore: bare <code>apm install</code> reproduces byte-for-byte</h4>
+<h4>Restore: bare <code>apm install</code> replays unchanged intent</h4>
 <p>
-  Re-running <code>apm install</code> with no argument is the onboarding path from the Meridian beat. It
-  is <em>idempotent and cache-served</em>, not a fresh download: APM replays the pipeline from the
-  content-addressed <code>apm_modules/</code> cache and re-emits a byte-identical lockfile.
+  Re-running <code>apm install</code> with no argument is the onboarding path from the Meridian beat.
+  With unchanged declarations and a matching lockfile, Git dependencies reuse the locked graph,
+  including transitive manifests. Local source files must also remain unchanged to reproduce their
+  outputs. An intact <code>apm_modules/</code> tree or cache can serve a replay; a fresh clone may
+  need network access to hydrate the same locked source. Cache availability affects acquisition,
+  not which commit the lock selected.
 </p>
-<figure class="code-example">
+<!-- ch5-restore-historical: historical block 5, original Step 2; keep the old timestamp/timing as historical output only. -->
+<figure class="code-example" id="ch5-restore-historical">
   <figcaption>
-    Bare <code>apm install</code> restores from the lockfile &mdash; served from cache (~10s vs ~56s
-    cold), and the lockfile is byte-stable. This is the <code>git clone</code> + <code>apm install</code>
-    promise. <span class="apm-version">apm v0.23.1</span>
+    Historical warm restore of the full-package fixture. Its lock bytes were unchanged; the
+    recorded timing and legacy <code>generated_at</code> are not current reproducibility tests.
+    <span class="apm-version">apm v0.23.1 &mdash; not rerun at 0.31.0</span>
   </figcaption>
   <pre><code class="language-text">$ apm install                                              # bare = restore (no package argument)
   [i] Targets: claude, copilot, cursor  (source: apm.yml)  # &lt;- now from the manifest, not a flag
@@ -260,11 +382,28 @@ dependencies:
 # apm.lock.yaml is byte-identical -- generated_at unchanged: 2026-07-02T00:01:57...+00:00</code></pre>
 </figure>
 <p>
-  That byte-stable lockfile is the proof behind the promise: the same declaration produces the same
-  bytes on any machine. Restore <em>reproduces</em>; it never chases newer versions. (A stricter,
-  CI-oriented cousin, <code>apm install --frozen</code>, refuses to resolve anything new and fails if
-  manifest and lockfile have drifted &mdash; the <code>npm ci</code> parallel, developed in
-  <a href="the-lockfile-and-reproducibility.html">Chapter 6</a>.)
+  In 0.31.0, newly generated locks omit <code>generated_at</code>; legacy locks may retain it.
+  Compare complete lock bytes and the expected native outputs, not a clock. The current local and
+  public fixtures produced byte-stable locks on replay. Some restores now print
+  <code>No changes -- install state already up to date</code>; others still print an installed
+  dependency count. Neither wording is a universal completeness check
+  (<a href="https://github.com/microsoft/apm/blob/8fd10ac5eafee7ca77d41cc34ba139d812fdacd5/docs/src/content/docs/reference/lockfile-spec.md" rel="noreferrer">lockfile and replay contract</a>).
+</p>
+<!--
+  F1 correction: frozenlocal-new-local-frozen (exit 0; deployed new local skill, rewrote lock);
+  contrast frozenlocal-missing-git-frozen and boundaries-missing-lock (exit 1, no writes).
+  See ch05-verification.md F1 and VerifyRoot logs for the scoped frozen behavior.
+-->
+<p id="ch5-frozen-boundary">
+  For CI, <code>apm install --frozen</code> requires an existing lock and performs
+  <em>limited structural checks</em>. It can still fetch locked content into a cold cache.
+  In 0.31.0, its direct-dependency presence check skips local paths: a newly declared local
+  dependency can still deploy and rewrite the old lock with exit <code>0</code>
+  (<a href="https://github.com/microsoft/apm/blob/8fd10ac5eafee7ca77d41cc34ba139d812fdacd5/src/apm_cli/install/plan.py#L453-L487" rel="noreferrer">frozen consistency check</a>).
+  It is not an on-disk content audit; that separate job belongs to <code>apm audit</code>.
+  We use both in the <a href="#ch5-current-setup">current exercise</a>,
+  then develop them in <a href="the-lockfile-and-reproducibility.html">Chapter 6</a> and
+  <a href="lifecycle.html">Chapter 7</a>.
 </p>
 
 <h4>Targeting at install time &mdash; no implicit &ldquo;one true harness&rdquo;</h4>
@@ -276,12 +415,51 @@ dependencies:
   auto-detection of harness directories already present
   (<a href="https://microsoft.github.io/apm/reference/cli/install/" rel="noreferrer">apm install</a>).
   In the add above, the <code>--target</code> flag won (<code>source: --target flag</code>); on the next
-  bare install, the manifest won (<code>source: apm.yml</code>). The flag is a <strong>per-invocation
-  override</strong> &mdash; it did not write <code>targets:</code> into <code>apm.yml</code>. Pinning
-  <code>targets:</code> in the manifest is the recommended way to make deployment identical across
-  machines. And when there is nothing to target, APM does not guess a harness &mdash; it stops and
-  teaches (see the pitfalls below). This is <span class="property property--portability">Portability</span>
-  made mechanical: one declared source set, many native destinations.
+  bare install, the manifest won (<code>source: apm.yml</code>). With an <strong>existing manifest</strong>,
+  the flag is a per-invocation override; it does not replace the authored target list. Bootstrap is
+  different: a positional add with no manifest can create <code>apm.yml</code> and persist the supplied
+  targets. Pin and review <code>targets:</code> for a durable choice rather than relying on a flag
+  from someone's earlier command
+  (<a href="https://github.com/microsoft/apm/blob/8fd10ac5eafee7ca77d41cc34ba139d812fdacd5/docs/src/content/docs/reference/cli/install.md" rel="noreferrer">selection and bootstrap</a>).
+</p>
+<!--
+  Target/ownership prose evidence: ch5-add-normal-cwd, ch5-add-normal-restore,
+  ch5-install-bootstrap-targets. ch5-target-ownership-control uses the marker-free control:
+  RunRoot/core-probes/projects/apm-over-plugin authored inputs, omitting ONLY pkg/plugin.json
+  before first install, then projects/manifest-contraction/apm.yml in the same scratch copy.
+  Setup: VerifyRoot/mutations/control-remove-marker.json and control-no-marker-contract.json.
+  Independent logs: control-no-marker-install/audit/contraction/contracted-audit (0/0/0/0).
+  Original marker-present audits remain FAIL: ownership2-contracted-audit, auditrepro-audit-json.
+  Source/human-file preservation: VerifyRoot/assertions/ownership2.json; see report F2.
+  No canonical fixture changed; not the flag-only ch5-target-contraction probe.
+  Compilation boundary: ch5-compile-only-install, ch3-explicit-compile,
+  ch3-handwritten-root-preserved (projects/compile-only and projects/root-preserve).
+-->
+<p>
+  Targets authorize destinations; package restrictions can narrow that set, not expand it. When a
+  manifest's target set changes, install reconciles recorded ownership rather than treating whole
+  harness directories as disposable. The tested input was an eligible APM package with a co-located
+  legacy <code>plugin.json</code> marker. In the marker-free control, reducing four manifest targets
+  to Copilot removed stale managed outputs for the other targets while retaining Copilot's
+  outputs and the package source. Source files, surviving shared owners, and unrelated human-authored
+  context are not blanket cleanup targets
+  (<a href="https://github.com/microsoft/apm/blob/8fd10ac5eafee7ca77d41cc34ba139d812fdacd5/docs/src/content/docs/reference/lockfile-spec.md" rel="noreferrer">deployment ownership</a>).
+</p>
+<p>
+  This control omitted only <code>pkg/plugin.json</code> before first install; install and CI audit
+  exited <code>0</code> before and after contraction. With the legacy marker present, cleanup still
+  worked, but a 0.31.0 replay defect made CI audit expect legacy commands, exit <code>1</code>, and
+  modify <code>apm_modules/</code> (not authored sources, the lock, or deployed files).
+</p>
+<p>
+  Meridian's three targets consume native per-file rules. Do not generalize that to every profile:
+  some instruction targets, such as Codex, need explicit <code>apm compile</code> for aggregate
+  <code>AGENTS.md</code> context. The local-instruction-only Codex probe exited <code>0</code>
+  without a lockfile or <code>AGENTS.md</code>; compilation was a separate step. Default compilation
+  also preserved an existing unmarked, hand-authored root file
+  (<a href="https://github.com/microsoft/apm/blob/8fd10ac5eafee7ca77d41cc34ba139d812fdacd5/docs/src/content/docs/reference/targets-matrix.md" rel="noreferrer">target matrix</a>).
+  This is <span class="property property--portability">Portability</span> with explicit boundaries,
+  not an implicit &ldquo;one true harness.&rdquo;
 </p>
 
 <h4>Run a declared script: <code>apm run</code> (experimental) and <code>apm preview</code></h4>
@@ -297,26 +475,39 @@ dependencies:
   passed verbatim. Then it shells out to the named runtime. Critically, <strong>APM does not ship the
   runtimes</strong>: &ldquo;the runtime CLI must be on your <code>PATH</code>&rdquo;
   (<a href="https://microsoft.github.io/apm/consumer/run-scripts/" rel="noreferrer">Run scripts</a>).
+  That requirement follows the script: an ordinary shell script does not require an AI runtime.
 </p>
 <p>
-  <code>apm preview</code> is the safe, offline sibling: it compiles the script's prompt and writes it to
-  <code>.apm/compiled/</code> <em>without invoking any runtime</em> &mdash; zero cost, ideal for docs and
-  CI where you only need to see what would run:
+  <code>apm preview</code> is the compile-only sibling: it writes the script's compiled prompt to
+  <code>.apm/compiled/</code> <em>without invoking the runtime</em>. For a local prompt this is offline
+  and incurs no inference cost, ideal when you only need to inspect compilation. The current small
+  probe declares <code>review: "copilot -p .apm/prompts/review.prompt.md"</code>; its shorter filename
+  is separate from Meridian's <code>checkout-review.prompt.md</code>.
 </p>
-<figure class="code-example">
+<!--
+  ch5-preview: replaces historical block 6 with a DIFFERENT minimal current fixture.
+  Input: RunRoot/core-probes/projects/scripts/apm.yml and .apm/prompts/review.prompt.md
+  (copy authored inputs only, not the later .apm/compiled output).
+  Source: ch5-scripts-preview, exit 0; frontmatter stripped, no runtime invoked.
+  Display boxes condensed below; command, values and output path are from the Windows log.
+  Independent PASS at 0.31.0, 2026-09-16 (see report).
+-->
+<figure class="code-example" id="ch5-preview">
   <figcaption>
-    <code>apm preview review</code> compiles the prompt and invokes no runtime &mdash; offline and
-    zero-cost. <span class="apm-version">apm v0.23.1</span>
+    Current <code>scripts-probe</code> fixture: preview compiles a local prompt without running Copilot.
+    Windows output, display formatting condensed; observed exit <code>0</code>. Offline.
+    <span class="apm-version">apm v0.31.0 &mdash; verified 2026-09-16</span>
   </figcaption>
-  <pre><code class="language-text">$ apm preview review                                       # compile the prompt, run nothing
-  Original command:  copilot -p .apm/prompts/checkout-review.prompt.md
-  Compiled command:  copilot                               # &lt;- the -p &lt;file&gt; is compiled out
-  Compiled prompt files:  .apm/compiled/checkout-review.txt   # &lt;- prompt body, frontmatter stripped
-  [*] Preview complete! Use 'apm run review' to execute.   # exit 0, no runtime invoked</code></pre>
+  <pre><code class="language-text">$ apm preview review
+Original command: copilot -p .apm/prompts/review.prompt.md
+Compiled command: copilot
+Compiled prompt files: .apm\compiled\review.txt
+[*] Preview complete! Use 'apm run review' to execute.</code></pre>
 </figure>
 <p>
-  You will run the script for real in the worked example below &mdash; where the harness-CLI requirement
-  becomes the load-bearing caveat.
+  A successful preview proves compilation, not a successful agent session. The historical worked
+  example below records a real Copilot invocation; it was not repeated for this update. Current
+  execution checks used only a harmless shell command and a deliberately missing executable.
 </p>
 
 <aside class="leader-callout">
@@ -325,20 +516,25 @@ dependencies:
     Onboarding becomes <em>measurable</em>. The <a href="the-context-problem.html">Chapter 1</a> ritual
     &mdash; a wiki page, a Slack thread, and copying prompt files from a colleague &mdash; had no clear
     &ldquo;done&rdquo; and drifted the moment someone edited a local file. Restore replaces it with a
-    two-step, verifiable outcome: <code>git clone</code> then <code>apm install</code>, after which every
-    developer holds byte-identical context. Make restore part of your repo bootstrap &mdash; the
+    two-step, verifiable outcome: <code>git clone</code> then <code>apm install</code>, after which you
+    can check the expected target-native context against reviewed sources. Make restore part of your
+    repo bootstrap &mdash; the
     <code>make setup</code> target, the dev-container <code>postCreate</code>, the first line of the
     contributor guide &mdash; so <span class="property property--portability">Portability</span> is the
     default a new hire gets for free, not a checklist they might skip. &ldquo;Did onboarding work?&rdquo;
-    stops being a feeling and becomes &ldquo;did <code>apm install</code> exit <code>0</code>?&rdquo;
+    stops being a feeling and becomes &ldquo;did install succeed, did the expected files and
+    configurations arrive for the declared targets, and were any skips understood?&rdquo; Exit
+    <code>0</code> is necessary for a successful install, not proof that every requested capability
+    arrived; the integrity checks in <a href="lifecycle.html">Chapter 7</a> add another measurable gate.
   </p>
 </aside>
 
 <!-- SLOT: when-to-use-pitfalls -->
 <h3>Restore or add? Pick by intent</h3>
 <p>
-  Both jobs are the same command; the argument decides which. Choose by what you are trying to do, and
-  remember that bare install reproduces &mdash; it does not upgrade.
+  Both jobs use the same command; the argument distinguishes add from the normal install path.
+  Choose by intent: unchanged manifest and lock mean replay, while edited declarations require
+  reconciliation.
 </p>
 <table>
   <caption>Which form of <code>apm install</code> to reach for, by intent.</caption>
@@ -353,7 +549,7 @@ dependencies:
     <tr>
       <td>set up a freshly cloned repo</td>
       <td><code>apm install</code> (bare)</td>
-      <td>restore reproduces the pinned set from the lockfile</td>
+      <td>with the committed lock and sources, restore replays the pinned set</td>
     </tr>
     <tr>
       <td>add a new dependency to the project</td>
@@ -363,12 +559,12 @@ dependencies:
     <tr>
       <td>re-materialize after editing <code>apm.yml</code> by hand</td>
       <td><code>apm install</code> (bare)</td>
-      <td>it replays the manifest so declared and on-disk state match again</td>
+      <td>it reconciles the changed declaration; the resolved state and lock may change</td>
     </tr>
     <tr>
       <td>move to newer versions</td>
       <td><code>apm update</code> (<a href="lifecycle.html">Chapter 7</a>)</td>
-      <td>restore never upgrades; version moves are deliberate and consent-gated</td>
+      <td>this is the recommended consent-gated refresh workflow, not an accidental side effect of onboarding</td>
     </tr>
   </tbody>
 </table>
@@ -376,61 +572,179 @@ dependencies:
 <aside class="callout callout-warn">
   <h3>Pitfall: a no-target install stops with exit <code>2</code></h3>
   <p>
-    Because there is no implicit &ldquo;one true harness,&rdquo; an install with nothing to target does
-    not guess &mdash; it fails closed, writes nothing, and teaches. Verified in v0.23.1 with a targetless
-    manifest and no harness marker directories:
+    When context needs deployment but there is no explicit target, saved default, or detectable
+    harness, APM does not guess. The 0.31.0 local-instruction probe had a targetless manifest and no
+    harness markers; install exited <code>2</code> without changing the project:
   </p>
-  <pre><code class="language-text">$ apm install                                          # targetless manifest, no marker dirs
-  [x] No harness detected
-  APM scanned for harness markers (.claude/, .cursor/, .github/instructions/, ...) but found none.
-  Previously APM defaulted to copilot; this is now explicit.   # &lt;- no implicit "one true harness"
-  Fix with one of:
-    apm install &lt;pkg&gt; --target claude
-  Or declare in apm.yml:
-    targets:
-      - claude
-  [!] Install interrupted after 1.6s.                  # exit 2 -- nothing written (no AGENTS.md)</code></pre>
+  <!--
+    ch5-targetless: replaces historical block 7; source ch5-no-target.
+    Input: RunRoot/core-probes/projects/targetless/apm.yml and
+    .apm/instructions/probe.instructions.md only; no harness markers, no saved target,
+    no generated .gitignore from later probes.
+    Expected: exit 2, unchanged before/after file inventory, no AGENTS.md.
+    Independent PASS (expected negative) at 0.31.0, 2026-09-16 (see report).
+  -->
+  <figure class="code-example" id="ch5-targetless">
+    <figcaption>
+      Current targetless local-instruction fixture &mdash; abridged diagnostic, observed exit
+      <code>2</code>, no project writes. Offline.
+      <span class="apm-version">apm v0.31.0 &mdash; verified 2026-09-16</span>
+    </figcaption>
+    <pre><code class="language-text">$ apm install
+Error: [x] No harness detected
+
+Previously APM defaulted to copilot; this is now explicit.
+
+Or declare in apm.yml:
+
+  targets:
+    - claude</code></pre>
+  </figure>
   <p>
     <strong>Fix:</strong> declare <code>targets:</code> in <code>apm.yml</code> (recommended, so every
-    machine matches) or pass <code>--target</code> for a one-off. The tree is left as just
-    <code>apm.yml</code> + <code>.apm/</code> &mdash; no <code>AGENTS.md</code> fallback in this version.
-    This is <span class="property property--portability">Portability</span> refusing to be silently
-    wrong.
+    machine matches) or pass <code>--target</code> for a one-off on an existing manifest. There was no
+    <code>AGENTS.md</code> fallback. Do not extend this result to an empty scaffold's no-work preview,
+    which can exit <code>0</code>. This is
+    <span class="property property--portability">Portability</span> refusing to guess when deployment
+    needs a destination.
   </p>
 </aside>
 
 <aside class="callout callout-warn">
-  <h3>Pitfall: <code>apm run</code> needs the harness CLI on your <code>PATH</code></h3>
+  <h3>Pitfall: a successful exit can include skipped work</h3>
+  <p>
+    Missing targets and unsupported package/target combinations are different problems.
+    <a href="primitives-and-harnesses.html">Chapter 3</a>'s package-versus-primitive distinction matters
+    here: native Agent Plugins v1 stay whole for Copilot registration, rather than being flattened
+    into loose primitives for every harness
+    (<a href="https://github.com/microsoft/apm/blob/8fd10ac5eafee7ca77d41cc34ba139d812fdacd5/docs/src/content/docs/consumer/copilot-agent-plugins.md" rel="noreferrer">native plugin consumption</a>).
+  </p>
+  <!--
+    ch5-native-target-outcomes: scoped outcomes independently verified at 0.31.0, 2026-09-16.
+    Inputs: RunRoot/core-probes/projects/portable (plugin only) and projects/mixed
+    (same plugin plus ordinary skill). Exact commands/CWD/root mapping are in:
+    ch5-plugin-excluded (1), ch5-plugin-mixed-skip (0), ch5-plugin-excluded-dry-run (0).
+    Report PASS covers outcome assertions only; underlying native audit remains FAIL.
+    Separate audit limitation: ch3-portable-metadata-install (0), ch3-portable-metadata-audit (1);
+    local native-plugin drift replay failed even with metadata-only apm.yml, not a network skip.
+  -->
+  <table id="ch5-native-target-outcomes">
+    <caption>
+      Current native-plugin probes with Codex explicitly selected. The target exists, but cannot
+      receive the native plugin. <span class="apm-version">apm v0.31.0 &mdash; outcomes verified 2026-09-16</span>
+    </caption>
+    <thead>
+      <tr>
+        <th scope="col">Input and operation</th>
+        <th scope="col">Exit</th>
+        <th scope="col">What actually happened</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>Only the native plugin; real install</td>
+        <td><code>1</code></td>
+        <td>All requested package deployment was excluded; no install transaction changes committed.</td>
+      </tr>
+      <tr>
+        <td>The plugin plus an ordinary skill; real install</td>
+        <td><code>0</code></td>
+        <td>The ordinary skill deployed; the plugin was skipped with recovery guidance.</td>
+      </tr>
+      <tr>
+        <td>Only the excluded plugin; install dry-run</td>
+        <td><code>0</code></td>
+        <td>The preview completed, even though the corresponding real install failed.</td>
+      </tr>
+    </tbody>
+  </table>
+  <p>
+    The all-skipped native-plugin failure is specific, not a rule that every zero-deployment command
+    exits <code>1</code>. Read the selected targets, warnings, and resulting files as well as the
+    status code. Nor is every install dry-run a no-write guarantee: project bootstrap can create a
+    manifest, unlike a global preview
+    (<a href="https://github.com/microsoft/apm/blob/8fd10ac5eafee7ca77d41cc34ba139d812fdacd5/docs/src/content/docs/reference/cli/install.md" rel="noreferrer">preview and outcome boundaries</a>).
+    The separate local-path native-plugin control also hit a 0.31.0 CI audit drift-replay failure
+    after successful installation for the Copilot target; it is not an audit-clean worked fixture
+    or a network skip.
+  </p>
+</aside>
+
+<aside class="callout callout-warn">
+  <h3>Pitfall: a harness script needs its CLI on your <code>PATH</code></h3>
   <p>
     APM is the launcher; the runtime does the work. If the CLI a script names is not installed,
-    <code>apm</code> still compiles the prompt, then the shell step fails &mdash; verified with a script
-    naming a bogus runtime:
+    <code>apm</code> still compiles the prompt, then the shell step fails. The current
+    <code>scripts-probe</code> fixture declares
+    <code>broken: "apm-book-nonexistent-runtime -p .apm/prompts/review.prompt.md"</code> to exercise
+    that boundary without invoking an agent:
   </p>
-  <pre><code class="language-text">$ apm run broken     # script: "nonexistent-runtime-xyz -p .apm/prompts/probe.prompt.md"
-  [>] Running script: broken
-  Compiling prompt...  +- .apm/prompts/probe.prompt.md
-  'nonexistent-runtime-xyz' is not recognized as an internal or external command...
-  [x] Script execution error: Script execution failed with exit code 1   # exit 1</code></pre>
+  <!--
+    ch5-missing-runtime: replaces historical block 8.
+    Input: RunRoot/core-probes/projects/scripts/apm.yml and .apm/prompts/review.prompt.md.
+    Source: ch5-scripts-missing-runtime, observed exit 1. Excerpt combines labelled stdout/stderr.
+    Harmless successful shell control: ch5-scripts-echo, exit 0; no live Copilot run.
+    Independent PASS (expected negative) at 0.31.0, 2026-09-16 (see report).
+  -->
+  <figure class="code-example" id="ch5-missing-runtime">
+    <figcaption>
+      Current missing-executable probe &mdash; Windows diagnostic excerpt, observed exit <code>1</code>.
+      Offline; no harness or credits required.
+      <span class="apm-version">apm v0.31.0 &mdash; verified 2026-09-16</span>
+    </figcaption>
+    <pre><code class="language-text">$ apm run broken
+[stdout]
+[&gt;] Running script: broken
+Compiling prompt...
++- .apm/prompts/review.prompt.md
+[x] Script execution error: Script execution failed with exit code 1
+[stderr]
+'apm-book-nonexistent-runtime' is not recognized as an internal or external command,
+operable program or batch file.</code></pre>
+  </figure>
   <p>
-    That failure is a <strong>missing harness CLI, not an <code>apm</code> bug</strong>. In a clean CI
-    box with no runtime installed, <code>apm run</code> fails exactly this way &mdash; so gate CI on
-    <code>apm preview</code> (offline, zero-cost) instead, and reserve <code>apm run</code> for machines
-    where the runtime (<code>copilot</code>, <code>claude</code>, &hellip;) is actually present. The
-    runtime, not <code>apm</code>, incurs the latency and credits.
+    That failure is a <strong>missing executable, not a failure to restore context</strong>. In a clean CI
+    box without Copilot, <code>apm run review</code> cannot execute its harness. Use
+    <code>apm preview</code> for prompt-compilation checks (offline, no inference cost), not a paid
+    agent run. Reserve harness scripts for machines where the named runtime
+    (<code>copilot</code>, <code>claude</code>, &hellip;) is present. Ordinary shell scripts remain
+    possible without one; the fixture's <code>echo</code> script ran successfully. The agent runtime,
+    not <code>apm</code>, incurs inference latency and credits.
   </p>
 </aside>
 
 <aside class="callout callout-info">
   <h3>Commit the clean authored <code>apm.yml</code></h3>
+  <!--
+    Current writer evidence: projects/add-local/apm.yml -> materialized/a2/apm.yml,
+    ch5-add-normal-cwd and ch5-add-normal-stable. Leading comment, blank line and target-list style survived.
+    Do not reuse the failed redirection probe ch5-local-add-comments as success evidence.
+    Separate MCP mutation: ch3-mcp-copilot reserialized its manifest and removed its comment.
+    Transactional replacement/ownership contract is source-grounded in the pinned install/lock references,
+    not a newly executed replacement-failure experiment.
+  -->
   <p>
-    <code>apm install &lt;pkg&gt;</code> (add) rewrites and <em>re-serializes</em> the manifest &mdash; it
-    may normalize list style and drop a blank line. Content is preserved; only formatting changes. Bare
-    <code>apm install</code> (restore) leaves the file untouched, so the hand-authored form you commit is
-    the restore-stable one. Commit <code>apm.yml</code>, <code>apm.lock.yaml</code>, and the deployed
-    harness directories; <code>apm_modules/</code> is auto-gitignored and rebuilt from the lockfile on
-    every install (<a href="https://microsoft.github.io/apm/consumer/install-packages/" rel="noreferrer">Install
-    packages</a>). And remember: <code>--target</code> is a per-invocation override, never persisted &mdash;
-    if you want a target on every machine, put it in <code>targets:</code>.
+    An add is a reviewable intent change, not a reason to expect a destructive YAML rewrite.
+    In the current local APM-dependency add, the writer preserved the leading comment, blank line,
+    and authored target-list style. This is not a guarantee about
+    every writer &mdash; the separate direct MCP-add probe still reserialized its manifest
+    (<a href="https://github.com/microsoft/apm/blob/8fd10ac5eafee7ca77d41cc34ba139d812fdacd5/src/apm_cli/commands/_apm_yml_writer.py" rel="noreferrer">APM dependency-edit behavior</a>).
+    Review the actual diff; an unchanged bare replay leaves the authored manifest alone.
+  </p>
+  <p>
+    Commit <code>apm.yml</code>, the generated <code>apm.lock.yaml</code>, authored local sources, and
+    the reviewed deployed harness files. <code>apm_modules/</code> is auto-gitignored and materialized
+    again when needed, not necessarily rebuilt on every replay
+    (<a href="https://microsoft.github.io/apm/consumer/install-packages/" rel="noreferrer">Install packages</a>).
+    A local <code>path:</code> is not a Git version pin: its source must travel with the repository and
+    remain available. Keep durable target choices in <code>targets:</code>, whether authored directly
+    or intentionally persisted during bootstrap.
+  </p>
+  <p>
+    Package replacement is staged so a failed replacement can retain the last-good active package;
+    that is not an all-or-nothing promise for an entire multi-package batch. Ownership-aware
+    reconciliation is also not permission to delete human-owned source directories
+    (<a href="https://github.com/microsoft/apm/blob/8fd10ac5eafee7ca77d41cc34ba139d812fdacd5/docs/src/content/docs/reference/cli/install.md" rel="noreferrer">replacement and install-state boundaries</a>).
   </p>
 </aside>
 
@@ -439,14 +753,19 @@ dependencies:
 <p>
   Two everyday actions carried Meridian from the <a href="the-manifest-apm-yml.html">Chapter 4</a>
   manifest (v0.1.0: one local instruction, three targets) to <strong>v0.2.0</strong>: an <em>add</em>
-  pinned a public dependency, and a <code>scripts:</code> entry declared a review workflow. Here is the
-  clean, committable result &mdash; the exact file on disk after a restore, since restore never reflows
-  it:
+  pinned a public dependency, and a <code>scripts:</code> entry declared a review workflow. The
+  authored snapshot below preserves that story milestone. It and the following list/run recordings
+  belong to the original v0.23.1 worked example, not a fresh execution of the full graph on 0.31.0.
 </p>
-<figure class="code-example">
+<!--
+  ch5-meridian-manifest-historical: historical block 9, original Ch5 final v0.2.0 artifacts.
+  Unchanged authored snapshot; not the current single-skill fixture and not newly schema/execution verified.
+-->
+<figure class="code-example" id="ch5-meridian-manifest-historical">
   <figcaption>
-    Meridian's <code>apm.yml</code> at v0.2.0 &mdash; the restore-stable authored form you commit
-    (one pinned dependency + one declared script). <span class="apm-version">apm v0.23.1</span>
+    Historical Meridian <code>apm.yml</code> at v0.2.0 &mdash; one pinned full package plus one review
+    script. <span class="needs-network">public dependency needs network</span>
+    <span class="apm-version">apm v0.23.1 &mdash; not rerun at 0.31.0</span>
   </figcaption>
   <pre><code class="language-yaml">name: meridian-checkout-agent-context
 version: 0.2.0
@@ -466,24 +785,32 @@ scripts:
   review: "copilot -p .apm/prompts/checkout-review.prompt.md"   # apm run review -> the checkout-review prompt</code></pre>
 </figure>
 <p>
-  With the script declared, <code>apm list</code> shows it, and <code>apm run review</code> executes it
-  &mdash; provided the <code>copilot</code> runtime is on <code>PATH</code>:
+  In that recording, <code>apm list</code> showed the declared script, and
+  <code>apm run review</code> invoked it with the <code>copilot</code> runtime available on
+  <code>PATH</code>:
 </p>
-<figure class="code-example">
+<!-- ch5-list-historical: historical block 10, original Step 3; this exact Meridian listing was not recaptured. -->
+<figure class="code-example" id="ch5-list-historical">
   <figcaption>
-    <code>apm list</code> renders the declared scripts from <code>apm.yml</code>.
-    <span class="apm-version">apm v0.23.1</span>
+    Historical listing of the v0.2.0 manifest's script.
+    <span class="apm-version">apm v0.23.1 &mdash; not rerun at 0.31.0</span>
   </figcaption>
   <pre><code class="language-text">$ apm list
               Available Scripts
   Script   Command
   review   copilot -p .apm/prompts/checkout-review.prompt.md</code></pre>
 </figure>
-<figure class="code-example">
+<!--
+  ch5-run-historical: historical block 11, original Step 3 real Copilot session.
+  Code/timing unchanged. Historical runtime execution only; not rerun for 0.31.0.
+  Do not spend credits merely to refresh this stamp; current probes use preview/inert commands.
+-->
+<figure class="code-example" id="ch5-run-historical">
   <figcaption>
-    <code>apm run review</code> executing for real &mdash; <strong>experimental</strong>, and it needs
-    the <code>copilot</code> runtime CLI on <code>PATH</code> (the runtime does the work and incurs the
-    cost). <span class="apm-version">apm v0.23.1</span>
+    Historical real <code>apm run review</code> execution &mdash; <strong>experimental</strong>.
+    Copilot supplied the runtime and incurred the cost; this timing is not a current benchmark.
+    <span class="needs-network">needs harness CLI and its service access</span>
+    <span class="apm-version">apm v0.23.1 &mdash; not rerun at 0.31.0</span>
   </figcaption>
   <pre><code class="language-text">$ apm run review                                           # experimental; runtime CLI must be on PATH
   [>] Running script: review
@@ -496,8 +823,177 @@ scripts:
 <p>
   That is the loop, end to end: the team <em>added</em> a dependency and a script to reach v0.2.0, and
   Anika <em>restored</em> the whole thing with <code>git clone</code> + <code>apm install</code>. Same
-  declaration, same bytes, in Copilot and Cursor alike &mdash;
+  declaration, supported context in Copilot's and Cursor's native forms &mdash;
   <span class="property property--portability">Portability</span>, materialized.
+</p>
+
+<h4 id="ch5-current-setup">Edition 1.2: reproduce a small current setup</h4>
+<p>
+  Now test the same materialization/replay boundary with small, controlled inputs. Use
+  <a href="https://github.com/microsoft/apm/releases/tag/v0.31.0" rel="noreferrer">APM 0.31.0</a>,
+  not a moving latest release; the
+  <a href="https://github.com/microsoft/apm/blob/8fd10ac5eafee7ca77d41cc34ba139d812fdacd5/docs/src/content/docs/getting-started/installation.md" rel="noreferrer">official installation guide</a>
+  covers the available installation channels. The book repository contains three fixtures under
+  <code>backend/examples/updates/1.2/core/</code>. They isolate behaviors without changing Meridian's
+  v0.2.0 milestone or substituting a new result for the historical full-package graph.
+</p>
+<p>
+  Start with <code>local-instruction</code> for an offline exercise. In a fresh, short-path scratch
+  directory outside the book checkout, copy the selected fixture's <code>apm.yml</code> and the
+  authored sources listed below, including hidden directories. For this first-materialization
+  exercise, start without <code>apm_modules/</code>, generated outputs, or a lockfile; keep the fixture's
+  recorded <code>apm.lock.yaml</code> separately for comparison. Real clone-and-restore onboarding
+  instead brings the committed lock along from the start. Do not run <code>init</code> over either copy.
+</p>
+<table>
+  <caption>
+    Exact current fixture inputs and expected native files. All fixtures pin targets; these are
+    file-materialization checks, not live harness sessions. APM 0.31.0; independently checked 2026-09-16.
+  </caption>
+  <thead>
+    <tr>
+      <th scope="col">Fixture</th>
+      <th scope="col">Source accompanying <code>apm.yml</code></th>
+      <th scope="col">Expected result</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><code>local-instruction</code> &mdash; offline</td>
+      <td><code>.apm/instructions/meridian-checkout.instructions.md</code>, the instruction from
+        <a href="the-manifest-apm-yml.html">Chapter 4</a></td>
+      <td>
+        <code>.github/instructions/meridian-checkout.instructions.md</code>,
+        <code>.claude/rules/meridian-checkout.md</code>, and
+        <code>.cursor/rules/meridian-checkout.mdc</code>; the authored source stays in place.
+      </td>
+    </tr>
+    <tr>
+      <td><code>onboard-skill</code> &mdash; offline</td>
+      <td><code>.claude/skills/checkout-review/SKILL.md</code>, with the
+        <a href="#ch5-onboard-manifest">already-declared, target-pinned manifest</a></td>
+      <td><code>.agents/skills/checkout-review/SKILL.md</code> for Copilot; the original
+        Claude-layout skill remains the source, not a newly authorized Claude deployment.</td>
+    </tr>
+    <tr>
+      <td><code>pinned-skill</code> &mdash; <span class="needs-network">needs public Git access on a cold cache</span></td>
+      <td>No local source tree; the full manifest below selects one public skill at an immutable commit</td>
+      <td><code>.agents/skills/style-checker/SKILL.md</code> shared by Copilot/Cursor, and
+        <code>.claude/skills/style-checker/SKILL.md</code> for Claude.</td>
+    </tr>
+  </tbody>
+</table>
+<p>
+  For the network-backed variant, this is the complete input manifest. Selecting only
+  <code>style-checker</code> avoids the full sample package's floating transitive dependency:
+</p>
+<!--
+  ch5-pinned-manifest: exact CoreFixtures/pinned-skill/apm.yml, no local source files.
+  Equivalent preserved input: RunRoot/core-probes/projects/export-pinned/apm.yml.
+  Sources: fixture-pinned-skill-install/restore/frozen/audit; full argv in corresponding logs.
+  Manifest SHA-256: 345bd03e5b24af37425cffe624cf8d3ebafff7e60b061b7af1288de7ce65162b.
+  Public network required on a cold cache. Independent PASS at 0.31.0, 2026-09-16.
+-->
+<figure class="code-example" id="ch5-pinned-manifest">
+  <figcaption>
+    <code>backend/examples/updates/1.2/core/pinned-skill/apm.yml</code> &mdash; immutable source
+    identity and three explicit targets. <span class="needs-network">needs network on a cold cache</span>
+    <span class="apm-version">apm v0.31.0 &mdash; verified 2026-09-16</span>
+  </figcaption>
+  <pre><code class="language-yaml"># A single public skill at an immutable commit, with no transitive dependencies.
+name: pinned-public-skill
+version: 1.0.0
+targets: [copilot, claude, cursor]
+dependencies:
+  apm:
+    - git: microsoft/apm-sample-package
+      ref: fb2851683be0e0e7711421d518bd8dba23b0b1f6
+      path: .apm/skills/style-checker
+  mcp: []
+includes: auto</code></pre>
+</figure>
+<p>
+  In each selected scratch directory, materialize once, repeat with unchanged inputs, then check the
+  two different boundaries: frozen install's limited structural checks, with the
+  <a href="#ch5-frozen-boundary">local-path exception</a>, and CI audit's integrity checks.
+  These last two commands are a verification exercise, not extra everyday verbs to memorize:
+</p>
+<!--
+  ch5-current-restore: one command sequence, run separately in each source-only fixture copy.
+  Exact inputs: CoreFixtures/local-instruction, onboard-skill, pinned-skill (authored inputs above).
+  Explorer source mirrors: RunRoot/core-probes/projects/export-local, export-onboard, export-pinned.
+  Independent logs: local-local-instruction-install/restore/frozen/audit;
+    local-onboard-skill-install/restore/frozen/audit; public-pinned-skill-install/restore/frozen/audit.
+  All twelve verified exits (0.31.0, 2026-09-16): 0. Expected complete lock SHA-256:
+    local-instruction: 0ae47bad542167d3ec125f13e7db970aafe523c2d14592be85fe209a4b9a1baa
+    onboard-skill: 55a83f56b7355cee8b1293a153fb4e674b6e075c4c86caac1578a1da00a86e28
+    pinned-skill: 6b9ebb9ddcba38e6eddae38ca0c3658c2fabeee90e279857c9159f149ba09507
+  Preserve raw file bytes when copying. Compare complete locks, native paths/hashes and retained sources.
+  Cold Git follow-up: cold-frozen (0), only manifest/lock in a fresh CWD and empty cache.
+  See ch05-verification.md for native-path/hash assertions and exact isolated execution.
+  Literal sequence passed; frozen's local-path exception is documented at ch5-frozen-boundary.
+-->
+<figure class="code-example" id="ch5-current-restore">
+  <figcaption>
+    Run consecutively inside each chosen current fixture copy. Independent execution confirmed
+    <code>0 / 0 / 0 / 0</code> for install, replay, frozen install, and CI audit in all three.
+    Local fixtures are offline; <span class="needs-network">the public skill needs network on a cold cache</span>.
+    <span class="apm-version">apm v0.31.0 &mdash; commands verified 2026-09-16</span>
+  </figcaption>
+  <pre><code class="language-bash">apm install
+apm install
+apm install --frozen
+apm audit --ci</code></pre>
+</figure>
+<p>
+  Check the native files in the table, not just the exit code. The repeated install and frozen
+  install left each complete lock byte-identical. A separate cold-cache public-skill test started
+  with only the manifest and lock: frozen install fetched the pinned content, exited <code>0</code>,
+  and preserved the lock bytes. That is reproducible acquisition, not a promise of offline access.
+</p>
+<!--
+  ch5-current-lock: selected fields from CoreFixtures/pinned-skill/apm.lock.yaml, genuine CLI output.
+  Independent source: public-pinned-skill-install and replay/frozen logs referenced above.
+  Not a full lockfile; omitted deployed-file/ownership fields remain in the fixture.
+  Complete lock SHA-256: 6b9ebb9ddcba38e6eddae38ca0c3658c2fabeee90e279857c9159f149ba09507.
+  Both deployed SKILL.md hashes: sha256:1142700284d253c15e561434362ae6203db08e41ef07e7082386df3651738829.
+  Independent PASS at 0.31.0, 2026-09-16 (see report).
+-->
+<figure class="code-example" id="ch5-current-lock">
+  <figcaption>
+    Selected fields from the genuine <code>pinned-skill/apm.lock.yaml</code> &mdash; identity and
+    content, not a timestamp. Use the complete fixture lock for restore, never this excerpt.
+    <span class="apm-version">apm v0.31.0 &mdash; verified 2026-09-16</span>
+  </figcaption>
+  <pre><code class="language-yaml">lockfile_version: '1'
+apm_version: 0.31.0
+dependencies:
+- repo_url: microsoft/apm-sample-package
+  name: style-checker
+  host: github.com
+  resolved_commit: fb2851683be0e0e7711421d518bd8dba23b0b1f6
+  resolved_ref: fb2851683be0e0e7711421d518bd8dba23b0b1f6
+  version: unknown
+  virtual_path: .apm/skills/style-checker
+  is_virtual: true
+  package_type: claude_skill
+  content_hash: sha256:867912713bf45048211440b81ea0ced396ad0a0993447dd540fe5c219722d318</code></pre>
+</figure>
+<p>
+  None of these three newly generated locks contains <code>generated_at</code>. Their full files
+  also record <code>deployments</code> ownership and per-file hashes. The public skill's
+  <code>version: unknown</code> does not weaken its explicit Git commit, and its package-tree hash
+  is intentionally different from the historical <em>full-package</em> hash above. Top-level fields
+  need not be identical across lock types: the local-instruction-only lock has no
+  <code>apm_version</code> field.
+</p>
+<p>
+  Keep the hash meanings separate: deployed UTF-8 text hashes normalize CRLF line endings, whereas
+  package-tree hashes describe the actual materialized bytes. Neither means that APM rewrites all
+  source files, nor that different harness-native projections must have identical bytes
+  (<a href="https://github.com/microsoft/apm/blob/8fd10ac5eafee7ca77d41cc34ba139d812fdacd5/docs/src/content/docs/reference/lockfile-spec.md" rel="noreferrer">lockfile hashes and ownership</a>).
+  The payoff is still Anika's simple habit: review intent once, then restore and check the recorded
+  result instead of copying context by hand.
 </p>
 
 <!-- SLOT: recap-and-next -->
@@ -505,31 +1001,34 @@ scripts:
 <ul>
   <li>
     <strong>Install materializes the manifest.</strong> <code>apm.yml</code> is a recipe; install is the
-    meal &mdash; it resolves, gates, scans, deploys, and writes <code>apm.lock.yaml</code>. This is where
+    meal &mdash; it resolves, gates, scans, and deploys supported content. The package and native-rule
+    examples record <code>apm.lock.yaml</code>; an empty or compile-only operation may not. This is where
     <span class="property property--portability">Portability</span> becomes a fact, and it seeds
     <span class="property property--reproducibility">Reproducibility</span> as a by-product.
   </li>
   <li>
-    <strong>The daily loop is four commands, one habit:</strong> <code>apm init</code> once,
+    <strong>The daily loop is four commands, one habit:</strong> <code>apm init</code> to scaffold once,
     <code>apm install &lt;pkg&gt;</code> to add, bare <code>apm install</code> to restore,
     <code>apm run &lt;script&gt;</code> to run. Everything heavier is lifecycle
-    (<a href="lifecycle.html">Chapter 7</a>).
+    (<a href="lifecycle.html">Chapter 7</a>). Discovery with consented apply is a separate migration
+    aid: it declares existing packages without installing them.
   </li>
   <li>
-    <strong>One command, two jobs.</strong> Bare install <em>restores</em> (reproduce the pinned set,
-    cache-served, byte-stable); <code>apm install &lt;pkg&gt;</code> <em>adds</em> (mutate
-    <code>apm.yml</code>, re-lock). Restore reproduces &mdash; it never upgrades.
+    <strong>One command, two jobs.</strong> Bare install replays unchanged intent from the locked
+    graph; <code>apm install &lt;pkg&gt;</code> adds a declaration and re-locks. Ordinary install
+    reconciles edited intent, and cold restores may need network. Compare lock bytes and native
+    outputs &mdash; new locks have no <code>generated_at</code> timestamp to compare.
   </li>
   <li>
     <strong>Targets resolve by an explicit chain</strong> (<code>--target</code> &gt; <code>apm.yml</code>
-    <code>targets:</code> &gt; configured default &gt; auto-detect), <code>--target</code> is a per-run
-    override, and a no-target install exits <code>2</code> rather than guessing &mdash; there is no
-    implicit &ldquo;one true harness.&rdquo;
+    <code>targets:</code> &gt; configured default &gt; auto-detect). The flag overrides an existing
+    manifest for one run; bootstrap can persist it. Work needing a destination but lacking a target
+    exits <code>2</code>, while mixed successful installs can include skips. Check what arrived.
   </li>
   <li>
-    <strong><code>apm run</code> is experimental</strong> and shells out to a runtime CLI you supply on
-    <code>PATH</code>; <code>apm preview</code> compiles the prompt offline at zero cost. A missing
-    runtime is a harness problem, not an <code>apm</code> bug.
+    <strong><code>apm run</code> is experimental</strong> and executes the command the script names;
+    a harness script needs its CLI on <code>PATH</code>. <code>apm preview</code> compiles local prompts
+    without runtime cost, but proves neither agent execution nor installation completeness.
   </li>
   <li>
     Meridian reached <strong>v0.2.0</strong> (one pinned dependency + one script), and Anika onboarded
@@ -540,9 +1039,11 @@ scripts:
 
 <h3>Next</h3>
 <p>
-  Every install quietly wrote <code>apm.lock.yaml</code>, and every restore reproduced it byte for byte.
+  The current fixtures left you with genuine lockfiles and unchanged replay results.
   <a href="the-lockfile-and-reproducibility.html">Chapter 6 &mdash; The Lockfile &amp; Reproducibility</a>
   opens that file up: what <code>resolved_commit</code> and <code>content_hash</code> guarantee, how
-  <code>apm install --frozen</code> turns restore into a strict CI gate, and why byte-for-byte
-  reproduction is the property the whole supply-chain story rests on.
+  <code>apm install --frozen</code> supplies a <em>limited</em> structural CI gate with the
+  <a href="#ch5-frozen-boundary">local-path exception</a>, distinct from content audit, and why
+  reproducing the recorded state &mdash; not preserving a timestamp &mdash; supports the
+  supply-chain story.
 </p>
