@@ -1,0 +1,27 @@
+lockfile_version: '1'
+apm_version: 0.31.0
+dependencies:
+- repo_url: microsoft/apm-sample-package
+  name: apm-sample-package-design-standards
+  host: github.com
+  resolved_commit: fb2851683be0e0e7711421d518bd8dba23b0b1f6
+  resolved_ref: fb2851683be0e0e7711421d518bd8dba23b0b1f6
+  version: 1.0.0
+  virtual_path: .apm/instructions/design-standards.instructions.md
+  is_virtual: true
+  package_type: apm_package
+  deployed_files:
+  - .github/instructions/design-standards.instructions.md
+  deployed_file_hashes:
+    .github/instructions/design-standards.instructions.md: sha256:6f5d994d6437416e14e4ca5540f4d1cf06fad079728a1419acfb1dd7038ec38d
+  content_hash: sha256:2023a4e453da8eea6de9a98fbf8052acaaf8b627ceb1165d7ac813a278234e79
+deployments:
+- kind: project-relative
+  target: copilot
+  value: .github/instructions/design-standards.instructions.md
+  runtime: null
+  scope: project
+  owners:
+  - microsoft/apm-sample-package/.apm/instructions/design-standards.instructions.md
+  active_owner: microsoft/apm-sample-package/.apm/instructions/design-standards.instructions.md
+  content_hash: sha256:6f5d994d6437416e14e4ca5540f4d1cf06fad079728a1419acfb1dd7038ec38d

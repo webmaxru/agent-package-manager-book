@@ -1,0 +1,11 @@
+# Local content can be a bundle: the empty mapping is deliberate.
+# This is a new fixture, not a change to the historical Ch10 package.
+name: meridian-standards
+version: 1.0.0
+description: Shared Meridian engineering instructions, prompts, and review skills.
+author: Meridian Platform Engineering
+license: MIT
+type: hybrid
+targets: [copilot, claude, cursor]
+dependencies: {}
+includes: auto

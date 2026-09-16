@@ -1,0 +1,5 @@
+# Metadata-only APM manifest: it does not override the plugin declaration.
+name: review
+version: 1.0.0
+description: A minimal review skill.
+license: MIT

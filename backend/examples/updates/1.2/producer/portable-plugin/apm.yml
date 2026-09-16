@@ -1,0 +1,9 @@
+# Strict Agent Plugins output is opt-in; this fixture contains only a skill.
+name: portable-review
+version: 1.0.0
+description: A minimal portable review skill.
+author: Book Fixtures
+license: MIT
+targets: [copilot]
+dependencies: {}
+includes: auto

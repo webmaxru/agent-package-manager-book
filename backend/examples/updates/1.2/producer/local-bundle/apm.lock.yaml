@@ -1,0 +1,113 @@
+lockfile_version: '1'
+dependencies: []
+deployments:
+- kind: project-relative
+  target: claude
+  value: .claude/commands/checkout-review.md
+  runtime: null
+  scope: project
+  owners:
+  - .
+  active_owner: .
+  content_hash: sha256:61be7b6410ae1a7a13952855ed3d14a7b5d6608b97d4cfd3fdfa128e7468a7fe
+- kind: project-relative
+  target: claude
+  value: .claude/rules/meridian-engineering.md
+  runtime: null
+  scope: project
+  owners:
+  - .
+  active_owner: .
+  content_hash: sha256:96bce7638c1a9df1a3354975e99efe2176ae1906dbe848c92c04daa3d6f78504
+- kind: project-relative
+  target: claude
+  value: .claude/skills/secure-payment-review
+  runtime: null
+  scope: project
+  owners:
+  - .
+  active_owner: .
+  content_hash: null
+- kind: project-relative
+  target: claude
+  value: .claude/skills/secure-payment-review/SKILL.md
+  runtime: null
+  scope: project
+  owners:
+  - .
+  active_owner: .
+  content_hash: sha256:1a8d4fa132a7ffd0d70d1872f07943f6fe2bbe00402718edd1dc1a278082762f
+- kind: project-relative
+  target: copilot
+  value: .github/instructions/meridian-engineering.instructions.md
+  runtime: null
+  scope: project
+  owners:
+  - .
+  active_owner: .
+  content_hash: sha256:d7dcb85632871a9f1667dcfd5667578a7230bb80c2ae17178b1d98418bf52bc0
+- kind: project-relative
+  target: copilot
+  value: .github/prompts/checkout-review.prompt.md
+  runtime: null
+  scope: project
+  owners:
+  - .
+  active_owner: .
+  content_hash: sha256:851711a4c4b3ba13275e8b69cf277c0d14a0ab23a0fa969f6116031f735be01a
+- kind: project-relative
+  target: cursor
+  value: .cursor/commands/checkout-review.md
+  runtime: null
+  scope: project
+  owners:
+  - .
+  active_owner: .
+  content_hash: sha256:61be7b6410ae1a7a13952855ed3d14a7b5d6608b97d4cfd3fdfa128e7468a7fe
+- kind: project-relative
+  target: cursor
+  value: .cursor/rules/meridian-engineering.mdc
+  runtime: null
+  scope: project
+  owners:
+  - .
+  active_owner: .
+  content_hash: sha256:2cfe24d40a001deb64e13b042b277e9e25dd4bf0d39a0386521f41ef151e26a3
+- kind: project-relative
+  target: legacy
+  value: .agents/skills/secure-payment-review
+  runtime: null
+  scope: project
+  owners:
+  - .
+  active_owner: .
+  content_hash: null
+- kind: project-relative
+  target: legacy
+  value: .agents/skills/secure-payment-review/SKILL.md
+  runtime: null
+  scope: project
+  owners:
+  - .
+  active_owner: .
+  content_hash: sha256:1a8d4fa132a7ffd0d70d1872f07943f6fe2bbe00402718edd1dc1a278082762f
+local_deployed_files:
+- .agents/skills/secure-payment-review
+- .agents/skills/secure-payment-review/SKILL.md
+- .claude/commands/checkout-review.md
+- .claude/rules/meridian-engineering.md
+- .claude/skills/secure-payment-review
+- .claude/skills/secure-payment-review/SKILL.md
+- .cursor/commands/checkout-review.md
+- .cursor/rules/meridian-engineering.mdc
+- .github/instructions/meridian-engineering.instructions.md
+- .github/prompts/checkout-review.prompt.md
+local_deployed_file_hashes:
+  .agents/skills/secure-payment-review/SKILL.md: sha256:1a8d4fa132a7ffd0d70d1872f07943f6fe2bbe00402718edd1dc1a278082762f
+  .claude/commands/checkout-review.md: sha256:61be7b6410ae1a7a13952855ed3d14a7b5d6608b97d4cfd3fdfa128e7468a7fe
+  .claude/rules/meridian-engineering.md: sha256:96bce7638c1a9df1a3354975e99efe2176ae1906dbe848c92c04daa3d6f78504
+  .claude/skills/secure-payment-review/SKILL.md: sha256:1a8d4fa132a7ffd0d70d1872f07943f6fe2bbe00402718edd1dc1a278082762f
+  .cursor/commands/checkout-review.md: sha256:61be7b6410ae1a7a13952855ed3d14a7b5d6608b97d4cfd3fdfa128e7468a7fe
+  .cursor/rules/meridian-engineering.mdc: sha256:2cfe24d40a001deb64e13b042b277e9e25dd4bf0d39a0386521f41ef151e26a3
+  .github/instructions/meridian-engineering.instructions.md: sha256:d7dcb85632871a9f1667dcfd5667578a7230bb80c2ae17178b1d98418bf52bc0
+  .github/prompts/checkout-review.prompt.md: sha256:851711a4c4b3ba13275e8b69cf277c0d14a0ab23a0fa969f6116031f735be01a

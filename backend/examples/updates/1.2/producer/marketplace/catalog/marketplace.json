@@ -1,0 +1,14 @@
+{
+  "name": "book-marketplace",
+  "owner": {
+    "name": "Book Fixtures"
+  },
+  "plugins": [
+    {
+      "name": "review",
+      "description": "A minimal review skill.",
+      "version": "1.0.0",
+      "source": "./plugins/review"
+    }
+  ]
+}

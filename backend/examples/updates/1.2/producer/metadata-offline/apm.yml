@@ -1,0 +1,13 @@
+# A pinned public source with intentionally absent marketplace metadata.
+# --offline makes the metadata result uncertifiable without a network request.
+name: metadata-boundary
+version: 1.0.0
+marketplace:
+  owner:
+    name: Book Fixtures
+  outputs:
+    claude: {}
+  packages:
+    - name: public-review
+      source: microsoft/apm-sample-package
+      ref: fb2851683be0e0e7711421d518bd8dba23b0b1f6

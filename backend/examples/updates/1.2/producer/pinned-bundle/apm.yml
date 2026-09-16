@@ -1,0 +1,13 @@
+# One public skill with immutable source identity; no floating transitive graph.
+name: pinned-bundle
+version: 1.0.0
+description: Lock-attested dependency content for a distributable review bundle.
+author: Book Fixtures
+license: MIT
+targets: [copilot]
+dependencies:
+  apm:
+    - git: microsoft/apm-sample-package
+      ref: fb2851683be0e0e7711421d518bd8dba23b0b1f6
+      path: .apm/skills/style-checker
+includes: auto

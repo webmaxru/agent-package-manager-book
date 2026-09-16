@@ -1,0 +1,58 @@
+lockfile_version: '1'
+apm_version: 0.31.0
+dependencies:
+- repo_url: _local/tool
+  name: producer-tests
+  version: 1.0.0
+  package_type: apm_package
+  deployed_files:
+  - .agents/skills/dev-only
+  - .agents/skills/dev-only/SKILL.md
+  deployed_file_hashes:
+    .agents/skills/dev-only/SKILL.md: sha256:f8179d6dec196ec80df76ed65379e62dc7557fe7257dc0b1a38d93a3a5f5775c
+  source: local
+  local_path: ./tool
+  is_dev: true
+  declared_license: MIT
+deployments:
+- kind: project-relative
+  target: copilot
+  value: .agents/skills/dev-only
+  runtime: null
+  scope: project
+  owners:
+  - ./tool
+  active_owner: ./tool
+  content_hash: null
+- kind: project-relative
+  target: copilot
+  value: .agents/skills/dev-only/SKILL.md
+  runtime: null
+  scope: project
+  owners:
+  - ./tool
+  active_owner: ./tool
+  content_hash: sha256:f8179d6dec196ec80df76ed65379e62dc7557fe7257dc0b1a38d93a3a5f5775c
+- kind: project-relative
+  target: legacy
+  value: .agents/skills/ship
+  runtime: null
+  scope: project
+  owners:
+  - .
+  active_owner: .
+  content_hash: null
+- kind: project-relative
+  target: legacy
+  value: .agents/skills/ship/SKILL.md
+  runtime: null
+  scope: project
+  owners:
+  - .
+  active_owner: .
+  content_hash: sha256:a089f3894134dfb084478265d0da9729136f697b4a8428c1831d3abf711275fc
+local_deployed_files:
+- .agents/skills/ship
+- .agents/skills/ship/SKILL.md
+local_deployed_file_hashes:
+  .agents/skills/ship/SKILL.md: sha256:a089f3894134dfb084478265d0da9729136f697b4a8428c1831d3abf711275fc

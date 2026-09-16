@@ -1,0 +1,16 @@
+# A contained local package makes marketplace release checks network-independent.
+name: book-marketplace
+version: 1.0.0
+description: A minimal reviewed package index.
+targets: [copilot]
+marketplace:
+  owner:
+    name: Book Fixtures
+  outputs:
+    claude:
+      path: catalog/marketplace.json
+  packages:
+    - name: review
+      source: ./plugins/review
+      description: A minimal review skill.
+      version: 1.0.0

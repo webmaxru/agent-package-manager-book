@@ -1,0 +1,12 @@
+# SKIPPED-needs-network: this reserved example URL is not a running registry.
+# Only feature gating, local install, and publish --dry-run are exercised.
+name: registry-boundary
+version: 1.0.0
+description: A local-only dry-run fixture; no registry upload is permitted.
+license: MIT
+targets: [copilot]
+registries:
+  sample:
+    url: https://registry.example.com/api/sample
+  default: sample
+dependencies: {}
