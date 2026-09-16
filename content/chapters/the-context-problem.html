@@ -2,7 +2,9 @@
   Chapter 1 - The Context Problem (authored content fragment).
   Injected by site/generate.py into site/chapters/the-context-problem.html at each
   slot marker below. No page chrome, no h1/h2 (the shell renders those).
-  APM CLI referenced: v0.23.1. Cite official docs, not source-docs.
+  APM behavior target: frozen v0.31.0 (book 1.2); code illustrations retain v0.23.1 snapshots.
+  Evidence: content/research/updates/1.2/{theory,core-reference,operations-reference}.md.
+  RunRoot in evidence notes is the session's book-v1.2 artifact root defined in core-reference.md.
 -->
 
 <!-- SLOT: objective -->
@@ -95,34 +97,34 @@
 <ul>
   <li>
     <span class="property property--portability">Portability</span> &mdash; the same declared
-    context can be materialized on any machine and any supported harness. Absent it, every
+    intent can travel between machines, in the forms your chosen harnesses support. Absent it, every
     developer's agent behaves a little differently and onboarding is manual.
   </li>
   <li>
     <span class="property property--reproducibility">Reproducibility</span> &mdash; a later restore
-    reproduces the previously known-good context <em>exactly</em>, down to the bytes. Absent it, a
-    moving branch or an upstream edit silently changes what a &ldquo;review prompt&rdquo; actually
-    contains.
+    returns to recorded dependency versions and content instead of silently resolving new ones.
+    Absent it, a moving branch or an upstream edit silently changes what a &ldquo;review prompt&rdquo;
+    actually contains.
   </li>
   <li>
     <span class="property property--security">Provenance / security</span> &mdash; you can tell where
-    each piece of context came from, and risky content is checked before it reaches disk. A prompt is,
-    in effect, a program for an LLM, so an unvetted prompt or transitive MCP server is real
+    each piece of context came from, and content destined for the harness is checked before deployment.
+    A prompt is, in effect, a program for an LLM, so an unvetted prompt or transitive MCP server is real
     supply-chain surface
-    (<a href="https://microsoft.github.io/apm/concepts/the-three-promises/" rel="noreferrer">the three
-    promises</a>).
+    (<a href="https://github.com/microsoft/apm/blob/v0.31.0/docs/src/content/docs/enterprise/security.md" rel="noreferrer">security model, APM 0.31.0</a>).
   </li>
   <li>
     <span class="property property--governance">Governance</span> &mdash; an organization can decide
-    which sources, scopes, and primitives are allowed, and have that decision enforced automatically.
+    which sources, scopes, and primitives are allowed, and have that decision enforced at install time.
     Absent it, policy lives in people's heads and is applied inconsistently.
   </li>
 </ul>
 <p>
   Two distinctions are worth holding onto, because the rest of the book leans on them. Portability is
-  about <em>where</em> context can land (any machine, any harness); reproducibility is about whether it
-  lands as the <em>same</em> bytes. And security asks &ldquo;is this safe?&rdquo; while governance asks
-  &ldquo;is this allowed here?&rdquo; The next section maps all four onto what APM actually ships.
+  about <em>where</em> declared intent can land; reproducibility is about returning to the
+  <em>recorded</em> versions and content, not making different harness formats byte-identical.
+  Security asks &ldquo;where did this come from, and what risks can we detect?&rdquo; while governance
+  asks &ldquo;is this allowed here?&rdquo; The next section maps all four onto what APM actually ships.
 </p>
 
 <!-- SLOT: in-apm -->
@@ -137,37 +139,40 @@
 <ul>
   <li>
     <code>apm.yml</code> &mdash; the <strong>manifest</strong>. The single human-authored source of
-    truth: it names the primitives (skills, prompts, instructions, agents, plugins) and MCP servers
-    your project depends on, and which harnesses to target. This is what carries
+    truth: it names the context packages and MCP servers your project depends on, and which harnesses
+    to target. This is what carries
     <span class="property property--portability">Portability</span>.
   </li>
   <li>
     <code>apm.lock.yaml</code> &mdash; the <strong>lockfile</strong>. Machine-generated, never
-    hand-edited: it pins every resolved dependency to an exact source ref <em>and</em> a content hash,
-    so two developers who install against the same lockfile get byte-identical context. This carries
-    <span class="property property--reproducibility">Reproducibility</span> and half of
-    <span class="property property--security">provenance</span>.
+    hand-edited: it records resolved sources and content hashes for repeatable restores and integrity
+    checks (<a href="https://github.com/microsoft/apm/blob/v0.31.0/docs/src/content/docs/reference/lockfile-spec.md" rel="noreferrer">lockfile specification, APM 0.31.0</a>).
+    This carries <span class="property property--reproducibility">Reproducibility</span> and supports
+    <span class="property property--security">provenance</span>;
+    <a href="the-lockfile-and-reproducibility.html">Chapter 6</a> explains the boundaries.
   </li>
   <li>
-    <code>apm-policy.yml</code> &mdash; <strong>install-time governance</strong>. An organization's
-    allow/deny rules, enforced when context is installed (including transitive MCP servers). Unlike the
-    two files above, it isn't a per-repo default: it's an <em>org-level</em> artifact APM discovers from
-    your organization's git remote (a <code>.github</code>, <code>.apm</code>, or <code>_apm</code>
-    location), authored once in <a href="governance-and-policy.html">Chapter 9</a> rather than kept in
-    every developer's checkout. This carries <span class="property property--governance">Governance</span>.
+    <code>apm-policy.yml</code> &mdash; <strong>install-time governance</strong> (early preview).
+    An organization's allow/deny rules for sources and MCP servers, checked at install time.
+    The file isn't generated in each repo by default: APM discovers organization policy from the
+    project's Git remote using <a href="https://github.com/microsoft/apm/blob/v0.31.0/docs/src/content/docs/enterprise/apm-policy.md#where-it-lives" rel="noreferrer">host-specific locations</a>.
+    GitHub prefers <code>.github-private</code> before <code>.github</code> and other fallbacks;
+    GitLab and Azure DevOps use different layouts. Authoring and enforcement boundaries come in
+    <a href="governance-and-policy.html">Chapter 9</a>. This carries
+    <span class="property property--governance">Governance</span>.
   </li>
   <li>
     <code>apm install</code> &mdash; the <strong>habit</strong>. The one command that reads the
-    manifest (and lockfile) and restores the declared context. Onboarding stops being a 12-step README
-    and becomes <code>git clone</code> then <code>apm install</code>
+    manifest (and lockfile) and materializes supported context for the selected targets. Onboarding
+    stops being a 12-step README and becomes <code>git clone</code> then <code>apm install</code>
     (<a href="https://microsoft.github.io/apm/concepts/the-three-promises/" rel="noreferrer">the three
     promises</a>).
   </li>
 </ul>
 <p>
-  You author the manifest first; APM generates the lockfile on install, and organization policy lives
-  outside the repo entirely. Chapter 1 only names these files &mdash; layout and exact syntax arrive
-  from Chapter 4 onward.
+  You author the manifest; APM records resolved state in the lockfile; the organization normally
+  shares policy from a separate repository. Chapter 1 only names these files &mdash; layout and exact
+  syntax arrive from Chapter 4 onward.
 </p>
 
 <h4>Four properties, three promises</h4>
@@ -197,7 +202,7 @@
     <tr>
       <td><span class="property property--reproducibility">Reproducibility</span></td>
       <td>(carried under &ldquo;portable by manifest&rdquo;)</td>
-      <td><code>apm.lock.yaml</code> &mdash; exact refs + content hashes</td>
+      <td><code>apm.lock.yaml</code> &mdash; resolved sources + content hashes</td>
     </tr>
     <tr>
       <td><span class="property property--security">Provenance / security</span></td>
@@ -218,24 +223,35 @@
 </p>
 
 <h4>One context, many harnesses</h4>
+<!--
+  Bounded projection: core-reference.md sections 3, 5, 7;
+  backend/examples/updates/1.2/core/local-instruction (fixture-local-instruction-install).
+  Whole native registration: RunRoot/core-probes/logs/ch3-plugin-native.json;
+  registration is not evidence of runtime loading or an audit-clean native-plugin restore.
+-->
 <p>
   A <em>harness</em> is a specific AI coding tool that reads agent-context files.
-  <strong>Harness parity</strong> is APM's guarantee that one declared context restores the same
-  skills, prompts, instructions, MCP servers, and more across all of them: &ldquo;any developer runs
-  <code>apm install</code> and gets the same agent context across GitHub Copilot, Claude Code, Cursor,
-  OpenCode, Codex, Gemini, Windsurf, and Kiro&rdquo;
-  (<a href="https://microsoft.github.io/apm/" rel="noreferrer">APM docs</a>). APM compiles one source
-  into each tool's native location &mdash; <code>.github/</code> for Copilot, <code>.claude/</code>
-  for Claude Code, <code>.cursor/</code> for Cursor &mdash; so the same intent lands in the harnesses
-  you declare or APM detects, not fanned out to every tool by default (target resolution is covered in
-  <a href="install-and-restore.html">Chapter 5</a>). Meridian's three-harness mix stops being three
-  maintenance burdens and becomes one.
+  <strong>Harness parity</strong> means preserving declared intent in the native forms each selected
+  target supports, not identical bytes or every primitive on every harness. For example, APM projects
+  a shared instruction into <code>.github/instructions/</code>, <code>.claude/rules/</code>, and
+  <code>.cursor/rules/</code>, adapting its metadata for each tool
+  (<a href="https://github.com/microsoft/apm/blob/v0.31.0/docs/src/content/docs/reference/targets-matrix.md" rel="noreferrer">target matrix, APM 0.31.0</a>).
+  Targets come from your declaration or APM's resolution process, not a fan-out to every tool by
+  default (<a href="install-and-restore.html">Chapter 5</a>). Meridian can maintain one authored
+  instruction rather than three independent copies.
+</p>
+<p>
+  Package format matters too. Legacy plugins can project individual primitives, whereas recognized
+  <a href="https://github.com/microsoft/apm/blob/v0.31.0/docs/src/content/docs/consumer/copilot-agent-plugins.md" rel="noreferrer">Agent Plugins v1</a>
+  stay whole for native Copilot registration. They are not automatically flattened into equivalent
+  Claude or Cursor files. <a href="primitives-and-harnesses.html">Chapter 3</a> explains the
+  primitive/package distinction.
 </p>
 <p>
   Crucially, APM writes the files each tool already understands and then &ldquo;stays out of the way
   at agent runtime&rdquo;
   (<a href="https://microsoft.github.io/apm/concepts/what-is-apm/" rel="noreferrer">What is APM?</a>).
-  It restores context; it does not run, proxy, or sandbox the agent.
+  It manages context; it does not proxy or sandbox the agent.
 </p>
 
 <aside class="leader-callout">
@@ -245,9 +261,9 @@
     costs shrink: <strong>onboarding</strong> (a clone-and-install replaces the wiki-plus-Slack
     ritual), <strong>audit</strong> (you can answer &ldquo;which tools and prompts are installed, and
     from where?&rdquo; from a lockfile instead of a survey), and <strong>supply-chain risk</strong>
-    (organization policy is enforced automatically at install time rather than trusted to individual
-    judgment). The reframe is simple: agent context deserves the same declaration and review discipline
-    you already require of <code>package.json</code> or <code>requirements.txt</code>.
+    (reviewed organization policy can be checked at install time rather than left to individual
+    setup habits). The reframe is simple: agent context deserves the same declaration and review
+    discipline you already require of <code>package.json</code> or <code>requirements.txt</code>.
   </p>
 </aside>
 
@@ -307,13 +323,19 @@
 
 <aside class="callout callout-warn">
   <h3>Pitfall: policy governs installs, the harness governs runtime</h3>
+  <!-- Scan/trust scope: operations-reference.md OP08.1 and OP08.3;
+       RunRoot/operations-probes/logs/scan-source-only-install.json and scan-admissible-selected-skill.json. -->
   <p>
     &ldquo;Governed by policy&rdquo; does <em>not</em> mean APM controls what your agent may do while
-    it runs. As the docs put it plainly: &ldquo;apm-policy.yml governs what gets installed; your agent
-    harness governs what runs. The two planes do not overlap&rdquo;
-    (<a href="https://github.com/microsoft/apm" rel="noreferrer">microsoft/apm README</a>). APM is an
-    install-time integrity and governance layer, <strong>not</strong> a runtime sandbox. Expecting it
-    to police live agent behavior will lead you astray.
+    it runs. Installation scans the authorized deployable content before it becomes agent-readable;
+    downloaded sources and caches may already be on disk.
+  </p>
+  <p>
+    A clean scan, a matching hash, or a trust grant does not prove benign intent or authenticate the
+    publisher (<a href="https://github.com/microsoft/apm/blob/v0.31.0/docs/src/content/docs/enterprise/security.md" rel="noreferrer">security model, APM 0.31.0</a>).
+    The harness still controls runtime permissions: APM is an install-time integrity and governance
+    layer, <strong>not</strong> a runtime sandbox.
+    <a href="security-by-default.html">Chapter 8</a> develops those trust boundaries.
   </p>
 </aside>
 
@@ -380,9 +402,12 @@
 
 <p>As a file tree, the anti-pattern is stark &mdash; related intent, scattered and unpinned:</p>
 
-<figure class="code-example">
+<!-- Example ch1-unmanaged-context: unchanged illustration, not an executable fixture.
+     Archive: RunRoot/core-probes/historical-core-blocks.json, the-context-problem block 1. -->
+<figure class="code-example" id="ch1-unmanaged-context">
   <figcaption>
-    Anti-pattern: per-harness context that drifts independently (not an APM layout).
+    Historical snapshot &mdash; anti-pattern: per-harness context that drifts independently
+    (not an APM layout).
     <span class="apm-version">apm v0.23.1</span>
   </figcaption>
   <pre><code class="language-text"># Anti-pattern only -- four unmanaged sources of truth
@@ -394,15 +419,23 @@
 
 <p>
   The fix is not &ldquo;write a better README.&rdquo; It's to <em>declare</em> the context in one file
-  the repo owns, then let a single command restore it everywhere. Here is the shape Meridian is heading
-  toward &mdash; a minimal manifest that names the project and its harness targets, with dependency
-  buckets ready to fill in later chapters:
+  the repo owns, then restore supported context for the selected harnesses. Here is the shape Meridian
+  is heading toward &mdash; a minimal manifest that names the project and its harness targets, with
+  dependency buckets ready to fill in later chapters:
 </p>
 
-<figure class="code-example">
+<!--
+  Example ch1-conceptual-manifest: unchanged illustrative snapshot, not an executed install.
+  Archive: RunRoot/core-probes/historical-core-blocks.json, the-context-problem block 2.
+  Related current fixture, not this sketch: backend/examples/updates/1.2/core/local-instruction.
+  Targets/includes evidence: core-reference.md sections 3-4; probes fixture-local-instruction-install
+  and ch4-includes-not-install-filter. Do not transfer their execution stamps to this snapshot.
+-->
+<figure class="code-example" id="ch1-conceptual-manifest">
   <figcaption>
-    Conceptual target <code>apm.yml</code> for <code>meridian-checkout</code> &mdash; illustrative only;
-    syntax is validated in Chapter 4. <span class="apm-version">apm v0.23.1</span>
+    Historical snapshot &mdash; conceptual target <code>apm.yml</code> for
+    <code>meridian-checkout</code>, illustrative only, not an executed install.
+    <span class="apm-version">apm v0.23.1</span>
   </figcaption>
   <pre><code class="language-yaml">name: meridian-checkout-agent-context
 version: 0.1.0
@@ -420,11 +453,13 @@ includes: auto</code></pre>
 <p>
   Read it as a promise, not yet a program. <code>name</code>, <code>version</code>, and
   <code>description</code> identify the package; <code>targets</code> lists the three harnesses Meridian
-  uses; <code>dependencies</code> splits into two typed buckets &mdash; <code>apm</code> for primitives
-  and <code>mcp</code> for MCP servers &mdash; both empty for now; <code>includes: auto</code> tells APM
-  to auto-discover locally authored primitives. One reviewable file, three harnesses, one future
-  <code>apm install</code>. Chapter 4 turns this sketch into a validated manifest; Chapter 5 runs the
-  install for real.
+  uses; <code>dependencies</code> uses two buckets here &mdash; <code>apm</code> for context packages
+  and <code>mcp</code> for MCP servers &mdash; both empty for now. <code>includes: auto</code> explicitly
+  consents to deploying discovered local content; it is not an install-discovery filter
+  (<a href="https://github.com/microsoft/apm/blob/v0.31.0/docs/src/content/docs/reference/manifest-schema.md#39-includes" rel="noreferrer">manifest reference, APM 0.31.0</a>).
+  One reviewable file, three harnesses, one future <code>apm install</code>.
+  <a href="the-manifest-apm-yml.html">Chapter 4</a> develops this sketch;
+  <a href="install-and-restore.html">Chapter 5</a> runs the install for real.
 </p>
 
 <!-- SLOT: recap-and-next -->
@@ -450,8 +485,8 @@ includes: auto</code></pre>
     (reproduce), <code>apm-policy.yml</code> (govern), and <code>apm install</code> (restore).
   </li>
   <li>
-    Harness parity means one declared context restores across many harnesses; APM configures files and
-    stays out of the runtime.
+    Harness parity means one declared intent in supported target-native forms, not identical files
+    or universal plugin support. APM does not govern the agent runtime.
   </li>
   <li>Meridian's next step: turn four scattered per-harness files into one declared manifest.</li>
 </ul>
