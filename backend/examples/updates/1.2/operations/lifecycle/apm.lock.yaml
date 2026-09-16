@@ -1,0 +1,23 @@
+lockfile_version: '1'
+apm_version: 0.31.0
+dependencies:
+- repo_url: _local/package
+  name: operations-lifecycle-library
+  version: 1.0.0
+  package_type: apm_package
+  deployed_files:
+  - .github/instructions/notice.instructions.md
+  deployed_file_hashes:
+    .github/instructions/notice.instructions.md: sha256:8007117bade65a3d400b4bdbe941caf5da9b259be244ebe36d6a8cdad70f036a
+  source: local
+  local_path: ./package
+deployments:
+- kind: project-relative
+  target: copilot
+  value: .github/instructions/notice.instructions.md
+  runtime: null
+  scope: project
+  owners:
+  - ./package
+  active_owner: ./package
+  content_hash: sha256:8007117bade65a3d400b4bdbe941caf5da9b259be244ebe36d6a8cdad70f036a

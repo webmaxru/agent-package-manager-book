@@ -130,7 +130,8 @@ a:hover { color: var(--indigo-strong); text-decoration-thickness: 2px; }
 
 a:focus-visible,
 button:focus-visible,
-summary:focus-visible {
+summary:focus-visible,
+.table-scroll:focus-visible {
   outline: 3px solid var(--indigo);
   outline-offset: 3px;
   border-radius: 4px;
@@ -699,7 +700,8 @@ h4 { font-size: 1.06rem; font-weight: 600; letter-spacing: -0.01em; }
 .anchor-link { color: inherit; text-decoration: none; }
 .anchor-link:hover { color: var(--indigo); }
 .anchor-link:hover::after { content: " #"; color: var(--indigo); font-family: var(--font-mono); }
-.section-content { min-height: 2rem; }
+/* Wrap long prose paths/hashes without shrinking the intrinsic width of tables. */
+.section-content { min-height: 2rem; overflow-wrap: break-word; }
 
 .pending-note {
   background: color-mix(in srgb, var(--amber) 8%, var(--surface-2));
@@ -723,7 +725,9 @@ h4 { font-size: 1.06rem; font-weight: 600; letter-spacing: -0.01em; }
 .section-content strong { font-weight: 600; }
 .section-content em { font-style: italic; }
 
+.table-scroll { max-width: 100%; overflow-x: auto; margin: 1.6rem 0; }
 .section-content table { border-collapse: collapse; width: 100%; margin: 1.6rem 0; font-size: 0.92rem; }
+.section-content .table-scroll > table { margin: 0; }
 .section-content caption { caption-side: bottom; color: var(--muted); font-family: var(--font-mono); font-size: 0.8rem; padding-top: 0.6rem; text-align: left; }
 .section-content th, .section-content td { border: 1px solid var(--border); padding: 0.6rem 0.75rem; text-align: left; vertical-align: top; }
 .section-content thead th { background: var(--surface-2); font-family: var(--font-display); font-weight: 600; font-size: 0.9rem; }
@@ -759,6 +763,8 @@ pre {
   font-size: 0.86rem;
   line-height: 1.65;
 }
+/* Keep keyboard focus visible inside a code card's rounded clipping boundary. */
+pre:focus-visible { outline: 3px solid var(--ink-indigo); outline-offset: -3px; }
 code { font-family: var(--font-mono); font-size: 0.95em; }
 pre code { font-family: var(--font-mono); }
 :not(pre) > code {
@@ -799,6 +805,7 @@ pre code { font-family: var(--font-mono); }
 .code-example > figcaption {
   display: flex;
   flex-wrap: wrap;
+  overflow-wrap: anywhere;
   align-items: center;
   gap: 0.5rem;
   font-family: var(--font-mono);
@@ -809,6 +816,7 @@ pre code { font-family: var(--font-mono); }
   border-bottom: 1px solid var(--ink-border);
   padding: 0.65rem 0.9rem;
 }
+.code-example > figcaption > * { min-width: 0; max-width: 100%; }
 .code-example > figcaption code { background: rgba(255, 255, 255, 0.07); border: 0; color: var(--ink-text); font-size: 0.9em; padding: 0.05em 0.3em; }
 .code-example > figcaption em { color: var(--ink-text); font-style: italic; }
 .code-example > figcaption a { color: var(--ink-indigo); }
@@ -816,6 +824,12 @@ pre code { font-family: var(--font-mono); }
 .code-example .code-block { border-radius: 0; }
 
 /* Amber machine stamp (version) + distinct "needs network" badge, on ink */
+.apm-version, .needs-network {
+  display: inline-block;
+  max-width: 100%;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
 .apm-version {
   font-family: var(--font-mono);
   font-size: 0.68rem;
@@ -825,7 +839,6 @@ pre code { font-family: var(--font-mono); }
   border-radius: 6px;
   padding: 0.1rem 0.45rem;
   margin-left: auto;
-  white-space: nowrap;
 }
 .needs-network {
   font-family: var(--font-mono);
@@ -838,7 +851,6 @@ pre code { font-family: var(--font-mono); }
   border: 1px solid color-mix(in srgb, var(--ink-amber) 45%, transparent);
   border-radius: 999px;
   padding: 0.12rem 0.5rem;
-  white-space: nowrap;
 }
 .needs-network::before { content: "\25d0 "; }
 

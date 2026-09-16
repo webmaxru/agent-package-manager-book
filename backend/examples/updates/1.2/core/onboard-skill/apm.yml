@@ -1,0 +1,7 @@
+# Reference an existing skill without moving or translating its source.
+name: core-onboard-skill
+version: 1.0.0
+targets: [copilot]
+dependencies:
+  apm:
+    - path: ./.claude/skills/checkout-review

@@ -1,0 +1,4 @@
+name: producer-tests
+version: 1.0.0
+description: A local development-only skill.
+license: MIT

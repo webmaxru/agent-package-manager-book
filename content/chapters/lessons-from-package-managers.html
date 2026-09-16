@@ -2,7 +2,10 @@
   Chapter 2 - Lessons from Package Managers (authored content fragment).
   Injected by site/generate.py into site/chapters/lessons-from-package-managers.html at each
   slot marker below. No page chrome, no h1/h2 (the shell renders those).
-  APM CLI referenced: v0.23.1. Cite official docs, not source-docs.
+  Book 1.2 frozen target: APM v0.31.0, from v0.23.1. Historical examples retain their own stamps.
+  Current sources: content/research/updates/1.2/{theory,core-reference,operations-reference,
+  producer-reference}.md and RunRoot/impact.md. RunRoot is the session files/book-v1.2 directory.
+  Pinned official source: 8fd10ac5eafee7ca77d41cc34ba139d812fdacd5. Cite official docs, not source-docs.
   Meridian beat: analogy-only, NO new apm.yml (that arrives in Chapter 4).
 -->
 
@@ -18,8 +21,9 @@
 <!-- SLOT: concept-theory -->
 <h3>What package managers actually normalized</h3>
 <p>
-  Chapter 1 left application dependencies in their pre-package-manager state: copied <code>lib/</code>
-  folders, emailed zips, a README that listed &ldquo;install these seven things first.&rdquo; npm, pip,
+  <a href="the-context-problem.html">Chapter 1</a> left application dependencies in their
+  pre-package-manager state: copied <code>lib/</code> folders, emailed zips, a README that listed
+  &ldquo;install these seven things first.&rdquo; npm, pip,
   and Cargo did not simply automate the download. They <em>normalized a pattern</em> &mdash; six moves
   that turned dependencies from hand-copied files into declared, reviewable, reproducible project
   state. Those six moves are the whole lesson, and every one of them has a direct analogue in agent
@@ -31,7 +35,7 @@
   <li><strong>Version pinning</strong> &mdash; &ldquo;some compatible version&rdquo; becomes &ldquo;this exact one.&rdquo;</li>
   <li><strong>Sources / registries</strong> &mdash; a named place a dependency resolves from.</li>
   <li><strong>Provenance</strong> &mdash; knowing where each artifact came from and that it is intact.</li>
-  <li><strong>Repeatable restore</strong> &mdash; one command rebuilds the exact same environment anywhere.</li>
+  <li><strong>Repeatable restore</strong> &mdash; one command reconstructs dependency state from a recorded result.</li>
 </ul>
 <p>
   APM's own framing is that it &ldquo;borrows the manifest-plus-lockfile shape from npm, pip, and
@@ -61,13 +65,13 @@
     <tr>
       <td><strong>Lockfile</strong></td>
       <td>Pins the exact resolved graph so restores match (<code>package-lock.json</code>, <code>Pipfile.lock</code>, <code>Cargo.lock</code>)</td>
-      <td>Exact resolved version and content identity of every primitive</td>
+      <td>Resolved source identities and integrity records for managed context</td>
       <td><span class="property property--reproducibility">Reproducibility</span></td>
     </tr>
     <tr>
       <td><strong>Version pinning</strong></td>
       <td>Turns &ldquo;some compatible version&rdquo; into &ldquo;this exact one&rdquo;</td>
-      <td>Pin a primitive to a ref or commit instead of a moving branch</td>
+      <td>Record the exact commit selected by a tag or branch, or choose an immutable commit directly</td>
       <td><span class="property property--reproducibility">Reproducibility</span></td>
     </tr>
     <tr>
@@ -79,17 +83,23 @@
     <tr>
       <td><strong>Provenance</strong></td>
       <td>Know where each artifact came from and that it is intact (integrity hashes, signatures)</td>
-      <td>Know the source <em>and</em> the content hash of each installed primitive</td>
+      <td>Trace installed package files to recorded sources and integrity data</td>
       <td><span class="property property--security">Provenance / security</span></td>
     </tr>
     <tr>
       <td><strong>Repeatable restore</strong></td>
       <td>One command rebuilds the exact environment (<code>npm ci</code>, hashed <code>pip install</code>)</td>
-      <td>One command restores identical context on any machine and any harness</td>
+      <td>One declared setup restored in each supported harness's native form, not identical bytes across harnesses</td>
       <td><span class="property property--portability">Portability</span> + <span class="property property--reproducibility">Reproducibility</span></td>
     </tr>
   </tbody>
 </table>
+<p>
+  Keep provenance's two questions separate: &ldquo;Does this content match its record?&rdquo; and
+  &ldquo;Do I trust its publisher?&rdquo; A checksum detects changed bytes relative to trusted
+  metadata; it neither authenticates a publisher nor proves instructions benign
+  (<a href="https://github.com/microsoft/apm/blob/8fd10ac5eafee7ca77d41cc34ba139d812fdacd5/docs/src/content/docs/enterprise/security.md" rel="noreferrer">APM's security boundaries</a>).
+</p>
 
 <h4>The lesson isn't the downloader</h4>
 <p>
@@ -100,6 +110,11 @@
   Cargo all resolve git and filesystem sources independently of any central index. A reader
   who remembers only &ldquo;APM installs agent files&rdquo; has taken the hook and dropped the lesson.
   The point is that context becomes <em>declared, pinned, and reviewable</em> like any other dependency.
+</p>
+<p>
+  Restoring unchanged intent is different from reconciling an edited declaration. Likewise, reporting
+  newer content, choosing an allowed change, and checking integrity are separate jobs. A lockfile
+  makes deliberate change reviewable; it does not prohibit change.
 </p>
 
 <h4>Agent context is where application code was before lockfiles</h4>
@@ -161,28 +176,44 @@
   </li>
   <li>
     <code>apm.lock.yaml</code> is the <strong>lockfile</strong>: machine-generated, never hand-edited,
-    pinning every dependency to an exact ref and content hash. This carries
+    recording resolved identities, integrity data, and deployment ownership. This carries
     <span class="property property--reproducibility">Reproducibility</span>.
   </li>
   <li>
-    <code>owner/repo#&lt;ref&gt;</code> is a <strong>version pin</strong>, where <code>&lt;ref&gt;</code>
-    is a git tag, branch, or commit SHA. It is the git-native form of <code>pkg@1.2.3</code>, and it is
-    what lets the lockfile promise byte-for-byte restores &mdash;
+    For a Git source, <code>owner/repo#&lt;ref&gt;</code> selects a <strong>version ref</strong>:
+    a tag, branch, or commit SHA. Think <code>pkg@1.2.3</code>, but remember that tags and branches
+    can move. A full commit fixes the revision; the lock records the resolved commit &mdash;
     <span class="property property--reproducibility">Reproducibility</span> again.
   </li>
   <li>
-    <strong>Git servers are the &ldquo;registry.&rdquo;</strong> APM resolves dependencies straight from
-    git hosts, because &ldquo;any git repository is a valid APM package&rdquo;
-    (<a href="https://microsoft.github.io/apm/concepts/what-is-apm/" rel="noreferrer">What is APM?</a>).
+    <strong>Git is the default source, not a registry service.</strong> Local paths and
+    <a href="#ch2-registry-boundary">experimental REST registries</a> are other source choices.
+    A configured default registry can route shorthand away from Git; an explicit
+    <code>git:</code> declaration keeps it on Git
+    (<a href="https://github.com/microsoft/apm/blob/8fd10ac5eafee7ca77d41cc34ba139d812fdacd5/docs/src/content/docs/guides/registries.md" rel="noreferrer">source routing</a>).
     Knowing the source is half of <span class="property property--security">Provenance / security</span>.
   </li>
 </ul>
+<!--
+  ch2-source-identities: operations-reference.md OP06.1; core-reference.md section 2.
+  Evidence: core/pinned-skill/apm.lock.yaml; operations/repro and operations/registry real locks;
+  RunRoot/operations-probes/logs/repro-install and lock-legacy-timestamp-restore.
+  Git/local/registry fields are deliberately not presented as one universal lock schema.
+-->
+<p id="ch2-source-identities">
+  Identity depends on the source: Git records a repository, commit, and any selected subpath; a local
+  dependency records a path whose source must remain available; a registry package records an exact version and
+  archive URL/checksum, not a Git SHA. New 0.31.0 locks omit <code>generated_at</code>, though legacy
+  locks can retain it. Compare recorded state, not a clock
+  (<a href="https://github.com/microsoft/apm/blob/8fd10ac5eafee7ca77d41cc34ba139d812fdacd5/docs/src/content/docs/reference/lockfile-spec.md" rel="noreferrer">lockfile reference</a>;
+  <a href="the-lockfile-and-reproducibility.html">Chapter 6</a>).
+</p>
 <p>
   If you already think in npm, pip, or Cargo terms, the whole vocabulary transfers with one lookup:
 </p>
 
 <table>
-  <caption>A cheat-sheet from what you already know to its APM counterpart (apm v0.23.1).</caption>
+  <caption>A conceptual lookup for APM 0.31.0; example evidence is labeled separately below.</caption>
   <thead>
     <tr>
       <th scope="col">You know&hellip;</th>
@@ -200,11 +231,11 @@
     </tr>
     <tr>
       <td><code>pkg@1.2.3</code> version pin</td>
-      <td><code>owner/repo#&lt;ref&gt;</code> (tag, branch, or SHA)</td>
+      <td><code>owner/repo#&lt;ref&gt;</code> for Git (tag, branch, or SHA; lock the resolved result)</td>
     </tr>
     <tr>
       <td>npmjs.com / PyPI / crates.io</td>
-      <td>git host (GitHub, GitLab, Azure DevOps, Bitbucket, Gitea, or a git URL)</td>
+      <td>Git host by default; local paths or an explicitly enabled experimental REST registry are alternatives</td>
     </tr>
     <tr>
       <td><code>npm view</code> / <code>pip index versions</code></td>
@@ -230,13 +261,28 @@
 </table>
 
 <p>
-  Notice the bottom rows: the maintenance verbs you reach for in npm all have APM counterparts. There
-  is an <code>apm outdated</code>/<code>apm update</code>/<code>apm audit</code> trio, and
-  <code>apm view &lt;pkg&gt; versions</code> lists the refs you can pin to. This chapter only
-  <em>names</em> them so the analogy feels complete;
+  Notice the bottom rows: <code>apm outdated</code> reports availability, <code>apm update</code>
+  plans and applies constraint-respecting changes with consent, and <code>apm audit</code> checks
+  the resulting state. <code>apm view &lt;pkg&gt; versions</code> lists Git refs or registry versions,
+  depending on source routing. This chapter names the roles;
   <a href="lifecycle.html">Chapter 7</a> puts the lifecycle to work &mdash; including what
   <code>apm audit</code> does and does not check &mdash; and
   <a href="security-by-default.html">Chapter 8</a> covers the install-time security scan.
+</p>
+<!--
+  ch2-registry-report: operations-reference.md OP07.1, controlled loopback registry, not a public hub.
+  Source probes: RunRoot/operations-probes/logs/registry-outdated-current-wanted-latest,
+  registry-exact-noop-plan, registry-outdated-wide; registry fixture supplies 2.0.0-beta.1.
+  The verbose terminal truncated Latest visually; this prose is a summary, not a copied transcript.
+-->
+<p id="ch2-registry-report">
+  Registry reporting makes the distinction explicit: <strong>Current</strong> is locked,
+  <strong>Wanted</strong> is the highest version allowed by the manifest constraint, and
+  <strong>Latest</strong> is the highest published parseable semantic version, which can include a
+  prerelease outside that constraint. In the controlled registry run, an exact 1.0.0 pin showed Current/Wanted
+  1.0.0 but Latest 2.0.0-beta.1; its update preview proposed no change. A newer release being
+  <em>reported</em> does not authorize crossing the pin. Git-only reports do not add Wanted
+  (<a href="https://github.com/microsoft/apm/blob/8fd10ac5eafee7ca77d41cc34ba139d812fdacd5/docs/src/content/docs/reference/cli/outdated.md" rel="noreferrer">reporting semantics</a>).
 </p>
 
 <!-- SLOT: when-to-use-pitfalls -->
@@ -252,17 +298,19 @@
   <h3>The three-part tell for Microsoft's APM</h3>
   <p>
     The tool this book teaches has a fingerprint you can check in seconds. It is the
-    <code>apm</code> you install with <code>pip install apm-cli</code>
-    (<a href="https://pypi.org/project/apm-cli/" rel="noreferrer">PyPI</a>), whose repository is
+    <code>apm</code> distributed as <code>apm-cli</code> on
+    <a href="https://pypi.org/project/apm-cli/" rel="noreferrer">PyPI</a>, whose repository is
     <code>microsoft/apm</code>, and whose docs live at <code>microsoft.github.io/apm</code>. Its
     <strong>three-file model</strong> is <code>apm.yml</code>, <code>apm.lock.yaml</code>, and
     <code>apm-policy.yml</code>. If instead you see <code>apm-lock.json</code>, <code>aipm.toml</code>,
-    or a hosted central registry as the primary identity, you are looking at a <em>different</em> tool.
+    or another repository owner, check which tool you have; registry support alone is not a tell.
+    The <a href="https://github.com/microsoft/apm/blob/8fd10ac5eafee7ca77d41cc34ba139d812fdacd5/docs/src/content/docs/getting-started/installation.md" rel="noreferrer">0.31.0 installation guide</a>
+    also covers native releases and package-manager channels &mdash; pip is not the only route.
   </p>
 </aside>
 
 <table>
-  <caption>Telling the &ldquo;apm&rdquo; names apart &mdash; owner, how you identify it, and what it actually is.</caption>
+  <caption>Telling the &ldquo;apm&rdquo; names apart. Other-project fingerprints retain the July 2026 research snapshot.</caption>
   <thead>
     <tr>
       <th scope="col">Name</th>
@@ -276,7 +324,7 @@
     <tr>
       <td><strong>Microsoft APM</strong> <em>(this book)</em></td>
       <td>Microsoft &mdash; <a href="https://github.com/microsoft/apm" rel="noreferrer"><code>microsoft/apm</code></a></td>
-      <td><code>pip install apm-cli</code>; docs <code>microsoft.github.io/apm</code></td>
+      <td>PyPI <code>apm-cli</code>; docs <code>microsoft.github.io/apm</code></td>
       <td><code>apm.yml</code> + <code>apm.lock.yaml</code> + <code>apm-policy.yml</code></td>
       <td>The manifest-driven dependency manager for agent context taught here</td>
     </tr>
@@ -325,41 +373,65 @@
   don't over-claim.
 </p>
 
-<aside class="callout callout-warn">
-  <h3>There is no central APM registry yet</h3>
+<!--
+  ch2-registry-boundary: theory.md section 8; core-reference.md section 9;
+  operations-reference.md OP07.1; producer-reference.md section 7.
+  Evidence: ch2-registry-flag-required; registry-outdated-current-wanted-latest;
+  frozen official guides/registries.md, reference/registry-http-api.md, specs/openapm-v0.1.md.
+  Client/API implementation is distinct from hosted-service evidence and normative spec maturity.
+-->
+<aside class="callout callout-warn" id="ch2-registry-boundary">
+  <h3>Registry support is not a public discovery hub</h3>
   <p>
-    APM borrows the manifest-plus-lockfile shape but not (yet) the other half of the classic story: a
-    central, indexed registry with a search-and-publish API. A <em>source</em> is where a single
-    dependency resolves from (a git repo at a ref); a <em>registry</em> is a central catalog with an
-    HTTP API. APM has robust sources and pinning today, but no central registry &mdash; the registry
-    HTTP API is explicitly deferred to v0.2 by
-    <a href="https://microsoft.github.io/apm/specs/openapm-v01/" rel="noreferrer">the OpenAPM v0.1 spec</a>.
-    So when this book says &ldquo;registry,&rdquo; the honest mapping today is <strong>git servers</strong>.
-    This is a discovery/UX gap, not a correctness gap: reproducibility comes from the lockfile (a pinned
-    commit plus a content hash), which delivers byte-for-byte restores <em>without</em> a central index.
+    APM 0.31.0 ships an <strong>EXPERIMENTAL REST registry client</strong> for consumption and
+    publication, plus an
+    <a href="https://github.com/microsoft/apm/blob/8fd10ac5eafee7ca77d41cc34ba139d812fdacd5/docs/src/content/docs/reference/registry-http-api.md" rel="noreferrer">implementable HTTP API</a>
+    for version listing, archive download, and publication. That is real implementation, but not
+    evidence of a <strong>Microsoft-operated public searchable APM registry</strong>. You still need
+    a compatible server to use that optional path; this book's Git-first path needs no central service.
+  </p>
+  <p>
+    The <a href="https://github.com/microsoft/apm/blob/8fd10ac5eafee7ca77d41cc34ba139d812fdacd5/docs/src/content/docs/specs/openapm-v0.1.md" rel="noreferrer">OpenAPM v0.1 Working Draft</a>
+    still defers a <em>normative registry wire contract</em> to v0.2. Standards maturity, shipped
+    client support, and public discovery are three different questions &mdash; none determines
+    whether a Git lock can record a reproducible result.
+    <a href="the-landscape-and-whats-next.html">Chapter 12</a> returns to that distinction.
   </p>
 </aside>
 
-<aside class="callout callout-warn">
+<!--
+  ch2-audit-boundary: operations-reference.md OP07.2; no fixed check count or universal coverage claim.
+  Existing independent fixture evidence: RunRoot/verify-ch05/logs/public-pinned-skill-audit;
+  content/research/updates/1.2/ch05-verification.md. Scope reference: frozen reference/cli/audit.md.
+-->
+<aside class="callout callout-warn" id="ch2-audit-boundary">
   <h3><code>apm audit</code> is not <code>npm audit</code></h3>
   <p>
-    The cheat-sheet lines them up, but their jobs differ. As inspected on the v0.23.1 CLI,
+    The cheat-sheet lines them up, but their jobs differ. In APM 0.31.0, built-in
     <code>apm audit</code> scans installed packages for <strong>hidden-Unicode characters</strong> and,
-    with <code>--ci</code>, checks lockfile integrity. It is <em>not</em> a CVE vulnerability feed like
-    <code>npm audit</code> or <code>pip-audit</code>. Promise a teammate an integrity and
-    hidden-character check, not a security-advisory scan.
+    with <code>--ci</code>, checks recorded integrity and deployment state. It is <em>not</em> a CVE
+    vulnerability feed like <code>npm audit</code> or <code>pip-audit</code>. Promise a teammate an
+    integrity and hidden-character check, not a security-advisory scan.
     <a href="lifecycle.html">Chapter 7</a> covers exactly what it does and doesn't catch (and
     <a href="security-by-default.html">Chapter 8</a> the install-time security scan).
   </p>
 </aside>
 
-<p>
-  A third honesty note is smaller but sets up Part III. When you run <code>apm install owner/repo</code>
-  <em>without</em> a <code>#&lt;ref&gt;</code>, APM records the bare shorthand in <code>apm.yml</code>
-  and tracks the source's default branch. That is convenient, but <strong>not reproducible on its own</strong>
-  &mdash; tomorrow's install could resolve a newer commit. Pinning (<code>#&lt;ref&gt;</code>) plus the
-  lockfile are what convert &ldquo;works on my machine today&rdquo; into &ldquo;byte-for-byte, forever,&rdquo;
-  a payoff <a href="the-lockfile-and-reproducibility.html">Chapter 6</a> makes concrete.
+<!--
+  ch2-replay-boundary: core-reference.md section 2 and operations-reference.md OP06.2/OP07.1.
+  Probes: fixture-pinned-skill-install/restore; registry-graph-cold-frozen;
+  registry-install-edited-constraint. The last changed the exact selector to 1.1.0 before normal install.
+-->
+<p id="ch2-replay-boundary">
+  A third honesty note sets up Part III. A Git dependency without a ref selects the default branch:
+  <strong>without a lock, a fresh resolution can move</strong>. With unchanged Git declarations and a
+  lock, normal <code>apm install</code> reuses the locked graph, including transitives. Edit the declared
+  ref or version constraint, however, and normal install reconciles that new intent; update is not
+  the only operation that can change resolution
+  (<a href="https://github.com/microsoft/apm/blob/8fd10ac5eafee7ca77d41cc34ba139d812fdacd5/docs/src/content/docs/reference/cli/install.md" rel="noreferrer">install contract</a>).
+  Commit the manifest/lock pair and retain access to its sources &mdash; not &ldquo;byte-for-byte,
+  forever&rdquo; without conditions. <a href="the-lockfile-and-reproducibility.html">Chapter 6</a>
+  makes the replay boundary concrete.
 </p>
 
 <aside class="leader-callout">
@@ -378,19 +450,25 @@
 </aside>
 
 <!-- SLOT: worked-example -->
-<h3>The pin that makes it reproducible</h3>
+<h3>The pin and the recorded result</h3>
 <p>
   Chapter 2 introduces no new Meridian manifest &mdash; that is deliberate; the team writes its first
   real <code>apm.yml</code> in <a href="the-manifest-apm-yml.html">Chapter 4</a>. The one piece of
   syntax worth recognizing now is the version pin, so it looks familiar when it arrives:
   <code>owner/repo#&lt;ref&gt;</code>, where <code>&lt;ref&gt;</code> is a git tag, branch, or commit
-  SHA. To pin the public sample package to a released tag:
+  SHA. The original edition illustrated a tag selection this way:
 </p>
 
-<figure class="code-example">
+<!--
+  ch2-pin-history: unchanged 0.23.1 code from the original Ch2 fragment; original CLI stamp retained.
+  Historical source: content/research/02-lessons-from-package-managers-reference.md section 2.
+  That reference marks its live tag probe SKIPPED-shared-terminal, so the old caption's stronger
+  "verified" claim is not promoted to a current result. No 0.31.0 full-package rerun is claimed.
+-->
+<figure class="code-example" id="ch2-pin-history">
   <figcaption>
-    Pin syntax &mdash; the git-native form of <code>pkg@1.2.3</code> (verified: tag <code>v1.0.0</code>
-    resolves to a real commit on a remote git host). <span class="apm-version">apm v0.23.1</span>
+    Historical pin-syntax snapshot &mdash; the git-native form of <code>pkg@1.2.3</code>, not a
+    current full-package install transcript. Original CLI stamp: <span class="apm-version">apm v0.23.1</span>
     <span class="needs-network">needs network</span>
   </figcaption>
   <pre><code class="language-bash"># owner/repo#&lt;ref&gt;  --  &lt;ref&gt; is a git tag, branch, or commit SHA
@@ -403,10 +481,17 @@ apm install microsoft/apm-sample-package#v1.0.0</code></pre>
   &ldquo;versions&rdquo; verb &mdash; the analogue of <code>npm view</code> / <code>pip index versions</code>:
 </p>
 
-<figure class="code-example">
+<!--
+  ch2-view-versions: unchanged command, newly observed at 0.31.0 in
+  RunRoot/core-probes/logs/ch2-public-versions.{json,txt}; exit 0, 2026-09-15T22:30:31Z.
+  Actual argv: view microsoft/apm-sample-package versions; empty public-versions CWD, isolated home,
+  no default registry. CLI used the absolute prepared executable, not PATH. No verifier verdict added.
+-->
+<figure class="code-example" id="ch2-view-versions">
   <figcaption>
-    List the remote tags and branches you can pin to (verified: contacts the remote and lists real refs).
-    <span class="apm-version">apm v0.23.1</span>
+    List Git tags and branches: the observed result included <code>v1.0.0</code> at
+    <code>fb285168</code>, exit <code>0</code>, with no default registry configured.
+    <span class="apm-version">apm v0.31.0 &mdash; observed 2026-09-15</span>
     <span class="needs-network">needs network</span>
   </figcaption>
   <pre><code class="language-bash"># Lists available remote tags and branches for the package.
@@ -414,10 +499,52 @@ apm view microsoft/apm-sample-package versions</code></pre>
 </figure>
 
 <p>
-  Both commands reach a remote git host, so they are shown here as syntax rather than with captured
-  output &mdash; <a href="install-and-restore.html">Chapter 5</a> runs an install end to end, and
-  <a href="the-manifest-apm-yml.html">Chapter 4</a> is where Meridian writes pins like these into its
-  own manifest for the first time.
+  A configured default registry can redirect that shorthand version query; do not assume every
+  <code>versions</code> response lists Git refs
+  (<a href="https://github.com/microsoft/apm/blob/8fd10ac5eafee7ca77d41cc34ba139d812fdacd5/docs/src/content/docs/reference/cli/view.md" rel="noreferrer">version-query routing</a>).
+  For a small current install proof, reuse the book's
+  <code>backend/examples/updates/1.2/core/pinned-skill</code> fixture. Its explicit Git declaration
+  selects only <code>style-checker</code> at commit
+  <code>fb2851683be0e0e7711421d518bd8dba23b0b1f6</code>, avoiding the full sample's floating transitive
+  dependency. This is a practice fixture, not a new Meridian milestone.
+</p>
+<p>
+  Copy only that fixture's <code>apm.yml</code> into a fresh, short-path scratch directory outside the
+  book checkout, starting without a lock or generated files. Using APM 0.31.0, run these two commands
+  consecutively there. The first records a result; the second exercises
+  <a href="#ch2-replay-boundary">unchanged-intent replay</a>.
+</p>
+<!--
+  ch2-current-replay: exact first two commands of the existing pinned-skill sequence, no new manifest.
+  Input: backend/examples/updates/1.2/core/pinned-skill/apm.yml, without the fixture lock on first install.
+  Manifest SHA-256: 345bd03e5b24af37425cffe624cf8d3ebafff7e60b061b7af1288de7ce65162b.
+  Explorer: RunRoot/core-probes/logs/fixture-pinned-skill-install and fixture-pinned-skill-restore.
+  Independent fixture evidence: RunRoot/verify-ch05/logs/public-pinned-skill-install and
+  public-pinned-skill-restore; both exact argv: install, normal short CWD, absolute prepared 0.31.0 CLI.
+  content/research/updates/1.2/ch05-verification.md records the prior fixture verification, 2026-09-16.
+  Complete generated/replayed lock SHA-256:
+  6b9ebb9ddcba38e6eddae38ca0c3658c2fabeee90e279857c9159f149ba09507.
+  Public Git access required on a cold cache. No new execution or Ch2 review verdict is asserted.
+-->
+<figure class="code-example" id="ch2-current-replay">
+  <figcaption>
+    Install then replay the existing pinned-skill fixture. Both commands exited <code>0</code>;
+    the second preserved the complete lock bytes.
+    <span class="apm-version">apm v0.31.0 &mdash; fixture verified 2026-09-16</span>
+    <span class="needs-network">needs public Git access on a cold cache</span>
+  </figcaption>
+  <pre><code class="language-bash">apm install
+apm install</code></pre>
+</figure>
+<p>
+  The skill appeared at <code>.agents/skills/style-checker/SKILL.md</code> for Copilot/Cursor and
+  <code>.claude/skills/style-checker/SKILL.md</code> for Claude. Its lock records the full commit,
+  even though the skill's inventory version is <code>unknown</code>, and has no
+  <code>generated_at</code>. That is the <a href="#ch2-source-identities">identity-and-content contract</a>,
+  not a timestamp test or proof of live harness behavior.
+  <a href="install-and-restore.html#ch5-current-setup">Chapter 5</a> explains the complete fixture
+  and its integrity checks; <a href="the-manifest-apm-yml.html">Chapter 4</a> is still where Meridian
+  writes its own first manifest.
 </p>
 
 <!-- SLOT: recap-and-next -->
@@ -431,6 +558,7 @@ apm view microsoft/apm-sample-package versions</code></pre>
   <li>
     The load-bearing lesson is the <strong>manifest-plus-lockfile contract</strong> (declared intent vs.
     pinned result), not the downloader or the registry &mdash; the registry is the most optional part.
+    Unchanged intent replays; edited intent asks install to reconcile a new result.
   </li>
   <li>
     Agent context is in the pre-package-manager phase application code was in before lockfiles; that is
@@ -438,7 +566,8 @@ apm view microsoft/apm-sample-package versions</code></pre>
   </li>
   <li>
     In APM the shape has names: <code>apm.yml</code> (manifest), <code>apm.lock.yaml</code> (lockfile),
-    <code>owner/repo#&lt;ref&gt;</code> (pin), and git servers as the &ldquo;registry.&rdquo; The
+    <code>owner/repo#&lt;ref&gt;</code> (Git ref selector), and source-specific identities for Git,
+    local paths, or experimental registry packages. The
     <code>outdated</code>/<code>update</code>/<code>audit</code> trio and <code>apm view &hellip; versions</code>
     are named here and taught later.
   </li>
@@ -447,8 +576,9 @@ apm view microsoft/apm-sample-package versions</code></pre>
     <code>microsoft.github.io/apm</code>, three-file model) so you don't install a different &ldquo;apm.&rdquo;
   </li>
   <li>
-    Two honesty notes: &ldquo;registry&rdquo; maps to git servers today (central registry deferred to
-    OpenAPM v0.2), and <code>apm audit</code> is an integrity / hidden-Unicode scan, not a CVE feed.
+    Two asymmetries: a shipped experimental registry client/API is not evidence of a public
+    searchable Microsoft hub, and built-in <code>apm audit</code> is an integrity / hidden-Unicode
+    check, not a CVE feed. Checksums are not publisher authentication.
   </li>
 </ul>
 

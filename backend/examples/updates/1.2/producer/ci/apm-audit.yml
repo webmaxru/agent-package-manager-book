@@ -1,0 +1,25 @@
+# Documentation sample: SKIPPED-needs-network.
+# A real GitHub runner/required-check policy was not exercised.
+# This audits committed deployed files; do not run install first to repair them.
+# Protect this workflow, its policy authority, and the lockfile review process.
+name: APM integrity audit
+on:
+  pull_request:
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - uses: microsoft/apm-action@d723bb64ed70c135bbaf87d126b721dd2dae0439 # v1.10.0
+        with:
+          setup-only: 'true'
+          apm-version: '0.31.0'
+      - name: Audit checked-out content
+        run: apm audit --ci
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+# No --no-drift: cold-cache CI hydrates a lock-pinned scratch replay.
+# The repository token is not cross-repository private-package authorization.
+# This does not create a required check or configure authoritative org policy.

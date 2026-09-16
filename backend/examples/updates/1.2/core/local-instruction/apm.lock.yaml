@@ -1,0 +1,38 @@
+lockfile_version: '1'
+dependencies: []
+deployments:
+- kind: project-relative
+  target: claude
+  value: .claude/rules/meridian-checkout.md
+  runtime: null
+  scope: project
+  owners:
+  - .
+  active_owner: .
+  content_hash: sha256:3f8ff5771908aa7f602fd6279a2ff775b54613d1c9fc44b4b1dcc31c6ead5be1
+- kind: project-relative
+  target: copilot
+  value: .github/instructions/meridian-checkout.instructions.md
+  runtime: null
+  scope: project
+  owners:
+  - .
+  active_owner: .
+  content_hash: sha256:bf0a95675dd08131c972acfa85ba61e73e9d9ab0c042f1fcb59fb12cb601da49
+- kind: project-relative
+  target: cursor
+  value: .cursor/rules/meridian-checkout.mdc
+  runtime: null
+  scope: project
+  owners:
+  - .
+  active_owner: .
+  content_hash: sha256:a468f35842275baf34baaba82bf986b6d84aefb28da78ecdc1d32690fde538fa
+local_deployed_files:
+- .claude/rules/meridian-checkout.md
+- .cursor/rules/meridian-checkout.mdc
+- .github/instructions/meridian-checkout.instructions.md
+local_deployed_file_hashes:
+  .claude/rules/meridian-checkout.md: sha256:3f8ff5771908aa7f602fd6279a2ff775b54613d1c9fc44b4b1dcc31c6ead5be1
+  .cursor/rules/meridian-checkout.mdc: sha256:a468f35842275baf34baaba82bf986b6d84aefb28da78ecdc1d32690fde538fa
+  .github/instructions/meridian-checkout.instructions.md: sha256:bf0a95675dd08131c972acfa85ba61e73e9d9ab0c042f1fcb59fb12cb601da49

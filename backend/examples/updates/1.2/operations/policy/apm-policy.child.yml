@@ -1,0 +1,12 @@
+# In 0.31.0 this local extends merges; empty lists cannot erase parent restrictions.
+name: Operations child
+extends: ./apm-policy.parent.yml
+enforcement: warn
+fetch_failure: warn
+cache:
+  ttl: 900
+dependencies:
+  deny: []
+  require: []
+  max_depth: 10
+  require_pinned_constraint: false

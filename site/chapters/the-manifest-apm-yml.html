@@ -153,8 +153,11 @@
             <ul class="tag-list">
             <li>apm.yml</li>
             <li>dependencies</li>
+            <li>local sources</li>
             <li>git sources</li>
             <li>version pinning</li>
+            <li>devDependencies</li>
+            <li>includes</li>
             <li>scripts</li>
             <li>harness targets</li>
             </ul>
@@ -177,6 +180,11 @@
   explain why that single committed file is what turns <a href="the-context-problem.html">Chapter
   1</a>'s scattered, per-machine setup into <span class="property property--portability">portable</span>,
   reviewable, version-controlled state.
+</p>
+<p>
+  <strong>Edition 1.2 targets APM 0.31.0.</strong> The original scaffold and Meridian recording
+  remain labeled <code>0.23.1</code>. The <a href="#ch4-current-manifest">current local fixture</a>
+  keeps the same small setup: one checkout instruction, shared across three targets.
 </p>
           </div>
         </section>
@@ -203,9 +211,9 @@
   schema</a>). Only two fields are required to parse &mdash; <code>name</code> and <code>version</code>
   &mdash; and everything else is optional
   (<a href="https://microsoft.github.io/apm/reference/manifest-schema/" rel="noreferrer">manifest
-  schema &sect;2</a>). A valid manifest can be three lines long
-  (<a href="https://microsoft.github.io/apm/concepts/package-anatomy/" rel="noreferrer">package
-  anatomy</a>).
+  schema &sect;2</a>). The examples here use APM's current working-draft shape, without an explicit
+  schema selector; the init template is a starting point, not the complete set of allowed fields
+  (<a href="https://github.com/microsoft/apm/blob/8fd10ac5eafee7ca77d41cc34ba139d812fdacd5/docs/src/content/docs/reference/manifest-schema.md" rel="noreferrer">APM 0.31.0 manifest reference</a>).
 </p>
 <p>
   Chapter 1 ended with a <em>sketch</em> of Meridian's <code>apm.yml</code> and called it &ldquo;a
@@ -222,8 +230,9 @@
   Two distinctions keep the rest of the book straight. First, a manifest is <em>not</em> the
   per-machine files it replaces. Those were many hand-edited <em>outputs</em>; the manifest is one
   authored <em>input</em>, committed to the repo, that those outputs are generated from. You edit the
-  declaration &mdash; never the deployed copies under <code>.github/</code>, <code>.claude/</code>, or
-  <code>.cursor/</code>, which APM regenerates on install.
+  declaration and source &mdash; not the APM-managed copies under <code>.github/</code>,
+  <code>.claude/</code>, or <code>.cursor/</code>. Those directories can also contain human-owned
+  files; their location alone does not make every file generated output.
 </p>
 <p>
   Second, a manifest is <em>not</em> a lockfile. The manifest is <strong>human-authored declared
@@ -245,6 +254,15 @@
   reviewable (<span class="property property--security">Provenance / security</span>,
   <a href="security-by-default.html">Chapter 8</a>). Get the declaration right here and the other three
   chapters have something honest to work with.
+</p>
+<p id="ch4-declaration-authority">
+  A declaration also sets an <strong>authority boundary</strong>: eligible package manifests and
+  component declarations determine what can be deployed; directory conventions supply defaults
+  where the relevant declaration is absent. Selected targets define the destination set, and
+  package or per-dependency restrictions can narrow it, not silently add harnesses. That is
+  reviewable deployment intent, not a guarantee that an agent obeys a rule or runs in a sandbox
+  (<a href="https://github.com/microsoft/apm/blob/8fd10ac5eafee7ca77d41cc34ba139d812fdacd5/docs/src/content/docs/reference/package-types.md" rel="noreferrer">package authority</a>;
+  <a href="security-by-default.html">Chapter 8's runtime boundary</a>).
 </p>
 
 <aside class="callout callout-info">
@@ -278,21 +296,27 @@
           <div class="section-content" data-content-slot="in-apm">
 <h3>What <code>apm init</code> writes, key by key</h3>
 <p>
-  You do not start from a blank file. <code>apm init</code> &ldquo;creates exactly one file &mdash; the
-  manifest&rdquo; (<a href="https://microsoft.github.io/apm/getting-started/first-package/" rel="noreferrer">your
-  first package</a>), then you edit it. Run in an empty directory, it emits sensible defaults &mdash;
-  and three of them surprise readers who hand-wrote a sketch first, so read the caption closely:
+  You do not start from a blank file. Plain <code>apm init --yes</code> in an empty directory
+  creates only <code>apm.yml</code> &mdash; no <code>.apm/</code> source tree, lockfile, or harness
+  deployment. You then edit its sensible defaults
+  (<a href="https://github.com/microsoft/apm/blob/8fd10ac5eafee7ca77d41cc34ba139d812fdacd5/docs/src/content/docs/reference/cli/init.md" rel="noreferrer">APM 0.31.0 init reference</a>).
+  The historical scaffold below retains its example identity and annotations:
 </p>
 
-<figure class="code-example">
+<!--
+  ch4-init-historical: original chapter scaffold code and 0.23.1 stamp retained.
+  Historical reference: "The evidence: what apm init actually generates".
+  Current field-set controls: core ch5-init-empty; independent discover2-plain-init.
+  This annotated acme-agents block is not claimed as literal fresh 0.31.0 output.
+-->
+<figure class="code-example" id="ch4-init-historical">
   <figcaption>
-    The shape <code>apm init</code> generates in an empty <code>acme-agents</code> directory &mdash;
-    <code>name</code> from the directory, <code>author</code> from your git config. Note
-    the identity line is <code>author:</code> (there is <em>no</em> <code>license:</code> key),
-    <code>targets:</code> is <em>commented out</em>, and <code>includes</code> defaults to
-    <code>auto</code>. <span class="apm-version">apm v0.23.1</span>
+    Historical scaffold shape for <code>acme-agents</code>: <code>name</code> from the directory,
+    <code>author</code> from Git configuration, commented <code>targets</code>, and
+    <code>includes: auto</code>. These defaults remain in 0.31.0. <code>license</code> is absent
+    from plain init, not forbidden by the schema. <span class="apm-version">apm v0.23.1</span>
   </figcaption>
-  <pre><code class="language-yaml"># apm.yml -- one file, sensible defaults; you edit it from here
+  <pre tabindex="0"><code class="language-yaml"># apm.yml -- one file, sensible defaults; you edit it from here
 name: acme-agents
 version: 1.0.0
 description: APM project for acme-agents
@@ -310,15 +334,27 @@ scripts: {}</code></pre>
 </figure>
 
 <p>
+  Already have native-layout skills? Use <a href="install-and-restore.html#ch5-discover-apply">Chapter
+  5's discovery/apply workflow</a>: <code>apm init --discover</code> inventories admissible local
+  packages; consented apply merges their references without moving or translating the sources.
+  Installation is a later step. Plain <code>init --yes</code> can overwrite an authored manifest;
+  it is not the merge shortcut.
+</p>
+<p>
   Every key here is a question the team used to answer per-machine, now answered in one reviewable
   place. The point is the <em>meaning and shape</em> of each field, not an exhaustive flag tour:
 </p>
 
-<table>
+<!--
+  ch4-manifest-fields: Core/local-instruction/apm.yml; core ch5-init-empty,
+  fixture-local-instruction-{install,restore,frozen,audit}; core-reference sections 1, 4, 6.
+  Types/optional fields: pinned manifest-schema.md sections 2-4. These are not a closed schema.
+-->
+<div class="table-scroll" role="region" aria-label="Scrollable table" tabindex="0"><table id="ch4-manifest-fields">
   <caption>
-    The keys <code>apm init</code> writes, at a glance &mdash; what each declares, its type, and the
-    property it carries. Field set confirmed against a fresh <code>apm init</code>.
-    <span class="apm-version">apm v0.23.1</span>
+    Plain-init keys, with their current types and meaning &mdash; not an exhaustive schema.
+    Field set checked with empty-directory init and the current local fixture.
+    <span class="apm-version">apm v0.31.0</span>
   </caption>
   <thead>
     <tr>
@@ -332,7 +368,7 @@ scripts: {}</code></pre>
     <tr>
       <td><code>name</code></td>
       <td>string</td>
-      <td>The package's identity &mdash; its slug when another repo depends on it. Defaults to the directory name.</td>
+      <td>The package's declared identity. Init defaults to the directory name; a dependency's source coordinates are a separate choice.</td>
       <td><span class="property property--portability">Portability</span></td>
     </tr>
     <tr>
@@ -356,100 +392,254 @@ scripts: {}</code></pre>
     <tr>
       <td><code>targets</code></td>
       <td>list (<em>commented</em> by default)</td>
-      <td>Which harnesses to deploy to. <strong>Absent means APM auto-detects</strong> from the repo; uncomment and pin for a shared repo.</td>
+      <td>The selected harness destinations. If absent, a CLI selection, saved default, or filesystem detection decides. Pin the list for a shared repo.</td>
       <td><span class="property property--portability">Portability</span></td>
     </tr>
     <tr>
       <td><code>dependencies.apm</code></td>
-      <td>list</td>
-      <td>External primitive packages, git-sourced and pinned by ref. Empty is valid. Filled for real in <a href="install-and-restore.html">Chapter 5</a>.</td>
+      <td>list of strings or objects</td>
+      <td>Package references: Git, local paths, or experimental registry sources. Empty is valid. Source forms appear below; installs follow in <a href="install-and-restore.html">Chapter 5</a>.</td>
       <td><span class="property property--reproducibility">seeds Reproducibility</span></td>
     </tr>
     <tr>
       <td><code>dependencies.mcp</code></td>
-      <td>list of <em>objects</em></td>
-      <td>MCP server declarations (external tools). A <em>list of objects</em>, not a name&rarr;map. Declared and blocked in <a href="security-by-default.html">Chapter 8</a> (security), policy-governed in <a href="governance-and-policy.html">Chapter 9</a>.</td>
+      <td>list of strings or objects</td>
+      <td>MCP registry references or server objects, not a name&rarr;map. Connection trust is developed in <a href="security-by-default.html">Chapter 8</a>, policy in <a href="governance-and-policy.html">Chapter 9</a>.</td>
       <td><span class="property property--security">seeds Security</span> / <span class="property property--governance">Governance</span></td>
     </tr>
     <tr>
       <td><code>includes</code></td>
       <td><code>auto</code> | list</td>
-      <td>Which local <code>.apm/</code> primitives to compile and deploy. <code>auto</code> discovers everything under <code>.apm/</code>.</td>
+      <td>Consent for local content from the selected source layout. An explicit list is not an install filter, but is exhaustive for plugin packing; see the <a href="#ch4-includes-boundary">operation-specific pitfall</a>.</td>
       <td><span class="property property--portability">Portability</span></td>
     </tr>
     <tr>
       <td><code>scripts</code></td>
       <td>map</td>
-      <td>Named shell commands (<code>name: "command"</code>) run with <code>apm run</code>. Empty for now; used in <a href="install-and-restore.html">Chapter 5</a>.</td>
+      <td>Named shell commands (<code>name: "command"</code>) run with experimental <code>apm run</code>. Empty for now; used in <a href="install-and-restore.html">Chapter 5</a>.</td>
       <td><span class="property property--portability">Portability</span></td>
     </tr>
   </tbody>
-</table>
+</table></div>
 
 <p>
   Two of those keys read straight out of Chapter 3. <code>targets</code> is the <em>target &ne;
   harness</em> distinction, now written down: you <em>declare</em> the targets, and the
   <a href="primitives-and-harnesses.html">harness still runs independently</a>. Pinning them in the
-  manifest makes the deployed output deterministic &ldquo;for every developer, CI runner, and cloud
-  agent,&rdquo; rather than silently tracking whichever tool folders happen to exist on the last
-  person's machine
+  manifest makes the destination choice repeatable for developers and CI, rather than silently
+  tracking whichever tool folders happen to exist on the last person's machine
   (<a href="https://microsoft.github.io/apm/reference/manifest-schema/" rel="noreferrer">manifest
-  schema &sect;3.6</a>). And <code>includes: auto</code> is what connects the manifest to the primitives
-  you author locally, discussed next.
+  schema &sect;3.6</a>). The <a href="#ch4-target-boundary">target-selection rules below</a> explain
+  overrides and bootstrap. And <code>includes: auto</code> records consent for the local primitives
+  discussed next.
 </p>
 
-<h4><code>.apm/</code> is where you author; <code>apm_modules/</code> is what you install</h4>
+<h4>Meridian authors in <code>.apm/</code>; installed copies go in <code>apm_modules/</code></h4>
 <p>
-  A manifest describes two sources of primitives that look different but land in the same place.
-  <strong>Locally-authored</strong> primitives are files your repo writes itself, under the
+  A manifest brings your own sources and referenced packages into the same deployment workflow.
+  Meridian's <strong>locally-authored</strong> primitives live under the
   <code>.apm/</code> source tree (<code>instructions/</code>, <code>prompts/</code>,
   <code>skills/</code>, <code>agents/</code>, <code>hooks/</code>) &mdash; &ldquo;the conventional
-  source root for APM packages.&rdquo; <strong>External dependencies</strong> are primitives pulled from
-  other repositories, declared under <code>dependencies</code> and fetched at install time into the
-  generated, gitignored <code>apm_modules/</code>. You edit <code>.apm/</code>; you never hand-edit
+  source root for APM packages.&rdquo; <strong>Referenced packages</strong> are declared under
+  <code>dependencies.apm</code> and materialized at install time into the generated, gitignored
+  <code>apm_modules/</code>. They can come from Git, local paths, or an enabled registry.
+  You edit your source; you never hand-edit
   <code>apm_modules/</code> (<a href="https://microsoft.github.io/apm/concepts/package-anatomy/" rel="noreferrer">package
   anatomy</a>).
 </p>
+<!--
+  Layout authority: core ch4-apm-over-plugin / ch4-apm-source-control versus
+  ch3-legacy-metadata-install. Root collection control ch3-apm-declaration-first is NOT
+  the isolated precedence proof. Hybrid layout: pinned package-types.md;
+  reserved type: producer reserved-type-install / reserved-type-pack and manifest section 3.7.
+-->
 <p>
-  <code>includes: auto</code> is the bridge for the first kind: with no remote dependencies declared at
-  all, <code>apm install</code> simply &ldquo;walks your local <code>.apm/</code> tree and deploys what
-  it finds&rdquo; &mdash; &ldquo;APM treats your repo as the package and deploys its <code>.apm/</code>
-  content&rdquo; (<a href="https://microsoft.github.io/apm/getting-started/first-package/" rel="noreferrer">your
-  first package</a>). That is precisely Meridian's first manifest: one local instruction, zero remote
-  dependencies. Consuming other people's packages (Chapter 5) is an <em>addition</em> to local
-  authoring, never a precondition for it.
+  <code>.apm/</code> is Meridian's chosen convention, not the only supported layout. Skills and
+  plugins can retain their native source trees. An <em>eligible</em> <code>apm.yml</code> &mdash;
+  accompanied by <code>.apm/</code> or APM/MCP dependencies &mdash; takes precedence over a
+  co-located plugin marker; metadata-only <code>apm.yml</code> does not force that route. Root skills
+  and skill collections are separate supported forms
+  (<a href="https://github.com/microsoft/apm/blob/8fd10ac5eafee7ca77d41cc34ba139d812fdacd5/docs/src/content/docs/reference/package-types.md" rel="noreferrer">package layouts and precedence</a>).
+</p>
+<p>
+  A root <code>SKILL.md</code> beside <code>apm.yml</code> is a supported <em>hybrid layout</em>.
+  Do not confuse that with setting <code>type: hybrid</code>: the top-level <code>type</code> field
+  remains reserved for future overrides, not an active switch for selecting primitive types
+  (<a href="https://github.com/microsoft/apm/blob/8fd10ac5eafee7ca77d41cc34ba139d812fdacd5/docs/src/content/docs/reference/manifest-schema.md" rel="noreferrer">reserved type field</a>).
+</p>
+<p>
+  For Meridian's layout, <code>includes: auto</code> explicitly consents to local content.
+  With no remote dependencies, <code>apm install</code> treats this repo as the source package
+  and projects its eligible <code>.apm/</code> primitives to the selected targets
+  (<a href="https://microsoft.github.io/apm/getting-started/first-package/" rel="noreferrer">your
+  first package</a>). That is precisely Meridian's first manifest: one valid local instruction,
+  zero remote dependencies. Consuming other people's packages (Chapter 5) is an <em>addition</em>
+  to local authoring, never a precondition for it.
 </p>
 
 <h4>The two dependency buckets &mdash; shape now, installs in Chapter 5</h4>
 <p>
   Meridian declares no dependencies at <code>v0.1.0</code>, but you should recognize the two buckets
-  when you meet them. <code>dependencies.apm</code> is a list of git-sourced package refs;
-  <code>dependencies.mcp</code> is a list of MCP server <em>objects</em>. Here is the shape only &mdash;
-  do not add either to your first manifest:
+  used here: <code>dependencies.apm</code> references packages, while <code>dependencies.mcp</code>
+  declares tool connections. Both accept lists of strings or typed objects. The following are
+  separate fixture examples, not additions to Meridian's first manifest.
 </p>
 
-<figure class="code-example">
+<!--
+  ch4-git-source: exact dependencies subtree of Core/pinned-skill/apm.yml.
+  Core fixture-pinned-skill-{install,restore,frozen,audit}; independent
+  public-pinned-skill-{install,restore,frozen,audit}, plus cold-frozen.
+  The complete fixture, not a new Git-plus-MCP composite, is the executed input.
+-->
+<figure class="code-example" id="ch4-git-source">
   <figcaption>
-    Shape only: the two dependency buckets. Meridian declares neither at <code>v0.1.0</code> &mdash;
-    remote packages arrive in <a href="install-and-restore.html">Chapter 5</a>, MCP servers in
-    <a href="security-by-default.html">Chapter 8</a>. <span class="apm-version">apm v0.23.1</span>
+    Git declaration from the current <code>core/pinned-skill</code> fixture: one public skill at
+    a full commit, not the whole sample package. <span class="needs-network">Needs public Git
+    access on a cold cache.</span> Fixture independently checked on 2026-09-16.
+    <span class="apm-version">apm v0.31.0</span>
   </figcaption>
-  <pre><code class="language-yaml">dependencies:
+  <pre tabindex="0"><code class="language-yaml">dependencies:
   apm:
-    - microsoft/apm-sample-package#v1.0.0     # owner/repo[/subpath]#&lt;ref&gt; -- pin the ref
-  mcp:
-    - name: fetch                             # each entry is an OBJECT, not a name -> map
-      registry: false
-      transport: stdio
-      command: npx
-      args: ["-y", "@modelcontextprotocol/server-fetch"]</code></pre>
+    - git: microsoft/apm-sample-package
+      ref: fb2851683be0e0e7711421d518bd8dba23b0b1f6
+      path: .apm/skills/style-checker
+  mcp: []</code></pre>
 </figure>
 
 <p>
-  Pinning the git ref (<code>#v1.0.0</code>) is what keeps a restore deterministic and a diff honest
-  &mdash; the reproducibility lesson from <a href="lessons-from-package-managers.html">Chapter 2</a>,
-  enforced here by convention. The subpath form (<code>owner/repo/skills/&lt;name&gt;</code>) selects a
-  single primitive from a monorepo. Both are declared here and <em>installed</em> for real in Chapter 5.
+  The source identity implements <a href="lessons-from-package-managers.html">Chapter 2's pinning
+  lesson</a>. In a Git object, use <code>ref</code>, not registry-style <code>version</code>;
+  unknown object keys are rejected. <code>path</code> selects content <em>inside that repository</em>.
+  Git objects also accept explicit clone URLs for other Git servers. A tag such as
+  <code>#v1.0.0</code> is readable but can be moved; the full commit above fixes the source
+  revision, and the lockfile records the resolved graph
+  (<a href="https://github.com/microsoft/apm/blob/8fd10ac5eafee7ca77d41cc34ba139d812fdacd5/docs/src/content/docs/reference/manifest-schema.md" rel="noreferrer">Git dependency forms</a>).
+</p>
+<p>
+  Without <code>git</code>, a <code>path: ./pkg</code> object refers to a local package.
+  <code>alias</code> gives it a local resolution name; <code>skills</code> selects from the skills
+  it actually declares, and dependency <code>targets</code> intersects the install's target set.
+  This is the <a href="#ch4-declaration-authority">authority boundary</a> in concrete form:
+</p>
+<!--
+  ch4-local-source-selection: exact RunRoot/core-probes/projects/path-options/apm.yml.
+  Probe ch4-path-options, exit 0, selected only Claude's kept skill.
+  Companion pkg/plugin.json declares kept and custom, not the unlisted conventional skill.
+  This is selected-skill install evidence, not an audit-clean or runtime-loading claim.
+-->
+<figure class="code-example" id="ch4-local-source-selection">
+  <figcaption>
+    Local-path selection fixture, including its own <code>pkg/</code> source: the project selects
+    Copilot and Claude, but this dependency reaches only Claude, with only <code>kept</code>.
+    Observed selected-skill deployment, not a plugin runtime test.
+    Its CI audit exits <code>1</code> because this legacy-plugin input has no
+    <code>pkg/apm.yml</code>; the successful selection is not an audit-clean guarantee.
+    <span class="apm-version">apm v0.31.0</span>
+  </figcaption>
+  <pre tabindex="0"><code class="language-yaml"># An explicit plugin skills declaration replaces directory discovery.
+name: legacy-consumer
+version: 1.0.0
+targets: [copilot, claude]
+dependencies:
+  apm:
+    - path: ./pkg
+      alias: scoped-skills
+      targets: [claude]
+      skills: [kept]
+includes: auto</code></pre>
+</figure>
+<p>
+  That fixture's legacy <code>plugin.json</code> declares
+  <code>"skills": ["./skills/kept", "./extra/custom"]</code>; an extra conventional skill directory
+  is not permission to deploy it. An explicit <code>"skills": []</code> means none, while omitting
+  the key permits conventional discovery. Consumer selection cannot resurrect undeclared skills
+  (<a href="https://github.com/microsoft/apm/blob/8fd10ac5eafee7ca77d41cc34ba139d812fdacd5/docs/src/content/docs/reference/package-types.md" rel="noreferrer">declaration-first plugin intake</a>).
+</p>
+
+<p>
+  Git remains the default path, not the only shipped source. APM 0.31.0 includes
+  <strong>experimental REST registries</strong>, enabled explicitly with
+  <code>apm experimental enable registries</code>. A named registry supplies the endpoint;
+  its dependency object uses <code>id</code> and <code>version</code>, not Git's <code>ref</code>.
+  The client and HTTP API exist; that does not establish a Microsoft-operated public searchable hub
+  (<a href="https://github.com/microsoft/apm/blob/8fd10ac5eafee7ca77d41cc34ba139d812fdacd5/docs/src/content/docs/guides/registries.md" rel="noreferrer">registry guide</a>).
+</p>
+<!--
+  ch4-registry-source: Operations/registry/apm.yml, registries mapping plus the first
+  dependencies.apm entry; identity, targets, includes and two other entries omitted.
+  Operations registry-outdated-current-wanted-latest and registry-install-edited-constraint;
+  reproducible fixture: Operations/verify.py registry suite. Feature-gate evidence:
+  core ch2-registry-flag-required; producer-reference section 7.
+  Loopback-only server fixture, not a public hosted service or a new live-publish example.
+-->
+<figure class="code-example" id="ch4-registry-source">
+  <figcaption>
+    Selected fields from the loopback registry fixture: <code>fixture</code> is a configured
+    registry name, <code>operations/exact</code> its package ID, and <code>1.0.0</code> the selector.
+    <span class="needs-network">Requires the isolated test server and experimental registry
+    feature; this is not a public endpoint or a standalone setup recipe.</span>
+    <span class="apm-version">apm v0.31.0</span>
+  </figcaption>
+  <pre tabindex="0"><code class="language-yaml">registries:
+  fixture:
+    url: http://127.0.0.1:18431
+  default: fixture
+dependencies:
+  apm:
+    - registry: fixture
+      id: operations/exact
+      version: 1.0.0</code></pre>
+</figure>
+<p>
+  A configured default registry can reroute plain <code>owner/repo#selector</code> shorthand.
+  Explicit <code>git:</code> stays Git, so it makes the source choice unambiguous even on a machine
+  with a registry default. Keep package registries distinct from MCP registries and Git proxies;
+  distribution choices return in <a href="becoming-a-producer.html">Chapter 10</a>.
+</p>
+
+<p>
+  MCP entries describe <em>connections</em>, not ordinary primitive packages. The self-defined
+  object below supplies a name, transport, executable, and arguments. The list also accepts MCP
+  registry-reference strings; objects are not its only legal form
+  (<a href="https://github.com/microsoft/apm/blob/8fd10ac5eafee7ca77d41cc34ba139d812fdacd5/docs/src/content/docs/reference/manifest-schema.md" rel="noreferrer">MCP dependency forms</a>).
+</p>
+<!--
+  ch4-mcp-shape: exact dependencies subtree of Operations/mcp/apm.yml.
+  Operations mcp-install / mcp-restore and the mcp fixture suite: configuration only;
+  operations-fixture-not-a-real-server is intentionally nonexistent and never launched.
+  Do not infer native-file integrity coverage or runtime health from this install result.
+-->
+<figure class="code-example" id="ch4-mcp-shape">
+  <figcaption>
+    MCP object shape from a configuration-only fixture. The executable is deliberately nonexistent;
+    no MCP server or harness was started. <span class="needs-network">MCP identity lookup can
+    require network access.</span> Trust and runtime boundaries belong to
+    <a href="security-by-default.html">Chapter 8</a>.
+    <span class="apm-version">apm v0.31.0</span>
+  </figcaption>
+  <pre tabindex="0"><code class="language-yaml">dependencies:
+  apm: []
+  mcp:
+    - name: operations-fixture
+      registry: false
+      transport: stdio
+      command: operations-fixture-not-a-real-server
+      args: [--fixture]</code></pre>
+</figure>
+
+<!--
+  Writer boundary: core ch5-add-normal-cwd versus direct-MCP writer control;
+  independent ch5-add-target-bootstrap-controls and ch5-mcp-writer-control in
+  ch05-verification.md. Formatting preservation is not asserted for every mutation path.
+-->
+<p>
+  Reviewability includes the edit itself. The current APM dependency writer preserved the tested
+  leading comment, blank line, and target-list style when adding a package. A
+  <strong>direct MCP add uses a separate path</strong> that still reserialized the tested manifest
+  and removed its comment. Review the diff after either operation; do not assume every writer
+  preserves formatting
+  (<a href="https://github.com/microsoft/apm/blob/8fd10ac5eafee7ca77d41cc34ba139d812fdacd5/src/apm_cli/commands/_apm_yml_writer.py" rel="noreferrer">APM dependency writer</a>;
+  <a href="install-and-restore.html">Chapter 5's add workflow</a>).
 </p>
 
 <aside class="leader-callout">
@@ -490,48 +680,116 @@ scripts: {}</code></pre>
   Remote dependencies and scripts are real features &mdash; they are just
   <a href="install-and-restore.html">Chapter 5</a>'s beat, added when you need them, not scaffolding to
   fill in up front. The empty <code>dependencies</code> buckets and <code>scripts: {}</code> that
-  <code>apm init</code> leaves behind are inert and harmless; keep them and move on.
+  <code>apm init</code> leaves behind are valid empty declarations; there is no need to fill them yet.
 </p>
 
 <aside class="callout callout-warn">
-  <h3>Pitfall: there is no <code>license:</code> key &mdash; the identity line is <code>author:</code></h3>
+  <h3>Pitfall: the init template is not the whole schema</h3>
   <p>
-    A hand-written sketch often reaches for <code>license: MIT</code>, but <code>apm init</code> does
-    not generate a <code>license</code> field. The attribution line it writes is <code>author:</code>,
-    auto-filled from your git <code>user.name</code>. To stay faithful to a real manifest, use
-    <code>author:</code> and omit <code>license:</code>. (A <code>license</code> value is harmless if
-    you add it deliberately &mdash; it is simply not part of the generated shape.)
+    <code>author</code> is attribution; <code>license: MIT</code> is valid optional license metadata.
+    Plain init's omission of <code>license</code> is not a prohibition. Likewise,
+    <code>devDependencies</code> separates author tooling from the dependency closure you publish.
+    Put maintainer-only primitives outside the selected source layout and reference them there,
+    rather than expecting an install-time includes list to hide them
+    (<a href="https://github.com/microsoft/apm/blob/8fd10ac5eafee7ca77d41cc34ba139d812fdacd5/docs/src/content/docs/reference/manifest-schema.md" rel="noreferrer">optional metadata and dev dependencies</a>).
+  </p>
+  <!--
+    ch4-dev-dependencies: exact Producer/dev-only/apm.yml, including companion tool/ source
+    outside .apm. Producer fixture-dev-install / fixture-dev-pack, both exit 0:
+    author tool installed, omitted from the default bundle. No Meridian source change.
+  -->
+  <figure class="code-example" id="ch4-dev-dependencies">
+    <figcaption>
+      Complete <code>producer/dev-only</code> fixture manifest: the local <code>tool/</code> skill
+      installs for the author but was absent from the default packed bundle. Local-only;
+      publication is developed in <a href="becoming-a-producer.html">Chapter 10</a>.
+      <span class="apm-version">apm v0.31.0</span>
+    </figcaption>
+    <pre tabindex="0"><code class="language-yaml"># Installed author tooling is not part of the published dependency closure.
+name: dev-boundary
+version: 1.0.0
+description: A producer's development tooling must not ship.
+license: MIT
+targets: [copilot]
+dependencies: {}
+devDependencies:
+  apm:
+    - path: ./tool
+includes: auto</code></pre>
+  </figure>
+</aside>
+
+<!--
+  ch4-includes-boundary: core ch4-includes-not-install-filter (two instructions/six rules);
+  producer local-source-authority, pack-includes-exhaustive, pack-includes-missing.
+  Omitted-field advisory: pinned manifest-schema.md section 3.9.
+  Historical 0.23.1 install observation retained in the original reference, not generalized.
+-->
+<aside class="callout callout-warn" id="ch4-includes-boundary">
+  <h3>Pitfall: <code>includes</code> has an operation-specific boundary</h3>
+  <p>
+    <code>includes: auto</code> explicitly consents to local content in the selected layout.
+    Omitting the field retains legacy implicit consent and can produce an
+    <code>includes-consent</code> audit advisory. At <strong>install</strong>, even an explicit
+    path list records consent rather than filtering discovery: the 0.31.0 control listed one
+    instruction, but both that instruction and an unlisted second instruction deployed.
+  </p>
+  <p>
+    At <strong>plugin pack</strong>, the list is exhaustive. With
+    <code>includes: [skills/unlisted]</code>, the pack control shipped only that named root skill,
+    not the unlisted <code>.apm/</code> content; a missing listed path stopped packing before
+    writes. With <code>auto</code>, <code>.apm/</code> presence selects the APM-native layout
+    rather than silently combining it with root plugin sources. Keep <code>auto</code> for
+    Meridian's first manifest, but do not call includes either &ldquo;always an allowlist&rdquo;
+    or &ldquo;never an allowlist&rdquo;
+    (<a href="https://github.com/microsoft/apm/blob/8fd10ac5eafee7ca77d41cc34ba139d812fdacd5/docs/src/content/docs/reference/manifest-schema.md" rel="noreferrer">includes semantics</a>;
+    <a href="becoming-a-producer.html">packing in Chapter 10</a>).
+  </p>
+  <p>
+    <strong>0.31.0 limitation:</strong> the control containing both <code>.apm/</code> and root
+    skills packed the selected content, but <code>apm audit --ci</code> exited <code>1</code>:
+    replay expected the root <code>unlisted</code> skill and treated the installed
+    <code>secure-payment-review</code> skill as orphaned, across the shared and Claude paths.
+    That source-selection disagreement does not occur in the clean, single-layout instruction
+    example below. Keep the pack result distinct from an install-and-audit guarantee.
   </p>
 </aside>
 
-<aside class="callout callout-warn">
-  <h3>Pitfall: <code>includes: auto</code> is not a restrictive allowlist</h3>
+<!--
+  ch4-target-boundary: Core/local-instruction target list; core ch4-empty-targets,
+  ch4-legacy-manifest-all, ch5-add-normal-cwd, ch5-install-bootstrap-targets.
+  Independent ch5-add-target-bootstrap-controls; target/targets conflict is also explicit
+  in the explorer-inspected pinned manifest-schema.md section 3.6.
+-->
+<aside class="callout callout-info" id="ch4-target-boundary">
+  <h3>Target selection is a declaration, not a memory of the last command</h3>
   <p>
-    It is tempting to read an explicit <code>includes:</code> path list as &ldquo;only ship these
-    files.&rdquo; It is not an allowlist. Tested on <span class="apm-version">apm v0.23.1</span>: with a
-    second, <em>unlisted</em> primitive present under <code>.apm/</code>, <code>apm install</code>
-    deployed <strong>both</strong> primitives anyway. Use <code>includes: auto</code> &mdash; it matches
-    what <code>apm init</code> writes, needs no upkeep, and auto-discovers everything under
-    <code>.apm/</code>, so it will not mislead you into thinking you have scoped a deployment you have
-    not.
+    Prefer a nonempty plural list: <code>targets: [copilot, claude, cursor]</code>. Legacy
+    <code>target</code> is still accepted, but declaring both keys is a parse error.
+    <code>targets: []</code> is invalid. Legacy manifest <code>all</code> warns and makes the
+    <em>whole field</em> act as omitted, including sibling targets; it does not select every harness.
+  </p>
+  <p>
+    Selection follows <code>--target</code> &rarr; manifest targets &rarr; saved default &rarr;
+    filesystem detection. With an <strong>existing manifest</strong>, the flag overrides only that
+    invocation; it does not replace the authored list. An install that bootstraps a
+    <strong>missing manifest</strong> can persist its supplied targets. Commented targets leave
+    the choice to those other inputs; pin the list for a shared repo
+    (<a href="https://github.com/microsoft/apm/blob/8fd10ac5eafee7ca77d41cc34ba139d812fdacd5/docs/src/content/docs/reference/cli/install.md" rel="noreferrer">target selection and bootstrap</a>).
   </p>
 </aside>
-
-<aside class="callout callout-info">
-  <h3>Two shape gotchas to internalize</h3>
-  <p>
-    <strong>Commented <code>targets:</code> means auto-detect.</strong> Left commented, APM detects
-    targets from the repo's tool folders &mdash; convenient locally, but non-deterministic across
-    machines and CI. For a shared repo, <em>uncomment and pin</em> the set (Meridian:
-    <code>copilot</code>, <code>claude</code>, <code>cursor</code>).
-  </p>
-  <p>
-    <strong><code>dependencies.mcp</code> is a list of objects, not a name&rarr;map.</strong> Each
-    entry is a <code>{ name, registry, transport, &hellip; }</code> object (see the shape above), which
-    is what the CLI actually writes &mdash; not a <code>fetch: { command, args }</code> mapping. You
-    will declare one for real in <a href="security-by-default.html">Chapter 8</a>.
-  </p>
-</aside>
+<!--
+  ch4-local-path-boundary: independent frozenlocal-new-local-frozen, exit 0, new local
+  skill deployed and old lock rewritten; missing-Git and missing-lock controls exit 1.
+  ch05-verification.md F1 delta is the authority, not a universal frozen-refusal claim.
+-->
+<p id="ch4-local-path-boundary">
+  A local path is not an immutable Git pin: its source must remain available with the project.
+  Nor does <code>apm install --frozen</code> universally veto declaration changes. In 0.31.0, a
+  newly declared local-path dependency can deploy and rewrite an existing lock; see
+  <a href="install-and-restore.html#ch5-frozen-boundary">Chapter 5's verified exception</a>.
+  Frozen's limited structural checks are not a runtime security guarantee or a content audit.
+</p>
           </div>
         </section>
         <section class="chapter-section" data-section="worked-example">
@@ -542,16 +800,55 @@ scripts: {}</code></pre>
   Here is the payoff. Meridian takes the <code>apm init</code> scaffold, sets its identity, uncomments
   and pins three targets, and authors one local instruction &mdash; the checkout-domain rule that
   drifted in Chapter 1 (&ldquo;use the <code>Money</code> value object; treat retries as
-  idempotent&rdquo;). No remote dependencies, no scripts. This is the whole file:
+  idempotent&rdquo;). No remote dependencies, no scripts. The historical snapshot and current
+  fixture are shown separately: the same declaration still expresses the same shared intent.
 </p>
 
-<figure class="code-example">
+<!--
+  ch4-meridian-manifest-historical: original chapter's complete v0.1.0 manifest,
+  unchanged code and retained 0.23.1 stamp. Original reference worked example, steps 1-4.
+  The adjacent current fixture is independently identified, not a restamp of this recording.
+-->
+<figure class="code-example" id="ch4-meridian-manifest-historical">
   <figcaption>
-    Meridian's first real manifest (<code>v0.1.0</code>): identity, three targets, and &mdash; via
-    <code>includes: auto</code> &mdash; one local instruction. Verified end to end with
-    <code>apm install</code>; no network. <span class="apm-version">apm v0.23.1</span>
+    Historical exact chapter snapshot of Meridian's first manifest (<code>v0.1.0</code>):
+    identity, three targets, and consent for local content. The original end-to-end
+    <code>apm install</code> recording used no network.
+    <span class="apm-version">apm v0.23.1</span>
   </figcaption>
-  <pre><code class="language-yaml">name: meridian-checkout-agent-context
+  <pre tabindex="0"><code class="language-yaml">name: meridian-checkout-agent-context
+version: 0.1.0
+description: Shared AI-agent context for the Meridian checkout service.
+author: Meridian Checkout Team
+targets:
+  - copilot
+  - claude
+  - cursor
+
+dependencies:
+  apm: []
+  mcp: []
+includes: auto
+scripts: {}</code></pre>
+</figure>
+
+<!--
+  ch4-current-manifest: exact Core/local-instruction/apm.yml, including its leading comment.
+  Source: Core/local-instruction/.apm/instructions/meridian-checkout.instructions.md.
+  Core fixture-local-instruction-{install,restore,frozen,audit}; independent
+  local-local-instruction-{install,restore,frozen,audit}, all recorded exit 0.
+  ch05-verification.md "Literal current fixture sequences" establishes input and lock identity.
+-->
+<figure class="code-example" id="ch4-current-manifest">
+  <figcaption>
+    Current minimal fixture at
+    <code>backend/examples/updates/1.2/core/local-instruction/apm.yml</code>.
+    The same Meridian <code>v0.1.0</code> declaration and instruction were independently
+    installed, restored, frozen, and audited on 2026-09-16; no network or agent runtime.
+    <span class="apm-version">apm v0.31.0</span>
+  </figcaption>
+  <pre tabindex="0"><code class="language-yaml"># Materialize one local instruction in three native target formats.
+name: meridian-checkout-agent-context
 version: 0.1.0
 description: Shared AI-agent context for the Meridian checkout service.
 author: Meridian Checkout Team
@@ -568,18 +865,24 @@ scripts: {}</code></pre>
 </figure>
 
 <p>
-  The instruction itself is authored once, under a recognized primitive directory, so
-  <code>includes: auto</code> discovers it with zero extra configuration. Its frontmatter carries a
+  The instruction itself is authored once, under a recognized primitive directory. Install
+  discovers it without path enumeration; <code>includes: auto</code> records consent. Its frontmatter carries a
   <code>description</code> and an <code>applyTo</code> glob &mdash; the same instruction shape from
   <a href="primitives-and-harnesses.html">Chapter 3</a>:
 </p>
 
-<figure class="code-example">
+<!--
+  ch4-local-instruction: code unchanged from 0.23.1; exact current Core/local-instruction
+  source file. Independent local-local-instruction-install and subsequent replay/audit
+  use these bytes, not a replacement instruction.
+-->
+<figure class="code-example" id="ch4-local-instruction">
   <figcaption>
     <code>.apm/instructions/meridian-checkout.instructions.md</code> &mdash; one source of truth for
-    the checkout rule, authored by hand. <span class="apm-version">apm v0.23.1</span>
+    the checkout rule, authored by hand. The source is unchanged.
+    <span class="apm-version">apm v0.23.1; rechecked with v0.31.0</span>
   </figcaption>
-  <pre><code class="language-markdown">---
+  <pre tabindex="0"><code class="language-markdown">---
 description: Meridian checkout service engineering rules
 applyTo: "**/*.{ts,tsx,md}"
 ---
@@ -596,17 +899,33 @@ application logs.</code></pre>
   to the declared targets.
 </p>
 
-<figure class="code-example">
+<!-- ch4-install-historical: original reference worked example step 3; transcript bytes and 0.23.1 timing retained. -->
+<figure class="code-example" id="ch4-install-historical">
   <figcaption>
-    <code>apm install</code> deploying the local instruction to all three targets &mdash; no network,
-    no package fetched. The local project is the package. <span class="apm-version">apm v0.23.1</span>
+    Historical <code>apm install</code> recording: one local instruction, three targets, no network
+    or fetched package. Its wording and timing are not a current-output promise.
+    <span class="apm-version">apm v0.23.1</span>
   </figcaption>
-  <pre><code class="language-text">$ apm install
+  <pre tabindex="0"><code class="language-text">$ apm install
   [i] Targets: claude, copilot, cursor  (source: apm.yml)
     [+] &lt;project root&gt; (local)
     |-- 3 rule(s) integrated -> 3 targets
   [i] Added apm_modules/ to .gitignore
   [*] Installed 1 APM dependency in 2.5s.</code></pre>
+</figure>
+
+<!--
+  ch4-current-install: Core/local-instruction, first materialization from only manifest/source.
+  Independent local-local-instruction-install, exit 0; companion restore/frozen/audit records
+  verify the generated lock and expected paths. No fabricated condensed stdout.
+-->
+<figure class="code-example" id="ch4-current-install">
+  <figcaption>
+    Run in the current <code>local-instruction</code> fixture directory with the manifest and
+    source above. The same bare command deploys the three native files below; verified offline
+    on 2026-09-16. <span class="apm-version">apm v0.31.0</span>
+  </figcaption>
+  <pre tabindex="0"><code class="language-bash">apm install</code></pre>
 </figure>
 
 <p>
@@ -615,11 +934,16 @@ application logs.</code></pre>
   keys, even a different file extension, with <em>zero</em> per-harness edits:
 </p>
 
-<table>
+<!--
+  ch4-native-projection: Core/local-instruction; independent local-local-instruction-install
+  plus native-file assertions in ch05-verification.md. Explorer output tree:
+  RunRoot/core-probes/materialized/fl/{.github/instructions,.claude/rules,.cursor/rules}.
+-->
+<div class="table-scroll" role="region" aria-label="Scrollable table" tabindex="0"><table id="ch4-native-projection">
   <caption>
-    One authored source &rarr; three native harness files. Observed on disk after <code>apm
-    install</code>; frontmatter shown as APM actually projected it.
-    <span class="apm-version">apm v0.23.1</span>
+    One authored source &rarr; three native harness files, reproduced from the current fixture.
+    Expected paths and native content were checked, not inferred from exit <code>0</code>.
+    <span class="apm-version">apm v0.31.0</span>
   </caption>
   <thead>
     <tr>
@@ -649,7 +973,7 @@ application logs.</code></pre>
       <td><code>applyTo</code> &rarr; <code>globs</code>; <code>description</code> kept; <code>.mdc</code></td>
     </tr>
   </tbody>
-</table>
+</table></div>
 
 <p>
   The transforms are exactly Chapter 3's &ldquo;compiled is not byte-identical&rdquo; rule, now proven
@@ -657,12 +981,17 @@ application logs.</code></pre>
   undeniable &mdash; same rule, each in its harness's native shape:
 </p>
 
-<figure class="code-example">
+<!--
+  ch4-claude-projection: exact current materialized/fl/.claude/rules/meridian-checkout.md;
+  unchanged projection bytes from the old example, supported by the current fixture records.
+-->
+<figure class="code-example" id="ch4-claude-projection">
   <figcaption>
     <code>.claude/rules/meridian-checkout.md</code> &mdash; <code>applyTo</code> became
-    <code>paths</code>, and <code>description</code> was dropped. <span class="apm-version">apm v0.23.1</span>
+    <code>paths</code>, and <code>description</code> was dropped, as in the original 0.23.1 projection.
+    <span class="apm-version">apm v0.31.0</span>
   </figcaption>
-  <pre><code class="language-markdown">---
+  <pre tabindex="0"><code class="language-markdown">---
 paths:
   - "**/*.{ts,tsx,md}"
 ---
@@ -672,14 +1001,21 @@ idempotent operations keyed by `paymentAttemptId`. Never suggest storing card da
 application logs.</code></pre>
 </figure>
 
-<figure class="code-example">
+<!--
+  ch4-cursor-projection: exact current materialized/fl/.cursor/rules/meridian-checkout.mdc.
+  Current serializer quotes description; do not reuse the historical Cursor hash.
+  Core/local-instruction/apm.lock.yaml and independent native-file assertions agree:
+  sha256:a468f35842275baf34baaba82bf986b6d84aefb28da78ecdc1d32690fde538fa.
+-->
+<figure class="code-example" id="ch4-cursor-projection">
   <figcaption>
     <code>.cursor/rules/meridian-checkout.mdc</code> &mdash; <code>applyTo</code> became
     <code>globs</code>, <code>description</code> was kept, and the extension is <code>.mdc</code>.
-    <span class="apm-version">apm v0.23.1</span>
+    The current serializer quotes the description.
+    <span class="apm-version">apm v0.31.0</span>
   </figcaption>
-  <pre><code class="language-markdown">---
-description: Meridian checkout service engineering rules
+  <pre tabindex="0"><code class="language-markdown">---
+description: "Meridian checkout service engineering rules"
 globs: "**/*.{ts,tsx,md}"
 ---
 
@@ -688,13 +1024,23 @@ idempotent operations keyed by `paymentAttemptId`. Never suggest storing card da
 application logs.</code></pre>
 </figure>
 
+<!--
+  Current lock claims: exact, unedited Core/local-instruction/apm.lock.yaml;
+  SHA256 0ae47bad542167d3ec125f13e7db970aafe523c2d14592be85fe209a4b9a1baa.
+  No lock illustration is synthesized here. This local-only lock omits generated_at
+  and apm_version; canonical deployments and compatible local_deployed_* fields coexist.
+-->
 <p>
   Two side effects are worth naming so they are not mistaken for drift. <code>apm install</code>
   auto-appended <code>apm_modules/</code> to <code>.gitignore</code> (it is generated, never committed),
-  and it wrote an <code>apm.lock.yaml</code> recording the deployed files and their content hashes. With
-  only local primitives, that lockfile is short and has no <code>dependencies</code> &mdash; the full
-  lockfile treatment is <a href="the-lockfile-and-reproducibility.html">Chapter 6</a>. What matters here
-  is what you authored: one manifest, one instruction, and a reviewable file the whole team now shares.
+  and it wrote <code>apm.lock.yaml</code>. The current local-only fixture's actual lock has
+  <code>dependencies: []</code>, three <code>deployments</code> ownership records, and the local
+  deployed-file lists and hashes. Fresh 0.31.0 locks omit <code>generated_at</code>; compare the
+  recorded state, not a timestamp
+  (<a href="https://github.com/microsoft/apm/blob/8fd10ac5eafee7ca77d41cc34ba139d812fdacd5/docs/src/content/docs/reference/lockfile-spec.md" rel="noreferrer">current lockfile contract</a>).
+  The full treatment is <a href="the-lockfile-and-reproducibility.html">Chapter 6</a>. What matters
+  here is what you authored: one manifest, one instruction, and a reviewable file the whole team
+  now shares.
 </p>
           </div>
         </section>
@@ -715,20 +1061,26 @@ application logs.</code></pre>
     <a href="the-lockfile-and-reproducibility.html">Chapter 6</a>).
   </li>
   <li>
-    <code>apm init</code> writes one file with sensible defaults: identity
+    Plain empty-directory <code>apm init</code> writes one file with sensible defaults: identity
     (<code>name</code>/<code>version</code>/<code>description</code>/<code>author</code>), commented
     <code>targets</code>, two empty <code>dependencies</code> buckets, <code>includes: auto</code>, and
     <code>scripts: {}</code>. Only <code>name</code> and <code>version</code> are required to parse.
   </li>
   <li>
-    <code>includes: auto</code> auto-discovers your locally-authored primitives under <code>.apm/</code>;
-    it is <em>not</em> a restrictive allowlist. You edit <code>.apm/</code>; APM generates
-    <code>apm_modules/</code> and the per-harness output.
+    <code>includes: auto</code> consents to the selected local source layout. An explicit list does
+    not filter install discovery, but is exhaustive for plugin packing. You edit source; APM owns
+    its materialized copies, not every file in a harness directory.
   </li>
   <li>
-    Mind the corrections: the identity line is <code>author:</code>, not <code>license:</code>;
-    commented <code>targets:</code> means auto-detect (pin it for a shared repo); and
-    <code>dependencies.mcp</code> is a list of <em>objects</em>.
+    The scaffold is not the whole schema: <code>license</code> is valid optional metadata and
+    <code>devDependencies</code> keeps author tooling out of the published dependency closure.
+    A hybrid layout does not activate the reserved <code>type: hybrid</code> field.
+  </li>
+  <li>
+    Pin <code>targets</code> for a durable destination choice. Use <code>ref</code> on Git objects,
+    <code>id</code>/<code>version</code> for registry packages, and <code>path</code> for local
+    references. MCP accepts registry strings as well as server objects. Review the declaration,
+    rather than relying on directory names or the last invocation's flags.
   </li>
   <li>
     Meridian committed its first real manifest (<code>v0.1.0</code>): identity, three targets, and one
@@ -756,7 +1108,7 @@ application logs.</code></pre>
 
       <footer class="site-footer chapter-footer">
         <p>By <a href="https://www.linkedin.com/in/webmaxru/" rel="noreferrer">Maxim Salnikov</a> &middot; <a href="https://github.com/webmaxru/agent-package-manager-book" rel="noreferrer">Source on GitHub</a> &middot; <a href="../apm-book.pdf" download>Download the book (PDF)</a></p>
-        <p class="footer-edition"><a href="https://github.com/webmaxru/agent-package-manager-book/releases" rel="noreferrer">Edition v1.1 · Updated July 8, 2026</a></p>
+        <p class="footer-edition"><a href="https://github.com/webmaxru/agent-package-manager-book/releases" rel="noreferrer">Edition v1.2 · Updated September 16, 2026</a></p>
       </footer>
     </div>
   </div>

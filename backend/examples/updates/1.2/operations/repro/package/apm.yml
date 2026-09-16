@@ -1,0 +1,4 @@
+# A safe local source; no network or executable primitives.
+name: operations-library
+version: 1.0.0
+dependencies: {}

@@ -1,0 +1,16 @@
+lockfile_version: '1'
+dependencies: []
+deployments:
+- kind: project-relative
+  target: claude
+  value: .claude/rules/notice.md
+  runtime: null
+  scope: project
+  owners:
+  - .
+  active_owner: .
+  content_hash: sha256:5adfa2ba9cda32716cb42072802f6f58e522f3c4c35350ddad82843a535be296
+local_deployed_files:
+- .claude/rules/notice.md
+local_deployed_file_hashes:
+  .claude/rules/notice.md: sha256:5adfa2ba9cda32716cb42072802f6f58e522f3c4c35350ddad82843a535be296

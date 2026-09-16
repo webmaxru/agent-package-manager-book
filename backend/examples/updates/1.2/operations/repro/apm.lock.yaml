@@ -1,0 +1,80 @@
+lockfile_version: '1'
+apm_version: 0.31.0
+dependencies:
+- repo_url: _local/package
+  name: operations-library
+  version: 1.0.0
+  package_type: apm_package
+  deployed_files:
+  - .claude/rules/library.md
+  - .cursor/rules/library.mdc
+  - .github/instructions/library.instructions.md
+  deployed_file_hashes:
+    .claude/rules/library.md: sha256:fd02ccd78565b7f11bafe6ab4610edcaa6a8db7a4019e3df88fe23da16ea2544
+    .cursor/rules/library.mdc: sha256:962a97f22750fde5cb90e6a03a5a8edf5c83eb3e9dd0505eeb092a71fde15265
+    .github/instructions/library.instructions.md: sha256:bbd17dce3e54d910f4ce715acc9af57e80a18a7ca766a810e454e755db56214c
+  source: local
+  local_path: ./package
+deployments:
+- kind: project-relative
+  target: claude
+  value: .claude/rules/library.md
+  runtime: null
+  scope: project
+  owners:
+  - ./package
+  active_owner: ./package
+  content_hash: sha256:fd02ccd78565b7f11bafe6ab4610edcaa6a8db7a4019e3df88fe23da16ea2544
+- kind: project-relative
+  target: claude
+  value: .claude/rules/workspace.md
+  runtime: null
+  scope: project
+  owners:
+  - .
+  active_owner: .
+  content_hash: sha256:5cc39e805be20176d0ae5ece1c1d762469f3fc98c522b47d41b3d9f0130794f3
+- kind: project-relative
+  target: copilot
+  value: .github/instructions/library.instructions.md
+  runtime: null
+  scope: project
+  owners:
+  - ./package
+  active_owner: ./package
+  content_hash: sha256:bbd17dce3e54d910f4ce715acc9af57e80a18a7ca766a810e454e755db56214c
+- kind: project-relative
+  target: copilot
+  value: .github/instructions/workspace.instructions.md
+  runtime: null
+  scope: project
+  owners:
+  - .
+  active_owner: .
+  content_hash: sha256:2399c0e96cf03bf9b386d6a1f00ae3afadee2b1d58c21f321765549e27e716b3
+- kind: project-relative
+  target: cursor
+  value: .cursor/rules/library.mdc
+  runtime: null
+  scope: project
+  owners:
+  - ./package
+  active_owner: ./package
+  content_hash: sha256:962a97f22750fde5cb90e6a03a5a8edf5c83eb3e9dd0505eeb092a71fde15265
+- kind: project-relative
+  target: cursor
+  value: .cursor/rules/workspace.mdc
+  runtime: null
+  scope: project
+  owners:
+  - .
+  active_owner: .
+  content_hash: sha256:343457e8057399233bb45097c0841bdf8f286d326c029b4edde95956c0cc015a
+local_deployed_files:
+- .claude/rules/workspace.md
+- .cursor/rules/workspace.mdc
+- .github/instructions/workspace.instructions.md
+local_deployed_file_hashes:
+  .claude/rules/workspace.md: sha256:5cc39e805be20176d0ae5ece1c1d762469f3fc98c522b47d41b3d9f0130794f3
+  .cursor/rules/workspace.mdc: sha256:343457e8057399233bb45097c0841bdf8f286d326c029b4edde95956c0cc015a
+  .github/instructions/workspace.instructions.md: sha256:2399c0e96cf03bf9b386d6a1f00ae3afadee2b1d58c21f321765549e27e716b3

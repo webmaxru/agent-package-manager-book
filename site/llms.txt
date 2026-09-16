@@ -2,7 +2,7 @@
 
 > Managing AI Agent Context with APM. A hands-on guide to APM, the package manager for AI agent context. Declare the skills, prompts, instructions, agents, and MCP servers your project needs in one manifest, then install and restore the same context across every supported harness.
 
-Edition v1.1 · updated July 8, 2026 · changelog: https://github.com/webmaxru/agent-package-manager-book/blob/main/content/CHANGELOG.md
+Edition v1.2 · updated September 16, 2026 · changelog: https://github.com/webmaxru/agent-package-manager-book/blob/main/content/CHANGELOG.md
 
 An interactive, multi-page HTML book. Chapters build in order, concept before command. Every APM feature is introduced as the implementation of one of four properties — portability, reproducibility, security, and governance — and every example is verified against the real `apm` CLI.
 

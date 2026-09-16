@@ -1,0 +1,48 @@
+lockfile_version: '1'
+apm_version: 0.31.0
+dependencies: []
+deployments:
+- kind: uri
+  target: mcp
+  value: operations-fixture
+  runtime: claude
+  scope: project
+  owners:
+  - .
+  active_owner: .
+  content_hash: null
+- kind: uri
+  target: mcp
+  value: operations-fixture
+  runtime: copilot
+  scope: project
+  owners:
+  - .
+  active_owner: .
+  content_hash: null
+- kind: uri
+  target: mcp
+  value: operations-fixture
+  runtime: vscode
+  scope: project
+  owners:
+  - .
+  active_owner: .
+  content_hash: null
+mcp_servers:
+- operations-fixture
+mcp_configs:
+  operations-fixture:
+    name: operations-fixture
+    transport: stdio
+    args:
+    - --fixture
+    registry: false
+    command: operations-fixture-not-a-real-server
+mcp_target_servers:
+  claude:
+  - operations-fixture
+  copilot:
+  - operations-fixture
+  vscode:
+  - operations-fixture

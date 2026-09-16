@@ -36,7 +36,7 @@ chapters:
     title: Lessons from Package Managers
     slug: lessons-from-package-managers
     objective: Map package-manager concepts onto agent context so APM feels familiar rather than novel.
-    apm_features: [apm.yml, apm.lock.yaml, version pinning, git sources, apm update, apm outdated, apm audit]
+    apm_features: [apm.yml, apm.lock.yaml, version pinning, git sources, experimental registries, apm update, apm outdated, apm audit]
     depends_on: [01-the-context-problem]
     sections: [Objective, Concept/Theory, In APM, When to use / pitfalls, Worked example, Recap & next]
   - id: 03-primitives-and-harnesses
@@ -44,7 +44,7 @@ chapters:
     title: Primitives & Harnesses
     slug: primitives-and-harnesses
     objective: Know the vocabulary of what APM manages and how those primitives relate to agent harnesses.
-    apm_features: [skills, prompts, instructions, agents, plugins, MCP servers, AGENTS.md, SKILL.md, MCP]
+    apm_features: [skills, prompts, instructions, agents, hooks, plugins, Agent Plugins 1.0, MCP servers, AGENTS.md, SKILL.md, MCP]
     depends_on: [01-the-context-problem, 02-lessons-from-package-managers]
     sections: [Objective, Concept/Theory, In APM, When to use / pitfalls, Worked example, Recap & next]
   - id: 04-the-manifest-apm-yml
@@ -52,7 +52,7 @@ chapters:
     title: 'The Manifest: apm.yml'
     slug: the-manifest-apm-yml
     objective: Author a valid apm.yml that declares Meridian's first shared agent-context dependencies.
-    apm_features: [apm.yml, dependencies, git sources, version pinning, scripts, harness targets]
+    apm_features: [apm.yml, dependencies, local sources, git sources, version pinning, devDependencies, includes, scripts, harness targets]
     depends_on: [03-primitives-and-harnesses]
     sections: [Objective, Concept/Theory, In APM, When to use / pitfalls, Worked example, Recap & next]
   - id: 05-install-and-restore
@@ -60,7 +60,7 @@ chapters:
     title: Install & Restore
     slug: install-and-restore
     objective: Install and restore a project's agent context with the daily APM consumer loop.
-    apm_features: [apm init, apm install <pkg>, apm install, apm run <script>, harness targets]
+    apm_features: [apm init, apm init --discover, apm init --discover --apply, apm install <pkg>, apm install, apm run <script>, harness targets]
     depends_on: [04-the-manifest-apm-yml]
     sections: [Objective, Concept/Theory, In APM, When to use / pitfalls, Worked example, Recap & next]
   - id: 06-the-lockfile-and-reproducibility
@@ -68,7 +68,7 @@ chapters:
     title: The Lockfile & Reproducibility
     slug: the-lockfile-and-reproducibility
     objective: Reproduce an APM setup exactly and explain how the lockfile supports that guarantee.
-    apm_features: [apm.lock.yaml, exact versions, content hashes, byte-for-byte restore, apm install]
+    apm_features: [apm.lock.yaml, exact versions, content hashes, deployment ownership, timestamp-free restore, apm install --frozen, apm lock]
     depends_on: [05-install-and-restore]
     sections: [Objective, Concept/Theory, In APM, When to use / pitfalls, Worked example, Recap & next]
   - id: 07-lifecycle
@@ -76,7 +76,7 @@ chapters:
     title: Lifecycle
     slug: lifecycle
     objective: Keep APM dependencies current while detecting drift and risk deliberately.
-    apm_features: [apm outdated, apm update, apm audit, apm.yml, apm.lock.yaml]
+    apm_features: [apm outdated, registry Current/Wanted/Latest, apm update, apm audit, apm pack --check-clean, apm.yml, apm.lock.yaml]
     depends_on: [06-the-lockfile-and-reproducibility]
     sections: [Objective, Concept/Theory, In APM, When to use / pitfalls, Worked example, Recap & next]
   - id: 08-security-by-default
@@ -84,7 +84,7 @@ chapters:
     title: Security by Default
     slug: security-by-default
     objective: Understand and rely on APM's install-time security checks without confusing them with runtime sandboxing.
-    apm_features: [hidden-Unicode scanning, content-hash pinning, transitive MCP blocking, apm install, apm.lock.yaml, apm-policy.yml]
+    apm_features: [deploy-scoped hidden-Unicode scanning, content-hash pinning, transitive MCP trust, executable approval, hooks, lifecycle scripts, apm install, apm.lock.yaml]
     depends_on: [07-lifecycle]
     sections: [Objective, Concept/Theory, In APM, When to use / pitfalls, Worked example, Recap & next]
   - id: 09-governance-and-policy
@@ -92,7 +92,7 @@ chapters:
     title: Governance & Policy
     slug: governance-and-policy
     objective: Write and pilot an apm-policy.yml that enforces agent-package rules at install time.
-    apm_features: [apm-policy.yml, install-time enforcement, transitive MCP governance, tighten-only inheritance, warn mode, block mode]
+    apm_features: [apm-policy.yml, host-specific policy discovery, transitive MCP governance, local extends, tighten-only inheritance, warn mode, block mode, policy.fetch_failure_default]
     depends_on: [08-security-by-default]
     sections: [Objective, Concept/Theory, In APM, When to use / pitfalls, Worked example, Recap & next]
   - id: 10-becoming-a-producer
@@ -100,7 +100,7 @@ chapters:
     title: Becoming a Producer
     slug: becoming-a-producer
     objective: Package and publish reusable APM primitives so other teams can consume them through the normal install loop.
-    apm_features: [producer package shape, skills, prompts, plugins, apm pack, apm plugin init, apm marketplace init, apm marketplace add]
+    apm_features: [producer package shape, skills, prompts, plugins, apm pack, local-only bundles, Agent Plugins 1.0, apm plugin init, apm marketplace init, apm pack --check-clean]
     depends_on: [09-governance-and-policy]
     sections: [Objective, Concept/Theory, In APM, When to use / pitfalls, Worked example, Recap & next]
   - id: 11-enterprise-at-fleet-scale
@@ -108,7 +108,7 @@ chapters:
     title: Enterprise at Fleet Scale
     slug: enterprise-at-fleet-scale
     objective: Gate and govern APM usage across an organization without turning developer setup into a bottleneck.
-    apm_features: [apm audit --ci, CI gating, registry proxy, air-gapped environments, adoption playbook, apm-policy.yml, microsoft/apm-action]
+    apm_features: [apm audit --ci, cold-cache audit, CI gating, registry proxy, air-gapped environments, adoption playbook, apm-policy.yml, microsoft/apm-action, gh-aw shared imports]
     depends_on: [10-becoming-a-producer]
     sections: [Objective, Concept/Theory, In APM, When to use / pitfalls, Worked example, Recap & next]
   - id: 12-the-landscape-and-whats-next
@@ -116,6 +116,6 @@ chapters:
     title: The Landscape & What's Next
     slug: the-landscape-and-whats-next
     objective: Place APM in the market and standards landscape, then decide what to adopt, watch, or build around.
-    apm_features: [OpenAPM v0.1, SKILL.md, AGENTS.md, MCP, supported harnesses, git-based distribution, policy model, registry roadmap]
+    apm_features: [OpenAPM v0.1, SKILL.md, AGENTS.md, MCP, Agent Plugins 1.0, supported harnesses, git-based distribution, experimental registries, gh-aw integration, issue-backed roadmap]
     depends_on: [11-enterprise-at-fleet-scale]
     sections: [Objective, Concept/Theory, In APM, When to use / pitfalls, Worked example, Recap & next]

@@ -1,0 +1,74 @@
+{
+  "book_edition": "1.2",
+  "reviewed_apm_version": "0.31.0",
+  "source_commit": "c50a711962e4b9d830779212e3aa029177290a48",
+  "scope": "Exact chapter and TOC Git-object binding to the accepted source-identities.json at the content preparation checkpoint. Later presentation/release commits must preserve these blobs. No new CLI execution is implied.",
+  "result": "PASS",
+  "bound_paths": [
+    {
+      "path": "content/chapters/the-context-problem.html",
+      "git_blob_oid": "03ecbb52b41d6f4fd1c1061f6eeb2c8b7cb94c4b",
+      "canonical_lf_sha256": "91aa0d901be95691b4cfc63d035d8548affe1c9af10a16bfb5b37b46fe1b90bb"
+    },
+    {
+      "path": "content/chapters/lessons-from-package-managers.html",
+      "git_blob_oid": "17fec77c8fb406184dea0d716597ea2eb5b21595",
+      "canonical_lf_sha256": "3b2ed68da20a64d1267611055662aaae275b6307185d39e0dc93c8ba8a067221"
+    },
+    {
+      "path": "content/chapters/primitives-and-harnesses.html",
+      "git_blob_oid": "4d17ed5f790355b6d97797ea6b1520983d8903bf",
+      "canonical_lf_sha256": "5ac0bf9ae071d937e51ee82b09e5f19bc1a93fbb776cf971b093338d06a1373b"
+    },
+    {
+      "path": "content/chapters/the-manifest-apm-yml.html",
+      "git_blob_oid": "5a71d4f22f173106a1f85e5a0d568cd2fe40a60a",
+      "canonical_lf_sha256": "906b759de63805bd9f4e9a9f51dbb460f7c90c4e7cd3b03e35de34fdae85240c"
+    },
+    {
+      "path": "content/chapters/install-and-restore.html",
+      "git_blob_oid": "83548da521bd4bea995fd92aa63854aee4f25ae3",
+      "canonical_lf_sha256": "b5c89f1e0dfbcfaf52f289a471d6ab163e55a08b2c39f4305d3ac48cdea52ead"
+    },
+    {
+      "path": "content/chapters/the-lockfile-and-reproducibility.html",
+      "git_blob_oid": "e04bb5e419ce63f2112eb34560e5d24b01ca6e7d",
+      "canonical_lf_sha256": "592a07ebff2ffe06497a16680de3794a9738528140e8de88ba17c2fa14440906"
+    },
+    {
+      "path": "content/chapters/lifecycle.html",
+      "git_blob_oid": "ead1d6aa0b24c415a1a3b603dd3fe516d6ef29df",
+      "canonical_lf_sha256": "e866e2f54c7b9f7e8b040456146282a2099bee3d44a826974b0a1efcc0e29214"
+    },
+    {
+      "path": "content/chapters/security-by-default.html",
+      "git_blob_oid": "3abb4faf4c76584d17a1c980e126219b0b0e76ae",
+      "canonical_lf_sha256": "893ff428288260283285fa04b6cc934fb469db7928f8f320a3151eff4b688324"
+    },
+    {
+      "path": "content/chapters/governance-and-policy.html",
+      "git_blob_oid": "5316bf0a61f9960d21b2f8a894e8342b0eb79617",
+      "canonical_lf_sha256": "4a031ad04dd98275e66884df1c04c80b0fa80ef4c3c28fca8a835e28701cce6f"
+    },
+    {
+      "path": "content/chapters/becoming-a-producer.html",
+      "git_blob_oid": "f2c6fdd58267cad2fdf765163ef21f50d83eb9ef",
+      "canonical_lf_sha256": "255d9d7b5882f302790f72f55cb27930b8dc92db15837a52f389257387a4db22"
+    },
+    {
+      "path": "content/chapters/enterprise-at-fleet-scale.html",
+      "git_blob_oid": "68213ccdec179f757d36eb414fcd2883095928b9",
+      "canonical_lf_sha256": "a4ccff8ba0c272103a9651e81b7a72840ad352aadc9b812e2159a41f9124849b"
+    },
+    {
+      "path": "content/chapters/the-landscape-and-whats-next.html",
+      "git_blob_oid": "f2c5fe061294fcade83c931cb43219a3420e555d",
+      "canonical_lf_sha256": "6a17d91975d92314c77d248c8a8f7c1fee8db8dc01feef261f2a7c5fa5f8168a"
+    },
+    {
+      "path": "content/toc.yml",
+      "git_blob_oid": "c41565496d3c2c2b95e84cacea149655cce5e45d",
+      "canonical_lf_sha256": "02d5a116ddd8e13fb47f16fbb06fb6e6464baa006300e15fb8442f70e2067e36"
+    }
+  ]
+}

@@ -1,0 +1,9 @@
+# Explicit broad executable gate; the dependency starts parked.
+name: operations-trust
+version: 1.0.0
+targets: [copilot, claude]
+dependencies:
+  apm:
+    - path: ./package
+includes: auto
+executables: {}

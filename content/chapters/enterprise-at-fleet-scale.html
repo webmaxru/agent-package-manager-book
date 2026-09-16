@@ -2,37 +2,31 @@
   Chapter 11 - Enterprise at Fleet Scale (authored content fragment).
   Injected by site/generate.py into site/chapters/enterprise-at-fleet-scale.html at each
   SLOT marker below. No page chrome, no h1/h2 (the shell renders those).
-  APM CLI referenced: v0.23.1. microsoft/apm-action: v1.10.0. Ground truth:
-    content/research/11-enterprise-at-fleet-scale-reference.md (+ backend/examples/ch11/).
+  Edition 1.2 target: exactly APM v0.31.0; reviewed historical baseline: v0.23.1.
+  Independently inspected microsoft/apm-action: v1.10.0,
+    d723bb64ed70c135bbaf87d126b721dd2dae0439 (not a latest-version claim).
+  Current evidence: content/research/updates/1.2/{operations-reference,producer-reference,
+    core-reference,theory,ch05-verification}.md. Historical evidence:
+    content/research/11-enterprise-at-fleet-scale-reference.md and backend/examples/ch11/.
   Capstone chapter: introduces NO fifth property. It asks whether the four properties
   (portability, reproducibility, provenance/security, governance) hold for EVERY repo,
   enforced + operated at org scale. STAR property = Governance; reproducibility + security cues.
-  Load-bearing verified facts baked in here:
-    * RUNNABLE: `apm audit --ci` on a local project. Clean = 8 baseline checks + drift = 9,
-      "All 9 check(s) passed", exit 0. Block policy (enforcement: block +
-      require_pinned_constraint: true) vs an UNPINNED DIRECT dep -> dependency-pinned-constraint
-      fails, "1 of 18 check(s) failed", exit 1.
-    * NUANCE: require_pinned_constraint is DIRECT-ONLY. Pinned direct + unpinned transitive
-      PASSES ("All 29 check(s) passed", exit 0). The install-time "1 dependency unpinned"
-      warning is ADVISORY. Check counts vary with declared rules AND fail-fast (18 on failure,
-      29 on pass); --no-fail-fast enumerates all. Baseline (8+drift) is stable + NOT bypassable;
-      `--policy` is [experimental].
-    * SKIPPED-needs-network: microsoft/apm-action workflow YAML (a GitHub Action can't run
-      locally; the `apm audit --ci` gate it invokes IS verified). Pin @v1 + pin CLI via
-      apm-version. SARIF via -o *.sarif + github/codeql-action/upload-sarif@v3 with if: always().
-      Required/unbypassable via GitHub Rulesets. Vendor-neutral (Azure Pipelines/GitLab/Jenkins).
-      NEVER claim a locally-run Action result. Cross-ref: gh-aw (GitHub Agentic Workflows) consumes
-      this action via a shared/apm.md import (documented reference, not run; cite github.github.com/gh-aw
-      + learn.github.com Well-Architected). Ch12 places gh-aw as a CONSUMER of APM, not a rival.
-    * SKIPPED-needs-network: registry proxy = ENV VARS, not `apm config` keys (verified: config
-      holds only auto-integrate, temp-dir, mcp-registry-url). HTTPS_PROXY/HTTP_PROXY/NO_PROXY;
-      PROXY_REGISTRY_URL; PROXY_REGISTRY_TOKEN; PROXY_REGISTRY_ONLY=1 (blocks direct-VCS fallback);
-      PROXY_REGISTRY_ALLOW_HTTP=1. Integrity anchored to lockfile content_hash (Ch6), NOT the proxy.
-      Coverage gaps: no ADO deps, no MCP servers, no apm-policy.yml fetch. Air-gapped = apm pack
-      (Ch10) restored offline. Proxy != dedicated registry (experimental, v0.2 API).
-    * SKIPPED-needs-network: org policy = Ch9 behavior relocated to <org>/.github/apm-policy.yml
-      (enforcement: block, fetch_failure: block). Org-remote discovery + extends: MERGE need infra
-      (local-file extends does NOT merge - Ch9).
+  Example/evidence map (observations are not a new verifier/reviewer verdict):
+    ch11-ci-current: producer/ci/apm-audit.yml; producer reference section 8, source-only integration.
+    ch11-ghaw-import: producer/ci/gh-aw-review.md; producer section 9, static vendored-import checks
+      and action-pinned/pinned-bundle CLI inventory controls, NOT Actions/compiler/runtime execution.
+    ch11-local-audit: core/local-instruction; Ch5 independent local-local-instruction
+      install/restore/frozen/audit records, retained 0.31.0 evidence.
+    ch11-cold-audit-evidence: producer ci-cold-audit, ci-unreachable-source, ci-tamper-audit,
+      ci-cold-sarif; operations public-cold-ci/public-cold-offline-ci corroborate.
+    ch11-local-policy: operations/policy; reusable policy-frozen, local-parent-merged,
+      child-cannot-clear-parent; primary policy-local-inheritance-status/audit.
+    ch11-consumer-policy: operations policy-no-remote-failclosed-install/audit and
+      policy-pin-nonempty-mismatch-failclosed; no live organization authority.
+    ch11-proxy-current/ch11-org-policy-current: source-grounded infrastructure sketches, network skips.
+    Historical workflow and clean/direct/transitive transcript IDs retain their v0.23.1 stamps.
+  Known limits retained: env policy bypass, native MCP coverage, native-plugin replay failure,
+    warning-only CI outcome, invalid owners, and legacy Copilot shared-skill pack omission.
   Meridian author = "Meridian's platform team". Three product groups: Payments, Onboarding,
   Merchant Dashboard. No real person names. Cite official docs.
 -->
@@ -41,11 +35,11 @@
 <p>
   After this chapter you can operate APM across a whole organization &mdash; not one repo, but a
   <em>fleet</em>. You will wire <code>apm audit --ci</code> into branch protection as a
-  <strong>required, unbypassable</strong> pull-request check (the same integrity gate from
+  <strong>required, protected</strong> pull-request check (the integrity gate from
   <a href="lifecycle.html">Chapter&nbsp;7</a> and policy gate from
   <a href="governance-and-policy.html">Chapter&nbsp;9</a>, re-run in CI as defence in depth), stand it up
   with <code>microsoft/apm-action</code>, route dependency traffic through an approved
-  <strong>registry proxy</strong> (or build for a fully air-gapped network), publish and <em>own</em> an
+  <strong>registry proxy</strong> where supported (or prepare an offline bundle handoff), publish and <em>own</em> an
   org <code>apm-policy.yml</code> baseline, and roll it all out with a measured adoption playbook. This is
   the capstone: it introduces no new property. Instead it asks whether the four you already know &mdash;
   <span class="property property--portability">Portability</span>,
@@ -53,20 +47,18 @@
   <span class="property property--security">Provenance&nbsp;/&nbsp;security</span>, and above all
   <span class="property property--governance">Governance</span> &mdash; hold for <em>every</em> repo,
   <strong>enforced and operated at scale</strong>. Governance is the star of the chapter: the org&rsquo;s
-  third promise is that &ldquo;every AI package your developers install is governed by org policy before it
-  touches disk&rdquo; (<a href="https://microsoft.github.io/apm/enterprise/" rel="noreferrer">Enterprise
-  overview</a>). One honesty note up front, at <span class="apm-version">apm v0.23.1</span>: the
-  <code>apm audit --ci</code> <strong>baseline is stable</strong>, but three surfaces you will meet here are
-  preview &mdash; the <code>--policy</code> flag is <strong>experimental</strong>, the dedicated
-  <em>registry</em> (distinct from the proxy) is experimental behind a feature gate, and policy enforcement
-  is early preview &mdash; so pin the CLI (and <code>microsoft/apm-action</code>, latest
-  <strong>v1.10.0</strong>) before you lean on any of them as a production gate.
+  policy must reach a protected enforcement point, not merely exist in a repository.
+  This chapter targets <span class="apm-version">apm v0.31.0</span>, compared with the book&rsquo;s
+  <strong>v0.23.1</strong> baseline. Policy enforcement remains early preview and dedicated registries
+  remain experimental. Pin the CLI and integration independently, and distinguish install-time
+  governance from the harness&rsquo;s runtime controls
+  (<a href="https://github.com/microsoft/apm/blob/8fd10ac5eafee7ca77d41cc34ba139d812fdacd5/docs/src/content/docs/enterprise/policy-reference.md" rel="noreferrer">0.31.0 policy reference</a>).
 </p>
 
 <!-- SLOT: concept-theory -->
 <h3>From &ldquo;can <em>this</em> repo install?&rdquo; to &ldquo;can <em>every</em> repo install?&rdquo;</h3>
 <p>
-  A single team gets almost all of APM&rsquo;s value from three files and one habit:
+  A single team starts with a manifest, a lockfile, and a restore habit:
   <code>apm.yml</code>, <code>apm.lock.yaml</code>, and <code>apm install</code>. Everything in
   <a href="install-and-restore.html">Chapters&nbsp;5</a>&ndash;<a href="governance-and-policy.html">9</a>
   answered a repo-sized question: <em>does my project install, reproduce, stay current, stay safe, and
@@ -103,7 +95,7 @@
   branch protection, exactly the org-remote model from
   <a href="the-context-problem.html">Chapter&nbsp;1</a> and
   <a href="governance-and-policy.html">Chapter&nbsp;9</a>. Second, nothing here is a <em>new</em>
-  capability: fleet scale is Chapters&nbsp;6&ndash;10 made <strong>repeatable, owned, gated, and
+  property: fleet scale is Chapters&nbsp;6&ndash;10 made <strong>repeatable, owned, gated, and
   measured</strong>. The common trap is to think &ldquo;fleet scale is just the single-repo setup, copied
   N times&rdquo; &mdash; but N copies without central ownership simply reproduce the drift problem at
   higher cost. The missing pieces are ownership, gates, a registry strategy, and exceptions, none of which
@@ -130,61 +122,65 @@
     &ldquo;does checkout install?&rdquo; but &ldquo;can all three groups clone, install, and pass CI with the
     <em>same</em> guarantees, without us hand-holding every repo?&rdquo; Their answer is four coordinated
     moves, one per fleet need: (1)&nbsp;make <code>apm audit --ci</code> a <strong>required</strong> PR
-    check via <code>microsoft/apm-action</code>; (2)&nbsp;route all APM dependency traffic through the
+    check via <code>microsoft/apm-action</code>; (2)&nbsp;route covered Git-hosted dependency downloads through the
     security org&rsquo;s <strong>approved registry proxy</strong>; (3)&nbsp;publish an org
     <code>apm-policy.yml</code> baseline at <code>enforcement: block</code>, owned in
     <code>meridian-finance/.github</code>; and (4)&nbsp;ship an <strong>adoption checklist</strong> so new repos
-    onboard themselves. The worked example runs those four moves.
+    onboard themselves. The worked example separates local rehearsals from infrastructure sketches.
   </p>
 </aside>
 
 <!-- SLOT: in-apm -->
 <aside class="callout callout-info">
-  <h3>Version note: what is stable vs. preview at v0.23.1</h3>
+  <h3>Version note: a frozen CLI is not a verified integration</h3>
   <p>
-    The <code>apm audit --ci</code> <strong>baseline</strong> (eight lockfile checks + the install-replay
-    drift check) and the <strong>registry proxy</strong> (environment-variable driven) are
-    <strong>stable</strong>. Three surfaces are preview: the audit <code>--policy</code> flag is tagged
-    <code>[experimental]</code> (<a href="https://microsoft.github.io/apm/reference/cli/audit/" rel="noreferrer">apm
-    audit reference</a>); the dedicated <em>registry</em> (a real Registry HTTP API, distinct from the
-    proxy) is experimental behind <code>apm experimental enable registries</code> because the OpenAPM
-    registry API is deferred to v0.2
-    (<a href="https://microsoft.github.io/apm/guides/registries/" rel="noreferrer">Registries guide</a>);
-    and policy <em>enforcement</em> is early preview, carried over from
-    <a href="governance-and-policy.html">Chapter&nbsp;9</a>. Pin the CLI to
-    <span class="apm-version">apm v0.23.1</span> before relying on any preview surface as a production gate.
+    Current CLI evidence below uses exactly <strong>0.31.0</strong>. The audit
+    <code>--policy</code> flag is still marked <code>[experimental]</code>, and policy enforcement
+    remains early preview. Experimental REST registry support is <em>implemented</em>, not merely a
+    roadmap item. Neither fact establishes a hosted public registry or complete runtime coverage.
+    The separately inspected Action is <strong>v1.10.0</strong>; selecting that Action does not select
+    APM 0.31.0. Historical workflows and transcripts retain their <strong>0.23.1</strong> stamps rather
+    than becoming new execution evidence
+    (<a href="https://github.com/microsoft/apm/blob/8fd10ac5eafee7ca77d41cc34ba139d812fdacd5/docs/src/content/docs/reference/cli/audit.md" rel="noreferrer">audit reference</a>;
+    <a href="https://github.com/microsoft/apm-action/blob/d723bb64ed70c135bbaf87d126b721dd2dae0439/action.yml" rel="noreferrer">pinned Action inputs</a>).
   </p>
 </aside>
 
-<h3>The fleet gate: <code>apm audit --ci</code></h3>
+<h3 id="ch11-fleet-gate">The fleet gate: <code>apm audit --ci</code></h3>
 <p>
-  The authoritative enforcer at fleet scale is one command run on every pull request:
-  <code>apm audit --ci</code>. It is not a new engine &mdash; it is the <em>same</em> gate you already
-  know, re-run in CI as <strong>defence in depth</strong>. On a PR it runs the <strong>eight baseline
-  lockfile checks</strong> (<code>lockfile-exists</code>, <code>ref-consistency</code>,
-  <code>deployed-files-present</code>, <code>no-orphaned-packages</code>,
-  <code>skill-subset-consistency</code>, <code>config-consistency</code>, <code>content-integrity</code>,
-  <code>includes-consent</code>), the <strong>install-replay drift check</strong>, and &mdash; <em>if</em>
-  an <code>apm-policy.yml</code> is discovered from the git remote &mdash; the org
-  <span class="property property--governance">Governance</span> checks. Exit code is <strong><code>0</code>
-  clean, <code>1</code> on any violation</strong>
-  (<a href="https://microsoft.github.io/apm/enterprise/enforce-in-ci/" rel="noreferrer">Enforce in CI</a>).
+  Run <code>apm audit --ci</code> on every pull request as <strong>defence in depth</strong>.
+  It checks the manifest/lock relationship, recorded deployment ownership
+  (<code>deployment-ledger-owners</code>), deployed content and consent, plus
+  <strong>install-replay drift by default</strong>. A resolved policy adds the org&rsquo;s
+  <span class="property property--governance">Governance</span> checks. Do not program against an
+  &ldquo;eight plus one&rdquo; total: configuration, policy and early failures affect enumeration.
+  Exit <code>1</code> means a blocking failure; exit <code>0</code> does not prove that policy was
+  found, that every warning was absent, or that every runtime file was checked
+  (<a href="https://github.com/microsoft/apm/blob/8fd10ac5eafee7ca77d41cc34ba139d812fdacd5/docs/src/content/docs/reference/baseline-checks.md" rel="noreferrer">baseline checks</a>).
 </p>
 <p>
-  Why re-run a gate the developer already passed on their machine? Because the install-time gate from
-  <a href="security-by-default.html">Chapter&nbsp;8</a> and
-  <a href="governance-and-policy.html">Chapter&nbsp;9</a> protects only the developer&rsquo;s own disk, and
-  it is <strong>locally bypassable</strong>: a developer can pass <code>--no-policy</code>,
-  <code>--force</code>, or set <code>APM_POLICY_DISABLE=1</code>. CI re-runs the identical checks on the
-  pull request itself &mdash; and &ldquo;<code>--no-policy</code> does not work here &mdash; CI ignores the
-  local bypass flag&rdquo; (<a href="https://microsoft.github.io/apm/enterprise/enforce-in-ci/" rel="noreferrer">Enforce
-  in CI</a>). Wired into <strong>GitHub Rulesets</strong> as a required status check, a violating PR simply
-  cannot merge (<a href="https://microsoft.github.io/apm/enterprise/github-rulesets/" rel="noreferrer">GitHub
-  rulesets</a>). That is what makes an org rule <em>actually</em> authoritative on every merge across every
-  repo.
+  A cold runner is no longer a reason to suppress drift. With a reviewed manifest, lock and deployed
+  files but no <code>apm_modules</code> or warm cache, 0.31.0 can hydrate <strong>lock-pinned sources
+  in scratch</strong> without rewriting the checkout. The public-source probe succeeded; making that
+  source unreachable failed closed with exit <code>1</code>, not a green skip. Cold is therefore
+  <em>not</em> synonymous with offline. Allow the necessary acquisition traffic rather than adding
+  <code>--no-drift</code> to make the job green
+  (<a href="#ch11-cold-audit-evidence">recorded cold-run evidence</a>;
+  <a href="https://github.com/microsoft/apm/blob/8fd10ac5eafee7ca77d41cc34ba139d812fdacd5/docs/src/content/docs/reference/cli/audit.md" rel="noreferrer">audit contract</a>).
+</p>
+<p>
+  Authority comes from <strong>protecting the enforcement point</strong>, not from the letters
+  <code>--ci</code>. Protect the workflow, reviewed manifest/lock and deployed files, selected policy
+  source, credentials, environment, and ruleset bypass permissions. The CLI really accepts
+  <code>--no-policy</code>; an explicit <code>--policy</code> beats that flag, but
+  <strong><code>APM_POLICY_DISABLE=1</code> still suppresses even explicit policy</strong> in the
+  observed 0.31.0 run, including with consumer fail-closed settings. A required
+  <a href="https://microsoft.github.io/apm/enterprise/github-rulesets/" rel="noreferrer">GitHub Ruleset check</a>
+  only earns its guarantee when contributors cannot change or bypass those inputs. This is how you
+  operationalize the <a href="governance-and-policy.html">Chapter&nbsp;9</a> authority boundary.
 </p>
 <table>
-  <caption>The <code>apm audit --ci</code> flags that matter in a fleet gate. Verified against apm v0.23.1.</caption>
+  <caption>Selected fleet-gate controls, inspected at APM 0.31.0. Local evidence and integration limits are separate.</caption>
   <thead>
     <tr>
       <th scope="col">Flag</th>
@@ -196,22 +192,22 @@
     <tr>
       <td><code>--policy &lt;src&gt;</code></td>
       <td>Explicit policy ref: <code>org</code> | <code>owner/repo</code> | <code>https://&hellip;</code> | local path</td>
-      <td><code>[experimental]</code>. Omit it and APM auto-discovers from the git remote, like <code>apm install</code>.</td>
+      <td><code>[experimental]</code>. Select a reviewed authority; omission uses org discovery. Explicit selection is not protection from every environment bypass.</td>
     </tr>
     <tr>
       <td><code>--no-cache</code></td>
       <td>Force a fresh policy fetch</td>
-      <td><strong>Recommended in CI</strong> &mdash; a cached policy file must not mask a same-day org update.</td>
+      <td>Refreshes <em>policy</em>, not the package cache. Requires reachable policy infrastructure; see the consumer fail-closed setting below.</td>
     </tr>
     <tr>
       <td><code>--no-policy</code></td>
-      <td>Skip policy discovery (baseline + drift only)</td>
-      <td>Not a bypass of the org gate &mdash; CI wires the <em>unflagged</em> command; baseline is never bypassable.</td>
+      <td>Skip automatic policy discovery</td>
+      <td>A real bypass of that layer, including in CI; baseline checks remain. Do not put it in the protected org gate.</td>
     </tr>
     <tr>
       <td><code>--no-fail-fast</code></td>
       <td>Run every check even after one fails</td>
-      <td>Use for full reports and drift sweeps; the default stops at the first failure.</td>
+      <td>Use for fuller diagnostics; it does not expand the tool&rsquo;s runtime coverage.</td>
     </tr>
     <tr>
       <td><code>-f sarif|json</code>, <code>-o &lt;path&gt;</code></td>
@@ -221,36 +217,80 @@
   </tbody>
 </table>
 <p>
-  Two properties of the gate are worth holding onto. The <strong>eight baseline checks plus drift always
-  run</strong> and are never bypassable &mdash; that is the tie-back to
-  <a href="the-lockfile-and-reproducibility.html">Chapter&nbsp;6</a>:
-  <span class="property property--reproducibility">Reproducibility</span> is enforced in CI even when
-  <span class="property property--governance">Governance</span> is off. And there is <strong>no per-PR
-  override flag, by design</strong>. Exceptions are visible or they do not exist: you either amend
-  <code>&lt;org&gt;/.github/apm-policy.yml</code> through normal review (allow-list the package, raise a
-  cap) or lower <code>enforcement</code> from <code>block</code> to <code>warn</code> for that scope
-  &mdash; findings still appear in SARIF, they just stop failing the job. &ldquo;Bypass must be visible in
-  the policy file&rsquo;s history&rdquo;
-  (<a href="https://microsoft.github.io/apm/enterprise/enforce-in-ci/" rel="noreferrer">Enforce in CI</a>).
-  That <em>is</em> the exception handling the concept promised, made concrete.
+  Baseline integrity failures are independent of the policy&rsquo;s <code>warn</code>/<code>block</code>
+  dial, tying this gate back to <a href="the-lockfile-and-reproducibility.html">Chapter&nbsp;6</a>.
+  Make exceptions visible through a reviewed policy amendment at the authority that imposed the rule,
+  not an environment switch hidden in one job. A child cannot lower an inherited
+  <code>block</code> to <code>warn</code>. A deliberate <code>--no-drift</code> run reduces coverage;
+  it is neither a repair nor the standard cold-runner setup.
 </p>
 
 <h3><code>microsoft/apm-action</code>: the turnkey CI path</h3>
 <p>
-  <code>microsoft/apm-action</code> is the convenience wrapper that installs the CLI, runs
-  <code>apm install</code>, and can emit SARIF for Code Scanning
-  (<a href="https://github.com/microsoft/apm-action" rel="noreferrer">microsoft/apm-action</a>). It is
-  <em>not</em> the enforcer &mdash; the gate is <code>apm audit --ci</code>; the action just stands it up.
-  Pin the action to the major tag <code>@v1</code> and pin the CLI with <code>apm-version:</code> for
-  reproducible runs. A GitHub Action cannot be executed locally, so every workflow below is
-  <strong><code>SKIPPED-needs-network</code></strong> &mdash; documented, not run &mdash; while the
-  underlying <code>apm audit --ci</code> gate it invokes <em>is</em> verified (see the worked example).
+  <code>microsoft/apm-action</code> supplies the CLI and optional project operations; it is not the
+  authority itself. Pin the Action to its reviewed commit <em>and</em> set
+  <code>apm-version: '0.31.0'</code>. The inspected v1.10.0 wrapper otherwise defaults to an older
+  CLI. Its <code>audit-report</code> input runs <strong>bare, informational audit</strong>, not
+  <code>apm audit --ci</code>; it is not the required gate
+  (<a href="https://github.com/microsoft/apm-action/blob/d723bb64ed70c135bbaf87d126b721dd2dae0439/src/runner.ts" rel="noreferrer">pinned Action dispatch</a>).
 </p>
-<figure class="code-example">
+<p>
+  Choose the job by what you are reviewing. Default mode runs ordinary <code>apm install</code>,
+  which can repair deployed bytes before audit sees them. When committed deployed files are the
+  review contract, <code>setup-only: 'true'</code> installs only the CLI, then an explicit audit
+  examines those files. Cold scratch hydration means this pattern needs <strong>no mandatory
+  <code>--no-drift</code></strong>. Frozen installation is a separate, limited structural check
+  (<a href="install-and-restore.html#ch5-frozen-boundary">Chapter&nbsp;5&rsquo;s boundary</a>),
+  not an equivalent content audit.
+</p>
+<figure class="code-example" id="ch11-ci-current">
   <figcaption>
-    <code>backend/examples/ch11/workflows/apm-audit.yml</code> &mdash; the minimal required-check gate.
-    Made a required status check via GitHub Rulesets, a violating PR cannot merge.
-    <span class="needs-network">needs network</span><span class="apm-version">apm v0.23.1</span>
+    Current source-grounded integrity sketch from
+    <code>backend/examples/updates/1.2/producer/ci/apm-audit.yml</code>.
+    <strong>SKIPPED-needs-network</strong>: no GitHub runner, authorized private-source access,
+    or required-check/ruleset enforcement was exercised. This does not configure org policy.
+    <span class="needs-network">needs GitHub infrastructure</span>
+    <span class="apm-version">target apm v0.31.0; Action v1.10.0</span>
+  </figcaption>
+  <pre><code class="language-yaml">name: APM integrity audit
+on:
+  pull_request:
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - uses: microsoft/apm-action@d723bb64ed70c135bbaf87d126b721dd2dae0439 # v1.10.0
+        with:
+          setup-only: 'true'
+          apm-version: '0.31.0'
+      - name: Audit checked-out content
+        run: apm audit --ci
+        env:
+          GITHUB_TOKEN: ${{ github.token }}</code></pre>
+</figure>
+<p>
+  The repository token is not authorization to read every private repository in the organization.
+  Configure access to the actual locked sources and policy authority separately. The same CLI gate
+  can run in Azure Pipelines, GitLab CI or Jenkins; the wrapper is GitHub-specific, not the
+  <a href="#ch11-fleet-gate">integrity concept</a>
+  (<a href="https://microsoft.github.io/apm/integrations/ci-cd/" rel="noreferrer">CI/CD integration</a>).
+</p>
+<details id="ch11-historical-workflows">
+  <summary>Historical workflow sketches &mdash; APM 0.23.1, not refreshed runner evidence</summary>
+<p>
+  These earlier install-then-audit and SARIF sketches retain their historical pins. The three files
+  under <code>backend/examples/ch11/workflows/</code> are unchanged documentation artifacts,
+  including the old setup-only recipe. Do not copy their major-tag pinning or cold-cache
+  drift-suppression advice as the current pattern. None was executed on a GitHub runner.
+</p>
+<figure class="code-example" id="ch11-workflow-historical">
+  <figcaption>
+    Historical <code>backend/examples/ch11/workflows/apm-audit.yml</code>, with explanatory comments
+    corrected; no new execution. <strong>SKIPPED-needs-network</strong>: runner and ruleset access.
+    <span class="needs-network">needs network</span><span class="apm-version">apm v0.23.1 &mdash; historical</span>
   </figcaption>
   <pre><code class="language-yaml"># .github/workflows/apm-audit.yml   -- SKIPPED-needs-network (the `apm audit --ci` it runs IS verified)
 name: APM audit
@@ -262,22 +302,23 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: microsoft/apm-action@v1        # pin to the major tag; installs CLI + runs `apm install`
+      - uses: microsoft/apm-action@v1        # historical major tag, not an immutable Action pin
         with:
           apm-version: '0.23.1'              # pin the CLI for reproducible CI
       - run: apm audit --ci --no-cache       # verified gate: exit 0 clean / 1 on violation
         env:
-          GITHUB_APM_PAT: ${{ secrets.APM_PAT }}   # same-org private repos work with zero config</code></pre>
+          GITHUB_APM_PAT: ${{ secrets.APM_PAT }}   # must authorize the intended source</code></pre>
 </figure>
 <p>
   For findings to appear inline on the PR diff and in the repo&rsquo;s Security tab, emit SARIF and upload
   it. The <code>if: always()</code> step is load-bearing &mdash; SARIF must upload <em>even when the audit
   exits <code>1</code></em>, or the failing run produces no Code Scanning entry:
 </p>
-<figure class="code-example">
+<figure class="code-example" id="ch11-sarif-historical">
   <figcaption>
-    <code>backend/examples/ch11/workflows/apm-audit-sarif.yml</code> &mdash; SARIF for Code Scanning.
-    <span class="needs-network">needs network</span><span class="apm-version">apm v0.23.1</span>
+    Historical <code>backend/examples/ch11/workflows/apm-audit-sarif.yml</code>.
+    <strong>SKIPPED-needs-network</strong>: GitHub runner, Code Scanning permissions and SARIF upload.
+    <span class="needs-network">needs network</span><span class="apm-version">apm v0.23.1 &mdash; historical</span>
   </figcaption>
   <pre><code class="language-yaml"># .github/workflows/apm-audit-sarif.yml   -- SKIPPED-needs-network (documented)
 jobs:
@@ -298,49 +339,88 @@ jobs:
         uses: github/codeql-action/upload-sarif@v3
         with: { sarif_file: apm-audit.sarif, category: apm-audit }</code></pre>
 </figure>
+</details>
 <p>
-  Two refinements are worth knowing. The default action runs <code>apm install</code> first, which
-  <strong>overwrites</strong> managed files and can hide bytes that were hand-edited after the last install;
-  <code>setup-only: true</code> puts the CLI on PATH only, so the committed bytes are audited as ground
-  truth (<code>content-integrity</code> still verifies each file&rsquo;s SHA-256 against the lockfile). And
-  because <code>apm audit --ci</code> is a plain CLI call, the same gate is <strong>vendor-neutral</strong>
-  &mdash; it runs in Azure Pipelines, GitLab CI, and Jenkins, not only GitHub Actions
-  (<a href="https://microsoft.github.io/apm/integrations/ci-cd/" rel="noreferrer">CI/CD integration</a>);
-  <code>microsoft/apm-action</code> is just the GitHub-shaped convenience.
+  Current local evidence also includes a real SARIF report written with <code>-o</code>
+  (<code>ci-cold-sarif</code>). Writing that report is not an upload test. Keep the upload eligible
+  after a failing audit, as the historical <code>if: always()</code> example illustrates, and test
+  Code Scanning permissions on your actual runner.
 </p>
 
 <aside class="callout callout-info">
-  <h3>Beyond CI gating: <code>gh-aw</code> runs the same action</h3>
+  <h3>Beyond CI gating: <code>gh-aw</code> imports an isolated context</h3>
   <p>
-    The same <code>microsoft/apm-action</code> is also how <strong>GitHub Agentic Workflows</strong>
-    (<code>gh-aw</code>) consumes APM at <em>runtime</em>. A gh-aw workflow adds a
-    <code>shared/apm.md</code> import that runs the action to pack the declared packages into a bundle,
-    then restores it before the agent job starts &mdash; so the manifest, the <code>apm.lock.yaml</code>
-    SHA pins (<a href="the-lockfile-and-reproducibility.html">Chapter&nbsp;6</a>), and the org
-    <code>apm-policy.yml</code> baseline you own here carry straight into an agent&rsquo;s execution
-    environment (<a href="https://github.github.com/gh-aw/reference/dependencies/" rel="noreferrer">gh-aw
-    APM dependencies</a>). Pairing APM&rsquo;s install-time governance with gh-aw&rsquo;s sandboxed
-    runtime &mdash; where the model holds no write token &mdash; is documented as an enterprise pattern in
-    GitHub&rsquo;s Well-Architected guidance
-    (<a href="https://learn.github.com/well-architected/governance/recommendations/governing-agentic-workflows" rel="noreferrer">Governing
-    agentic workflows with gh-aw and APM</a>). <a href="the-landscape-and-whats-next.html">Chapter&nbsp;12</a>
-    places gh-aw on the wider map as a <em>consumer</em> of APM, not a rival.
+    <strong>GitHub Agentic Workflows</strong> (<code>gh-aw</code>) consumes APM through a vendored
+    <code>shared/apm.md</code> import. The current shared file packs only its imported package list
+    in an <strong>isolated work directory</strong>, then restores the bundle for the agent job.
+    It ignores the host <code>apm.yml</code>: the host lockfile, primitives and policy baseline
+    <strong>do not automatically carry over</strong>. Review the imported context and its policy
+    authority separately
+    (<a href="https://github.com/microsoft/apm/blob/8fd10ac5eafee7ca77d41cc34ba139d812fdacd5/.github/workflows/shared/apm.md" rel="noreferrer">frozen shared import</a>).
+  </p>
+  <p>
+    Re-vendor that frozen file deliberately; changing the CLI version does not refresh a vendored
+    import or recompile a workflow. It requires a <strong>concrete target matching the engine</strong>
+    and rejects <code>all</code>. Its default is still <strong>APM 0.28.0</strong>; the explicit
+    <code>0.31.0</code> input below reaches <em>both pack and restore</em>. Its Action v1.10.0 pin is
+    independent of those CLI versions
+    (<a href="https://github.com/microsoft/apm/blob/8fd10ac5eafee7ca77d41cc34ba139d812fdacd5/docs/src/content/docs/integrations/gh-aw.md" rel="noreferrer">gh-aw integration contract</a>).
+  </p>
+  <!--
+    ch11-ghaw-import: producer-probes/gh-aw-contract.json, static checks only.
+    Canonical shared file at APM commit 8fd10ac5eafee7ca77d41cc34ba139d812fdacd5;
+    byte-matched SHA-256 6ebe127ee1ae527249b81239a8fa52f3a3ead298042b2d43122d6a68faf0f3ae.
+    No gh-aw compilation or Action execution is implied by this receipt.
+  -->
+  <figure class="code-example" id="ch11-ghaw-import">
+    <figcaption>
+      Inputs from <code>backend/examples/updates/1.2/producer/ci/gh-aw-review.md</code>, using the
+      tested pinned <em>instruction</em>. The scratch import was byte-matched to the frozen source;
+      <strong>SKIPPED-needs-network</strong> covers compilation, Actions, authentication and agent
+      loading: no separately reviewed gh-aw compiler, authorized runner or runtime was supplied.
+      <span class="apm-version">target apm v0.31.0; source-grounded integration</span>
+    </figcaption>
+    <pre><code class="language-yaml">engine: copilot
+imports:
+  - uses: shared/apm.md
+    with:
+      apm-version: '0.31.0'
+      target: copilot
+      token-source: github-token
+      packages:
+        - microsoft/apm-sample-package/.apm/instructions/design-standards.instructions.md#fb2851683be0e0e7711421d518bd8dba23b0b1f6</code></pre>
+  </figure>
+  <p id="ch11-ghaw-compatibility">
+    <strong>No blanket compatibility claim:</strong> the Action-shaped local CLI pair used the
+    legacy <code>apm</code> format and deprecated <code>unpack</code>. Both commands exited
+    <code>0</code> for this instruction, restoring one byte-matched file, not a consumer manifest/lock.
+    But legacy Copilot packing in 0.31.0 <strong>omitted the tested
+    <code>.agents/skills/style-checker/SKILL.md</code></strong>: pack and unpack exited
+    <code>0</code> with no skill delivered. This is a real format/target bug, not a network skip
+    (<code>producer/action-pinned</code> versus <code>producer/pinned-bundle</code>,
+    producer reference &sect;9). Inspect the actual primitive inventory; do not switch the pinned
+    Action to an untested plugin-format repair.
+  </p>
+  <p>
+    <code>token-source: github-token</code> selects the current-repository read token, not private
+    cross-repository access. APM supplies context; gh-aw controls its execution environment.
+    <a href="the-landscape-and-whats-next.html">Chapter&nbsp;12</a> keeps that consumer/runtime
+    distinction, without treating sandboxing as proof that prompt injection is impossible.
   </p>
 </aside>
 
 <h3>Registry strategy: proxy and air-gapped</h3>
 <p>
-  Because &ldquo;enterprise networks rarely allow agents to reach <code>github.com</code> directly,&rdquo;
-  APM routes dependency traffic through composable, environment-variable controls
-  (<a href="https://microsoft.github.io/apm/enterprise/registry-proxy/" rel="noreferrer">Registry
-  proxy</a>). The single most important verified fact: <strong>these are environment variables, not
-  <code>apm config</code> keys</strong>. At v0.23.1 <code>apm config</code> persists only
-  <code>auto-integrate</code>, <code>temp-dir</code>, and <code>mcp-registry-url</code> &mdash; so at fleet
-  scale you pin the proxy settings in CI secrets, dev-container env, and shell profiles, &ldquo;in the same
-  place you pin Python and APM versions,&rdquo; <em>not</em> via <code>apm config set</code>.
+  A controlled acquisition path makes the <a href="the-lockfile-and-reproducibility.html">lockfile
+  contract</a> operable behind an enterprise firewall. APM&rsquo;s proxy controls are
+  <strong>environment variables, not <code>apm config</code> keys</strong>: standardize them in CI
+  secrets and dev containers. Do not infer that APM has only three accepted configuration keys
+  from the defaults its config display happens to list; saved targets and gated registry settings
+  also exist. These transport controls do not cover every APM network request
+  (<a href="https://github.com/microsoft/apm/blob/8fd10ac5eafee7ca77d41cc34ba139d812fdacd5/docs/src/content/docs/enterprise/registry-proxy.md" rel="noreferrer">0.31.0 registry-proxy coverage</a>).
 </p>
 <table>
-  <caption>The registry-strategy knobs, with exact environment-variable names. All SKIPPED-needs-network at v0.23.1.</caption>
+  <caption>Source-grounded proxy controls at APM 0.31.0. Corporate routing is SKIPPED-needs-network; local bundle evidence is separate.</caption>
   <thead>
     <tr>
       <th scope="col">Need</th>
@@ -352,12 +432,12 @@ jobs:
     <tr>
       <td>Allow outbound traffic at the firewall</td>
       <td><code>HTTPS_PROXY</code> / <code>HTTP_PROXY</code> / <code>NO_PROXY</code></td>
-      <td>Standard forward-proxy vars &mdash; &ldquo;if <code>git clone</code> works through the proxy, <code>apm install</code> works too.&rdquo;</td>
+      <td>Standard forward-proxy variables; validate both Git and HTTP acquisition paths in your environment.</td>
     </tr>
     <tr>
-      <td>Mirror every archive for audit + replay</td>
+      <td>Mirror covered Git-hosted archives</td>
       <td><code>PROXY_REGISTRY_URL</code></td>
-      <td>Rewrites every GitHub-hosted download to fetch via the mirror (e.g. an Artifactory GitHub remote).</td>
+      <td>Routes supported archive downloads through a mirror, such as an Artifactory GitHub remote; not policy or MCP traffic.</td>
     </tr>
     <tr>
       <td>Authenticate to the mirror</td>
@@ -367,7 +447,7 @@ jobs:
     <tr>
       <td>Refuse direct-VCS fallback (mandatory + auditable)</td>
       <td><code>PROXY_REGISTRY_ONLY=1</code></td>
-      <td>APM refuses to fall back to <code>github.com</code>; the lockfile records a <code>registry_prefix</code>, and replay aborts on a directly-pinned entry until re-resolved.</td>
+      <td>Refuses supported direct-VCS fallback. The lock records <code>registry_prefix</code>; directly pinned entries need reviewed re-resolution through the proxy.</td>
     </tr>
     <tr>
       <td>Silence the plaintext-token warning on <code>http://</code></td>
@@ -375,46 +455,80 @@ jobs:
       <td>Use only inside an isolated network. (Deprecated <code>ARTIFACTORY_*</code> aliases still work with a warning.)</td>
     </tr>
     <tr>
-      <td>Fully air-gapped CI (no egress at all)</td>
-      <td><code>apm pack</code> on a connected host &rarr; restore offline</td>
-      <td><a href="becoming-a-producer.html">Chapter&nbsp;10</a>&rsquo;s bundle, reused as an air-gapped delivery mechanism.</td>
+      <td>Offline artifact handoff</td>
+      <td>Prepare a real bundle and its required tooling before disconnecting</td>
+      <td><a href="becoming-a-producer.html">Chapter&nbsp;10</a>&rsquo;s producer/consumer loop, with the <a href="#ch11-offline-boundary">one-shot limitations below</a>.</td>
     </tr>
   </tbody>
 </table>
 <p>
-  The reproducibility tie-back matters here more than anywhere: <strong>the proxy is not the trust anchor
-  &mdash; the lockfile is</strong>. &ldquo;Every install verifies the <code>content_hash</code> recorded in
-  <code>apm.lock.yaml</code> regardless of where the bytes came from. A tampered proxy that rewrites archive
-  contents is caught by the lockfile guard, not the cache&rdquo;
-  (<a href="https://microsoft.github.io/apm/enterprise/registry-proxy/" rel="noreferrer">Registry proxy</a>).
-  So routing through Artifactory does <em>not</em> weaken
-  <span class="property property--reproducibility">Reproducibility</span>; if anything
-  <code>PROXY_REGISTRY_ONLY=1</code> makes the proxy path <em>mandatory and auditable</em>. Be honest about
-  coverage, though: the proxy covers <code>apm install</code> for GitHub-hosted deps and marketplace
-  fetches, but <strong>not</strong> Azure DevOps deps, <strong>not</strong> MCP servers (a separate
-  registry), and <strong>not</strong> the <code>apm-policy.yml</code> fetch (which uses the GitHub API
-  directly). And do not confuse the proxy with the dedicated <em>registry</em>: the proxy fronts an upstream
-  git host and is stable; the dedicated registry is a separate, additive package source with no git upstream
-  and is <strong>experimental</strong> (v0.2 API). APM&rsquo;s distribution is <strong>git-based
-  today</strong> &mdash; there is no npm-style central registry.
+  <strong>The proxy is a route, not a trust anchor.</strong> Review the lockfile and its recorded
+  content hashes, then verify the materialized result. Hashes detect changed bytes relative to trusted
+  metadata; neither a mirror nor a hash authenticates the publisher. The GitHub archive proxy covers
+  supported dependency and marketplace fetches, but <strong>not Azure DevOps dependency acquisition,
+  MCP-registry traffic, or policy fetching</strong>. Those paths need their own connectivity and
+  authorization.
+</p>
+<p>
+  A dedicated <em>registry</em> is a different package source, not this proxy.
+  APM 0.31.0 ships experimental REST consumption/publication and an implementable
+  <strong>HTTP API <code>/v1</code></strong>. That does not establish a Microsoft-operated public
+  searchable hub. OpenAPM&rsquo;s deferred normative registry work is a standards boundary, not
+  evidence that the client is absent. Meridian can continue using Git and curated marketplaces
+  without adopting a registry server
+  (<a href="https://github.com/microsoft/apm/blob/8fd10ac5eafee7ca77d41cc34ba139d812fdacd5/docs/src/content/docs/guides/registries.md" rel="noreferrer">experimental registries</a>;
+  <a href="https://github.com/microsoft/apm/blob/8fd10ac5eafee7ca77d41cc34ba139d812fdacd5/docs/src/content/docs/reference/registry-http-api.md" rel="noreferrer">implemented API</a>).
 </p>
 
-<h3>Org policy at fleet scale</h3>
+<h3 id="ch11-policy-authority">Org policy at fleet scale</h3>
 <p>
-  The <em>mechanism</em> of org policy is already fully covered in
-  <a href="governance-and-policy.html">Chapter&nbsp;9</a> &mdash; the schema, the <code>warn</code>
-  &rarr; <code>block</code> dial, tighten-only inheritance. Fleet scale changes only <em>where it lives</em>
-  and <em>who owns it</em>: the authoritative policy sits in <code>&lt;org&gt;/.github/apm-policy.yml</code>
-  behind CODEOWNERS and branch protection, and every consuming repo (the pilot included) only
-  <em>consumes</em> it, discovered from its git remote. Past the pilot, the org file is
-  <code>enforcement: block</code> with <code>fetch_failure: block</code> so a repo whose policy cannot be
-  fetched <strong>fails closed</strong> rather than silently fail-opening. Two parts of this are exactly the
-  parts that need infrastructure a reader&rsquo;s sandbox will not have &mdash; <strong>org-remote
-  discovery</strong> and the tighten-only <code>extends:</code> <strong>merge</strong> &mdash; so both are
-  <code>SKIPPED-needs-network</code> here (recall from Chapter&nbsp;9 that a <em>local-file</em>
-  <code>extends:</code> does not merge a parent; real inheritance needs an <code>org</code> /
-  <code>owner/repo</code> / <code>https://</code> ref). You author and test the file locally, then land it in
-  <code>&lt;org&gt;/.github</code>.
+  Scale the <a href="governance-and-policy.html">Chapter&nbsp;9</a> ownership model, not copies of
+  unowned policy. Meridian keeps <code>meridian-finance/.github/apm-policy.yml</code> behind
+  CODEOWNERS and branch protection. In 0.31.0, GitHub discovery prefers
+  <code>&lt;org&gt;/.github-private/apm-policy.yml</code>, then the
+  <code>.github</code>, <code>.apm</code> and <code>_apm</code> repositories.
+  GitLab uses the top-level group&rsquo;s <code>apm-policy</code> project; Azure DevOps uses project
+  <code>apm</code>, repository <code>apm-policy</code>, with legacy <code>_apm/_apm</code> fallback
+  after a 404. Live private-host discovery remains <code>SKIPPED-needs-network</code>: no org
+  repository or authorization was supplied
+  (<a href="https://github.com/microsoft/apm/blob/8fd10ac5eafee7ca77d41cc34ba139d812fdacd5/src/apm_cli/policy/discovery.py" rel="noreferrer">host-specific discovery</a>).
+</p>
+<!--
+  ch11-policy-byte-boundary: operations OP09.3, policy-pin-nonempty-valid,
+  policy-pin-nonempty-mismatch-audit, policy-pin-nonempty-mismatch-failclosed,
+  policy-cold-fetch-default-warn, policy-cold-fetch-consumer-block.
+  Canonical owner/repository casing: OP09.2 mixedcase registry controls plus target source for GitHub.
+-->
+<p id="ch11-policy-byte-boundary">
+  Select an <strong>explicit, reviewed source</strong> when the gate must not depend on ambiguous
+  discovery: <code>--policy</code> for CI audit, <code>--policy-source</code> for policy status.
+  Record the canonical host/repository/path and, if pinning policy bytes, the consumer&rsquo;s
+  <code>policy.hash</code> SHA-256 from the reviewed raw file &mdash; not its display
+  <code>name</code>/<code>version</code> or a package&rsquo;s <code>content_hash</code>.
+  GitHub/registry owner-repository policy matching uses canonical casing; refs, subpaths and MCP
+  identities are not generally case-insensitive. Crucially, an unread remote
+  <code>fetch_failure: block</code> cannot protect its own first fetch: set consumer
+  <a href="#ch11-consumer-policy"><code>policy.fetch_failure_default: block</code></a>.
+  Even a policy-byte hash mismatch only warned and exited <code>0</code> in the default-posture
+  audit probe; the consumer block setting made it exit <code>1</code>
+  (operations reference OP09.3;
+  <a href="https://github.com/microsoft/apm/blob/8fd10ac5eafee7ca77d41cc34ba139d812fdacd5/docs/src/content/docs/enterprise/policy-reference.md" rel="noreferrer">policy source and hash configuration</a>).
+</p>
+<!--
+  ch11-policy-cache: operations policy-https-cold-chain/warm-chain,
+  policy-https-inheritance-audit, policy-stale-fetch-block-status/audit.
+  Effective cached fields and zero extra warm-read requests were observed on loopback HTTPS.
+-->
+<p id="ch11-policy-cache">
+  <strong>Local inheritance now works.</strong> The tested <code>extends: ./apm-policy.parent.yml</code>
+  retained parent restrictions: allow lists intersect, deny/require lists accumulate, and enforcement
+  and fetch-failure posture tighten. Empty child lists do not erase inherited restrictions.
+  Cold and warm HTTPS-loopback probes retained the same strict fields and TTL; the warm read made
+  no further requests. This is local/loopback evidence, not a live org deployment
+  (<a href="https://github.com/microsoft/apm/blob/8fd10ac5eafee7ca77d41cc34ba139d812fdacd5/src/apm_cli/policy/inheritance.py" rel="noreferrer">tighten-only implementation</a>).
+  If policy freshness itself must gate CI, inspect <code>policy status --check</code> too:
+  the stale-cache probe failed that preflight while audit still evaluated cached rules successfully.
+  Resolution status and rule compliance answer different questions.
 </p>
 
 <!-- SLOT: when-to-use-pitfalls -->
@@ -477,39 +591,71 @@ jobs:
   <h3>Pitfall: <code>require_pinned_constraint</code> is direct-only</h3>
   <p>
     The <code>dependency-pinned-constraint</code> policy check is evaluated against <strong>direct manifest
-    dependencies</strong>, not transitive ones. A <em>pinned</em> direct dep (<code>&hellip;#v1.0.0</code>)
-    that pulls an <em>unpinned</em> transitive dep <strong>passes</strong> the check &mdash; verified as
-    <code>All 29 check(s) passed</code>, exit&nbsp;<code>0</code>. Only when the <em>direct</em> dep tracks a
-    bare branch does it fail. The install-time <code>[!] 1 dependency unpinned</code> warning is therefore
-    <strong>advisory</strong> and does not by itself trip this gate. If your fleet wants transitive pinning
-    too, that is a different lever (lockfile pinning), not this rule.
+    dependencies</strong>, not every transitive declaration. The 0.31.0 loopback-registry control
+    passed with a bounded direct constraint <code>^1.0.0</code> and an unbounded transitive
+    <code>&gt;=1.0.0</code>; making the <em>direct</em> constraint unbounded failed.
+    Evidence: <code>policy-pin-direct-only-control</code> (exit <code>0</code>) and
+    <code>policy-pin-direct-unbounded-control</code> (exit <code>1</code>), operations reference
+    OP09.2. A bounded constraint is not an immutable full-graph identity: the
+    <a href="the-lockfile-and-reproducibility.html">committed lock</a> records that graph.
+    An install-time unpinned-transitive warning does not by itself trip this direct-only rule.
   </p>
+</aside>
+<!--
+  ch11-audit-coverage: operations OP07.2/OP08.3, ownership-invalid-bare/ci,
+  scan-warning-short-bare/ci, mcp-edited-native-ci/mcp-missing-native-audit-ci;
+  core ch3-portable-metadata-install/audit and producer native-bundle-audit.
+  These are scoped outcomes/known limitations, not network skips.
+-->
+<aside class="callout callout-warn" id="ch11-audit-coverage">
+  <h3>Pitfall: audit is not an all-runtime certificate</h3>
+  <ul>
+    <li>
+      <strong>Read the finding, not just the total.</strong> Ordinary drift is advisory in bare audit,
+      but invalid deployment owners fail <em>both</em> bare and CI audit. Correctly hashed,
+      Warning-only U+200B content returned bare-audit <code>2</code> and CI <code>0</code>.
+      Critical findings and recorded-hash mismatches fail CI with <code>1</code>.
+    </li>
+    <li>
+      <strong>Native MCP coverage is limited.</strong> In the tested MCP-only project, missing
+      native configuration and edited native arguments both returned CI exit <code>0</code>.
+      Frozen MCP checks
+      compare manifest to lock, not all runtime bytes. Inspect the native configuration too;
+      neither command tests server health or runtime permissions
+      (<a href="security-by-default.html">Chapter&nbsp;8</a>).
+    </li>
+    <li>
+      <strong>Native plugin registration is not audit success.</strong> The local-path Agent
+      Plugins 1.0 consumer installed, but CI replay failed with
+      <code>Native Agent Plugin canonical IR is missing</code>, even after the valid metadata
+      control removed a separate consistency complaint. This is a real 0.31.0 limitation, not
+      a network skip or a reason to hide drift. Do not generalize it to every Git-sourced plugin
+      (<a href="becoming-a-producer.html">Chapter&nbsp;10</a>; core reference &sect;5).
+    </li>
+  </ul>
 </aside>
 <aside class="callout callout-warn">
-  <h3>Pitfall: the baseline is unbypassable, but <code>--policy</code> is experimental</h3>
+  <h3>Pitfall: a protected command can still have unprotected inputs</h3>
   <p>
-    The eight baseline checks + drift always run and are never bypassable &mdash; that part is stable and
-    authoritative. The <code>--policy</code> flag that adds the org rule checks is
-    <code>[experimental]</code> at v0.23.1
-    (<a href="https://microsoft.github.io/apm/reference/cli/audit/" rel="noreferrer">apm audit
-    reference</a>). Rely on the baseline as a hard gate today; treat the explicit-policy layer as
-    version-sensitive and pin the CLI. Also note the check <em>count</em> varies with the declared rules and
-    with fail-fast: a passing run enumerates all checks (e.g. <code>29</code>), while a failing run stops at
-    the first failure (<code>1 of 18</code>). Add <code>--no-fail-fast</code> when you want a full report.
+    Keep <code>APM_POLICY_DISABLE</code> out of the protected job&rsquo;s effective environment,
+    including inherited runner configuration. The failing explicit policy became exit
+    <code>0</code> when that variable disabled it
+    (<code>policy-explicit-env-only</code>, <code>policy-disable-even-failclosed</code>,
+    operations reference OP09.3). Protect proxy settings and credentials for the same reason.
+    A local CLI result or an unreachable-loopback negative control is not acceptance evidence for
+    Actions, corporate proxy infrastructure, or a live organization policy.
   </p>
 </aside>
-<aside class="callout callout-warn">
-  <h3>Pitfall: the proxy is env-vars, and never claim a local Action run</h3>
-  <p>
-    The registry-proxy knobs (<code>PROXY_REGISTRY_*</code>, <code>HTTPS_PROXY</code>) are
-    <strong>environment variables, not <code>apm config</code> keys</strong> &mdash; pin them in CI secrets
-    and dev containers. Mixed-fleet env skew (some agents with <code>PROXY_REGISTRY_ONLY</code>, some
-    without) can cause lockfile drift for three-segment GitLab shorthands, so set them fleet-wide. And
-    because a GitHub Action cannot run on a workstation, <strong>never present a
-    <code>microsoft/apm-action</code> result as locally verified</strong> &mdash; the action is documented;
-    only the <code>apm audit --ci</code> gate it wraps is run in this book.
-  </p>
-</aside>
+<p id="ch11-target-scope">
+  <strong>Pin the fleet&rsquo;s targets, not an expanding default.</strong> Meridian keeps
+  <code>targets: [copilot, claude, cursor]</code>. The 0.31.0 default-stable catalog now has nine
+  targets, including <code>grok-build</code>; stable <code>hermes</code>, like
+  <code>agent-skills</code> and <code>antigravity</code>, is explicit-only.
+  <code>grok-cloud</code> remains experimental and outside that default set.
+  Catalog support does not mean every primitive or native plugin works on every target
+  (<a href="primitives-and-harnesses.html">Chapter&nbsp;3</a>;
+  <a href="https://github.com/microsoft/apm/blob/8fd10ac5eafee7ca77d41cc34ba139d812fdacd5/docs/src/content/docs/reference/targets-matrix.md" rel="noreferrer">0.31.0 target matrix</a>).
+</p>
 
 <aside class="leader-callout">
   <h3>For engineering leaders</h3>
@@ -523,9 +669,10 @@ jobs:
     mandating adoption without offering a marketplace worth installing from &mdash; <strong>carrot before
     stick</strong>. Decide ownership explicitly: &ldquo;the platform team&rdquo; is <em>not</em> an owner; a
     <strong>named on-call</strong> is. And measure the right things. The report that persuades a VP is
-    <em>setup time</em> (manual 15&ndash;60&nbsp;min per repo &rarr; <code>apm install</code> in under
-    30&nbsp;seconds), <em>policy warnings trending down</em>, <em>risky installs blocked</em>, <em>update
-    cadence</em>, and <em>developer satisfaction</em> &mdash; <strong>not</strong> the count of repos with a
+    <em>measured setup time</em> (the older docs&rsquo; 15&ndash;60&nbsp;minutes versus under
+    30&nbsp;seconds is an illustration, not a new 0.31.0 benchmark), <em>policy warnings trending down</em>,
+    <em>risky installs blocked</em>, <em>update cadence</em>, and <em>developer satisfaction</em>
+    &mdash; <strong>not</strong> the count of repos with a
     manifest, which is a vanity metric
     (<a href="https://microsoft.github.io/apm/enterprise/making-the-case/" rel="noreferrer">Making the
     case</a>; <a href="https://microsoft.github.io/apm/enterprise/adoption-playbook/" rel="noreferrer">Adoption
@@ -535,25 +682,83 @@ jobs:
 
 <!-- SLOT: worked-example -->
 <p>
-  Meridian&rsquo;s four moves, in order. Only the first is executable in a reader&rsquo;s sandbox &mdash;
-  the CI gate itself &mdash; so it is shown running against a local project (offline, one public package,
-  no tokens). The proxy, the workflow, and the org-policy merge each need infrastructure and are marked
-  <code>SKIPPED-needs-network</code>.
+  Meridian&rsquo;s four moves, in order. Rehearse the CLI locally, then validate the infrastructure
+  separately. Current evidence comes from the existing fixtures and the
+  <code>content/research/updates/1.2/</code> reports named in the captions; these are not new
+  Action or agent-runtime executions. Use short disposable copies with isolated user/config/cache
+  state, not the book root. Here <code>$Apm</code> is the absolute prepared <strong>0.31.0</strong>
+  executable, and <code>APM_POLICY_DISABLE</code> is absent.
 </p>
 
-<h3>Move 1 &mdash; the required gate (RUNNABLE offline)</h3>
+<h3>Move 1 &mdash; rehearse the gate, including its cold-cache boundary</h3>
 <p>
-  A clean project &mdash; one <em>pinned</em> public dependency plus its committed lockfile &mdash; passes
-  the gate. The clean run is the eight baseline checks plus the drift check: <strong>nine checks</strong>,
-  exit&nbsp;<code>0</code>. (The <code>Could not determine org&hellip;</code> line is benign: a scratch
-  directory has no git remote, so org auto-discovery is skipped.)
+  Reuse the already materialized
+  <code>backend/examples/updates/1.2/core/local-instruction</code> fixture from
+  <a href="install-and-restore.html#ch5-current-setup">Chapter&nbsp;5</a>, including its authored
+  instruction, manifest and genuine lock. It has no remote dependencies, so this
+  <em>particular rehearsal</em> is offline. It tests recorded local content, not org discovery.
 </p>
-<figure class="code-example">
+<figure class="code-example" id="ch11-local-audit">
   <figcaption>
-    <code>apm audit --ci</code> on the clean project &mdash; nine checks pass, exit&nbsp;0. This is the
-    gate the required PR check runs. Replays from cache and scans locally, so it runs offline. Transcript
-    abbreviated for space.
-    <span class="apm-version">apm v0.23.1</span>
+    Frozen restore and a separate integrity audit of the unchanged local fixture.
+    Retained independent evidence: <code>ch05-verification.md</code>,
+    <code>local-local-instruction-frozen</code> and <code>local-local-instruction-audit</code>,
+    both exit <code>0</code>; no new execution claimed here.
+    <span class="apm-version">apm v0.31.0 &mdash; verified 2026-09-16</span>
+  </figcaption>
+  <pre><code class="language-powershell">&amp; $Apm install --frozen
+&amp; $Apm audit --ci</code></pre>
+</figure>
+<p>
+  A public dependency tests a different boundary. The producer probes used the immutable
+  <code>microsoft/apm-sample-package</code> style-checker slice at
+  <code>fb2851683be0e0e7711421d518bd8dba23b0b1f6</code>, with the genuine lock and deployed files.
+  Removing modules and starting with an independent empty cache tested acquisition, not just replay
+  from a warmed developer machine:
+</p>
+<table id="ch11-cold-audit-evidence">
+  <caption>Observed APM 0.31.0 CLI outcomes, producer reference &sect;8. Public hydration needs GitHub access; none is a GitHub Action run.</caption>
+  <thead>
+    <tr><th scope="col">Probe</th><th scope="col">Boundary tested</th><th scope="col">Result</th></tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><code>ci-cold-audit</code></td>
+      <td>No modules or warm cache; locked public source reachable</td>
+      <td>Exit <code>0</code>; scratch hydrated, checkout bytes and timestamps unchanged.</td>
+    </tr>
+    <tr>
+      <td><code>ci-unreachable-source</code></td>
+      <td>Separate cold run; deliberately unreachable loopback proxy</td>
+      <td>Exit <code>1</code> on hydration/replay failure; no green skip or checkout repair.</td>
+    </tr>
+    <tr>
+      <td><code>ci-tamper-audit</code></td>
+      <td>Harmless ASCII edit to recorded deployed content</td>
+      <td>Exit <code>1</code>; changed bytes rejected.</td>
+    </tr>
+    <tr>
+      <td><code>ci-cold-sarif</code></td>
+      <td>Clean audit with a SARIF output file</td>
+      <td>Exit <code>0</code>; real report written, no Code Scanning upload tested.</td>
+    </tr>
+  </tbody>
+</table>
+
+<details id="ch11-historical-audits">
+  <summary>Historical comparison &mdash; the original 0.23.1 clean, direct and transitive runs</summary>
+<p>
+  These July&nbsp;2 recordings retain their original version, counts and cache-only wording.
+  Setup fetched a public package over the network; the displayed audits then used warmed local
+  state. They are not fresh-clone offline recipes or 0.31.0 results. The
+  <code>Could not determine org&hellip;</code> warning explains why the clean scratch run did
+  <em>not</em> enforce org policy, rather than demonstrating a production fail-closed gate.
+</p>
+<figure class="code-example" id="ch11-clean-historical">
+  <figcaption>
+    Historical clean project, exit&nbsp;0. The nine-check count describes this recording only.
+    Transcript abbreviated; source: the original Ch11 reference, Feature&nbsp;1a.
+    <span class="apm-version">apm v0.23.1 &mdash; not rerun at 0.31.0</span>
   </figcaption>
   <pre><code class="language-text">$ apm audit --ci
   [!] Could not determine org from git remote; enforcement skipped (set policy.fetch_failure_default=block in apm.yml to fail closed)
@@ -573,18 +778,17 @@ jobs:
   [*] All 9 check(s) passed          # exit 0 -- 8 baseline checks + drift</code></pre>
 </figure>
 <p>
-  Now the case that makes the required check <em>authoritative</em>: a <code>block</code> policy
+  The historical negative case used a <code>block</code> policy
   (<code>enforcement: block</code>, <code>require_pinned_constraint: true</code>) against an
   <strong>unpinned direct dependency</strong> on a bare <code>#main</code> branch. The
   <code>dependency-pinned-constraint</code> check fails and the gate exits&nbsp;<code>1</code> &mdash; a
-  required PR check would block the merge, and no local <code>--no-policy</code> can rescue it in CI:
+  correctly protected required check would reject that result:
 </p>
-<figure class="code-example">
+<figure class="code-example" id="ch11-direct-historical">
   <figcaption>
-    <code>apm audit --ci --policy ./pol-block.yml</code> when a direct dependency tracks a bare branch
-    &mdash; the check fails, exit&nbsp;1. Runs offline against a local project + policy file. Transcript
-    abbreviated for space.
-    <span class="apm-version">apm v0.23.1</span>
+    Historical explicit-policy audit of a bare-branch direct dependency: exit&nbsp;1 on warmed
+    local state. Source: original Ch11 reference, Feature&nbsp;1b. Transcript abbreviated.
+    <span class="apm-version">apm v0.23.1 &mdash; not rerun at 0.31.0</span>
   </figcaption>
   <pre><code class="language-text">$ apm audit --ci --policy ./pol-block.yml   # enforcement: block, require_pinned_constraint: true
   [>] Replaying install (cache-only)... [+] No drift detected
@@ -596,15 +800,16 @@ jobs:
   [x] 1 of 18 check(s) failed          # exit 1 -- the required check blocks the PR</code></pre>
 </figure>
 <p>
-  The same block policy against a <em>pinned</em> direct dep &mdash; even one that pulls an unpinned
-  <em>transitive</em> &mdash; passes, because <code>require_pinned_constraint</code> is direct-only. Note
-  the higher check count: with no failure, fail-fast never trips, so every check is enumerated:
+  The same historical policy passed with a pinned direct dependency and an unpinned transitive
+  declaration. Its higher count reflects enumeration without the earlier fail-fast stop,
+  not a fixed current schema. The separate 0.31.0
+  <a href="#ch11-audit-coverage">coverage limits</a> still apply.
 </p>
-<figure class="code-example">
+<figure class="code-example" id="ch11-transitive-historical">
   <figcaption>
-    Same policy, but the direct dep is pinned (<code>#v1.0.0</code>) &mdash; the unpinned transitive does
-    not trip the direct-only rule; all checks pass, exit&nbsp;0. Runs offline.
-    <span class="apm-version">apm v0.23.1</span>
+    Historical direct-only control: exit&nbsp;0. Source: original Ch11 reference, Feature&nbsp;1
+    empirical nuance; warmed state, not a cold offline promise.
+    <span class="apm-version">apm v0.23.1 &mdash; not rerun at 0.31.0</span>
   </figcaption>
   <pre><code class="language-text">$ apm audit --ci --policy ./pol-block.yml   # DIRECT dep pinned to #v1.0.0; a transitive dep is unpinned
   │ [+] │ dependency-pinned-constraint │ All dependencies use pinned constraints │
@@ -612,28 +817,29 @@ jobs:
   [*] All 29 check(s) passed          # exit 0 -- direct-only rule; count higher because nothing fails
                                       #          (fail-fast never trips; use --no-fail-fast for a full report)</code></pre>
 </figure>
+</details>
 
 <h3>Move 2 &mdash; make it required in CI (SKIPPED-needs-network)</h3>
 <p>
-  Meridian stands the verified gate up on every PR in all three product groups with
-  <code>microsoft/apm-action</code>, then makes the job a <strong>required status check</strong> via GitHub
-  Rulesets so a violating PR cannot merge. The workflow is the one shown earlier
-  (<code>backend/examples/ch11/workflows/apm-audit.yml</code>); the SARIF variant surfaces each finding on
-  the PR diff. Both are documented, not run &mdash; but the <code>apm audit --ci</code> they invoke is the
-  command proven in Move&nbsp;1.
+  Meridian starts with the <a href="#ch11-ci-current">current pinned integrity sketch</a>, then
+  configures its reviewed policy source and makes the job a <strong>required status check</strong>
+  across all three product groups. Workflow ownership, runner environment and ruleset bypass
+  permissions are part of that change. A local audit proves CLI behavior, not required-check
+  enforcement or SARIF delivery; those need an authorized GitHub runner and repository settings.
 </p>
 
 <h3>Move 3 &mdash; route traffic through the approved proxy (SKIPPED-needs-network)</h3>
 <p>
   Meridian&rsquo;s security org already mandates Artifactory for npm and PyPI, so APM joins the same
   operating model. The platform team pins these environment variables in CI secrets and the shared dev
-  container &mdash; <em>not</em> in <code>apm config</code> &mdash; so the whole fleet resolves identically:
+  container &mdash; <em>not</em> in <code>apm config</code> &mdash; for consistent covered acquisition paths:
 </p>
-<figure class="code-example">
+<figure class="code-example" id="ch11-proxy-current">
   <figcaption>
-    Routing APM dependency traffic through the approved registry proxy. These are environment variables,
-    not <code>apm config</code> keys. Needs an Artifactory / private host to run.
-    <span class="needs-network">needs network</span><span class="apm-version">apm v0.23.1</span>
+    Current source-grounded routing sketch, not a refreshed infrastructure test.
+    <strong>SKIPPED-needs-network</strong>: the fictional Artifactory/private proxy and credentials
+    are unavailable. Evidence: producer reference &sect;10 and the pinned proxy guide.
+    <span class="needs-network">needs corporate proxy</span><span class="apm-version">target apm v0.31.0</span>
   </figcaption>
   <pre><code class="language-bash"># SKIPPED-needs-network: pin in CI secrets / dev-container env, not `apm config`.
 export HTTPS_PROXY="http://proxy.meridian.example:8080"
@@ -641,37 +847,50 @@ export PROXY_REGISTRY_URL="https://artifactory.meridian.example/artifactory/gith
 export PROXY_REGISTRY_TOKEN="$ARTIFACTORY_TOKEN"   # bearer token; independent of GITHUB_APM_PAT
 export PROXY_REGISTRY_ONLY=1                        # refuse direct github.com fallback (mandatory + auditable)
 
-apm install                                        # every archive fetched via the mirror;
-                                                   # content_hash from apm.lock.yaml still verified (Ch6)</code></pre>
+apm install                                        # covered archive path only;
+                                                   # separately review the lock and audit deployed content</code></pre>
 </figure>
+<p id="ch11-offline-boundary">
+  For an offline handoff, use a <em>real</em> bundle, not the historical
+  <a href="becoming-a-producer.html">Chapter&nbsp;10</a> manifest-only output.
+  The current <code>producer/local-bundle</code> fixture adds <code>dependencies: {}</code>;
+  its default-format ZIP actually installed and audited with exit <code>0</code> using explicit
+  <code>--target copilot,claude,cursor</code>. Omitting that install flag selected only Copilot
+  in the probe despite the consumer&rsquo;s three-target manifest. This is a
+  <strong>one-shot deployment</strong>: the lock records local deployed ownership, not a replayable
+  archive dependency in <code>apm.yml</code>. Retain the artifact for reinstall
+  (producer reference &sect;3;
+  <a href="https://github.com/microsoft/apm/blob/8fd10ac5eafee7ca77d41cc34ba139d812fdacd5/docs/src/content/docs/producer/pack-a-bundle.md" rel="noreferrer">bundle contract</a>).
+</p>
 <p>
-  A fully air-gapped group would instead receive a pre-built bundle: <code>apm pack</code> on a connected
-  host (<a href="becoming-a-producer.html">Chapter&nbsp;10</a>), restored offline. Either way, integrity is
-  anchored to the lockfile&rsquo;s <code>content_hash</code>, so the mirror is a routing and audit
-  convenience, never a new trust anchor.
+  Provision the bundle, CLI and required policy inputs before disconnecting. The Action&rsquo;s
+  <code>offline</code> input only forwards to pack&rsquo;s marketplace resolution; it does not make
+  earlier CLI acquisition or installation air-gapped. Nor does an offline handoff make cold audit
+  hydration or remote policy fetching unnecessary in every project.
 </p>
 
 <h3>Move 4 &mdash; publish and own the org baseline (SKIPPED-needs-network)</h3>
 <p>
   Finally the platform team lands the org <code>apm-policy.yml</code> in <code>meridian-finance/.github</code>,
-  behind branch protection. This is the <a href="governance-and-policy.html">Chapter&nbsp;9</a> schema,
-  relocated and set to fail closed; the three product-group repos <em>consume</em> it from their git remote.
-  Authoring and testing happen locally; the org-remote discovery and tighten-only <code>extends:</code>
-  merge that make it fleet-wide need infrastructure, so they are <code>SKIPPED-needs-network</code>:
+  behind branch protection. This keeps the <a href="governance-and-policy.html">Chapter&nbsp;9</a>
+  ownership beat: product-group repos consume a reviewed authority. Local inheritance can be
+  rehearsed without infrastructure; publishing that authority and verifying private-host discovery
+  remain <code>SKIPPED-needs-network</code>.
 </p>
-<figure class="code-example">
+<figure class="code-example" id="ch11-org-policy-current">
   <figcaption>
-    <code>meridian-finance/.github/apm-policy.yml</code> &mdash; the fleet baseline, owned behind CODEOWNERS +
-    branch protection; consuming repos only consume it. Org-remote discovery + <code>extends:</code> merge
-    need infrastructure. <span class="needs-network">needs network</span><span class="apm-version">apm v0.23.1</span>
+    Meridian&rsquo;s fleet baseline, retained as a current source-grounded sketch using the
+    operations schema fixture&rsquo;s keys. <strong>SKIPPED-needs-network</strong>: no policy was
+    published to the fictional organization, and no private discovery/permission chain was run.
+    <span class="needs-network">needs org repository access</span><span class="apm-version">target apm v0.31.0</span>
   </figcaption>
-  <pre><code class="language-yaml"># meridian-finance/.github/apm-policy.yml   -- SKIPPED-needs-network (org-remote discovery + extends: merge)
+  <pre><code class="language-yaml"># meridian-finance/.github/apm-policy.yml -- SKIPPED-needs-network (publication/discovery)
 name: meridian-org-baseline
 version: "1.0.0"
 enforcement: block               # past the pilot: fail closed on violations
-fetch_failure: block             # if the policy can't be fetched, fail closed (do not fail-open)
+fetch_failure: block             # remote posture; does NOT secure an unread first fetch
 dependencies:
-  require_pinned_constraint: true   # fires on a bare-branch DIRECT dep (Move 1) -- direct-only
+  require_pinned_constraint: true   # bounded DIRECT declarations, not all transitive constraints
   allow:                            # only these sources (deny still wins)
     - meridian-finance/**
     - microsoft/**
@@ -681,6 +900,45 @@ dependencies:
 compilation:
   target:
     allow: [copilot, claude, cursor]   # target rules live HERE, not a top-level `targets:` (Ch9)</code></pre>
+</figure>
+<p>
+  Keep <code>compilation.target.allow</code>, not a top-level <code>targets</code> policy key:
+  unknown top-level keys now warn; malformed known types are rejected by the parser.
+  Do not use target rules alone to demonstrate blocking: the 0.31.0 plural-only target audit
+  control passed where the singular-target control failed
+  (<code>policy-target-plural-audit</code>/<code>policy-target-singular-audit</code>,
+  operations reference OP09.1).
+</p>
+<figure class="code-example" id="ch11-consumer-policy">
+  <figcaption>
+    Add this policy-resolution posture to each consuming <code>apm.yml</code>, separately from the
+    remote policy. Observed missing-org install/audit exits <code>1/1</code>:
+    <code>policy-no-remote-failclosed-install</code>/<code>policy-no-remote-failclosed-audit</code>;
+    hash-mismatch audit exit <code>1</code>: <code>policy-pin-nonempty-mismatch-failclosed</code>.
+    Operations reference OP09.3; local/loopback evidence, not live org discovery.
+    <span class="apm-version">apm v0.31.0 &mdash; observed configuration</span>
+  </figcaption>
+  <pre><code class="language-yaml"># apm.yml (consumer excerpt)
+policy:
+  fetch_failure_default: block</code></pre>
+</figure>
+<p>
+  Rehearse effective policy in a materialized disposable copy of
+  <code>backend/examples/updates/1.2/operations/policy</code>. Its child tries
+  <code>enforcement: warn</code> and empty deny/require lists; its parent requires a deliberately
+  absent package. Resolving that local chain succeeds, but auditing it must still block:
+</p>
+<figure class="code-example" id="ch11-local-policy">
+  <figcaption>
+    Local authority rehearsal after the fixture&rsquo;s frozen materialization.
+    Operations runner records <code>local-parent-merged</code> (exit <code>0</code>) and
+    <code>child-cannot-clear-parent</code> (expected exit <code>1</code>); primary evidence:
+    <code>policy-local-inheritance-status</code>/<code>policy-local-inheritance-audit</code>.
+    These are recorded CLI observations, not an organization deployment.
+    <span class="apm-version">apm v0.31.0</span>
+  </figcaption>
+  <pre><code class="language-powershell">&amp; $Apm policy status --policy-source ./apm-policy.child.yml --json --check
+&amp; $Apm audit --ci --policy ./apm-policy.child.yml -f json</code></pre>
 </figure>
 <p>
   With the baseline in <code>warn</code> first, Meridian watches Code Scanning across the three groups for
@@ -703,17 +961,18 @@ compilation:
   <li>
     <strong>The fleet gate is <code>apm audit --ci</code>.</strong> The same integrity gate
     (<a href="lifecycle.html">Chapter&nbsp;7</a>) and policy gate
-    (<a href="governance-and-policy.html">Chapter&nbsp;9</a>), re-run in CI as defence in depth: eight
-    baseline checks + drift (+ discovered policy), exit&nbsp;<code>0</code>/<code>1</code>. Made required
-    and unbypassable via GitHub Rulesets &mdash; local <code>--no-policy</code> does not work in CI. Stand
-    it up with <code>microsoft/apm-action@v1</code>; it is vendor-neutral.
+    (<a href="governance-and-policy.html">Chapter&nbsp;9</a>), operated as defence in depth.
+    Protect the command, policy authority, environment and ruleset permissions; <code>--ci</code>
+    does not neutralize bypasses. Cold scratch replay can fetch locked content and fails when that
+    hydration cannot complete. Pin the Action and CLI independently.
   </li>
   <li>
-    <strong>Registry strategy is environment-variable driven.</strong> <code>HTTPS_PROXY</code> +
+    <strong>Proxy routing is environment-variable driven.</strong> <code>HTTPS_PROXY</code> +
     <code>PROXY_REGISTRY_URL</code> + <code>PROXY_REGISTRY_ONLY=1</code> route and mirror traffic;
-    <code>apm pack</code> serves air-gapped networks. Integrity stays anchored to the lockfile
-    <code>content_hash</code> (<span class="property property--reproducibility">Reproducibility</span>),
-    not the proxy &mdash; the proxy is never the trust anchor.
+    reviewed bundles support offline handoffs with one-shot deployment limits. Recorded hashes and
+    ownership support <span class="property property--reproducibility">Reproducibility</span>;
+    the proxy is neither a publisher signature nor a dedicated registry. Experimental registry
+    implementation exists; a public hosted hub is not established by this evidence.
   </li>
   <li>
     <strong>Adoption is change management.</strong> Discover &rarr; Pilot &rarr; Harden &rarr; Scale &rarr;
@@ -722,10 +981,11 @@ compilation:
     vanity metric. Carrot before stick; a named on-call, never &ldquo;the platform team.&rdquo;
   </li>
   <li>
-    <strong>Mind the preview edges at <span class="apm-version">apm v0.23.1</span>.</strong>
-    <code>require_pinned_constraint</code> is direct-only; the baseline is stable and unbypassable but
-    <code>--policy</code> is experimental; the proxy knobs are env-vars, not <code>apm config</code>; and
-    never claim a locally-run Action result.
+    <strong>Mind the measured limits at <span class="apm-version">apm v0.31.0</span>.</strong>
+    Pin constraints are direct-scoped; consumer fail-closed posture protects first policy resolution,
+    not an environment-disabled gate. A green audit is not complete native MCP/runtime coverage.
+    gh-aw imports isolated context, and the legacy Copilot pack&rsquo;s shared-skill omission remains
+    a real bug &mdash; the successful instruction control is not blanket compatibility.
   </li>
 </ul>
 <h3>Next</h3>
@@ -734,6 +994,6 @@ compilation:
   context across a fleet &mdash; the full arc from one repo to an organization.
   <a href="the-landscape-and-whats-next.html">Chapter&nbsp;12 &mdash; The Landscape &amp; What&rsquo;s
   Next</a> steps back to place APM among the standards it builds on (AGENTS.md, Agent Skills, MCP, OpenAPM
-  v0.1) and the roadmap ahead &mdash; including the dedicated registry API this chapter flagged as
-  experimental &mdash; so you can decide what to adopt, watch, or build around.
+  v0.1) and the roadmap ahead &mdash; distinguishing shipped experimental registry support from
+  draft normative commitments &mdash; so you can decide what to adopt, watch, or build around.
 </p>

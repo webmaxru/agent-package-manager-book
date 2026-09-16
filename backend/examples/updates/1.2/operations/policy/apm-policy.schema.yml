@@ -1,0 +1,35 @@
+# Valid 0.31.0 schema axes used by the Chapters 6-9 reference probes.
+name: Operations schema reference
+version: "1"
+enforcement: warn
+fetch_failure: block
+cache:
+  ttl: 120
+dependencies:
+  allow: null
+  deny: []
+  require: []
+  require_resolution: project-wins
+  max_depth: 5
+  require_pinned_constraint: true
+mcp:
+  allow: null
+  deny: []
+  transport:
+    allow: [stdio, http]
+  self_defined: warn
+  trust_transitive: false
+compilation:
+  target:
+    allow: [copilot, claude, cursor]
+  source_attribution: false
+manifest:
+  required_fields: [name, version, description]
+  scripts: allow
+  require_explicit_includes: false
+unmanaged_files:
+  action: ignore
+  directories: []
+  exclude: []
+executables:
+  deny_all: false

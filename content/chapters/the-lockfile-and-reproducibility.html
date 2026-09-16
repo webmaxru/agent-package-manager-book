@@ -2,397 +2,484 @@
   Chapter 6 - The Lockfile & Reproducibility (authored content fragment).
   Injected by site/generate.py into site/chapters/the-lockfile-and-reproducibility.html
   at each slot marker below. No page chrome, no h1/h2 (the shell renders those).
-  APM CLI referenced: v0.23.1. Ground truth: apm-cli-explorer verification of the
-  Meridian v0.2.0 lockfile (resolved_ref/resolved_commit/content_hash; --frozen as a
-  STRUCTURAL presence gate; apm lock resolution-only; apm find provenance; byte-stable
-  restore), 2026-07-02.
-  CI-break framing: --frozen fails on a manifest<->lockfile MISMATCH (a dependency
-  declared in apm.yml but missing from apm.lock.yaml), NOT on a moved ref. Changing
-  #v1.0.0 -> #main at the same commit PASSES; adding an already-locked repo PASSES.
-  --frozen is presence/structure only; on-disk content integrity is `apm audit`.
+  Historical baseline: APM 0.23.1 / book 1.1. The retained Meridian find snapshot
+  comes from content/research/06-the-lockfile-and-reproducibility-reference.md,
+  2026-07-02; its code and version stamp are not current execution evidence.
+  Edition 1.2 target: exactly APM 0.31.0, source commit
+  8fd10ac5eafee7ca77d41cc34ba139d812fdacd5.
+  Current evidence: content/research/updates/1.2/operations-reference.md OP06,
+  core-reference.md, theory.md, ch05-verification.md, and producer-reference.md
+  (SBOM export only). No CLI commands were executed during chapter authoring.
+  Current "observed" captions refer to recorded explorer executions, not a new
+  code-verifier verdict on this chapter.
+
+  Verifier aliases: RunRoot = orchestrator session files/book-v1.2;
+  OpsRoot = RunRoot/operations-probes; VerifyRoot = RunRoot/verify-ch05.
+  Prepared executable: RunRoot/apm-native/unpacked/apm-windows-x86_64/apm.exe
+  SHA-256: 0712ec0bab35fbc5ed995641097878641e8ebfa6c6576c64cde0aedba5c095c2.
+  Displayed apm commands abbreviate that absolute executable, never a moving PATH CLI.
+  Use fresh short normal-CWD copies with isolated home/cache, not the book checkout.
+  Probe IDs below map to OpsRoot/logs/<id>.json and .txt unless otherwise stated.
+  Repro = backend/examples/updates/1.2/operations/repro.
+  Real locks stay unedited; chapter lock excerpts are NOT restore inputs.
   Cite official docs, not source-docs.
 -->
 
 <!-- SLOT: objective -->
 <p>
-  After this chapter you can read <code>apm.lock.yaml</code> and say exactly what it guarantees &mdash;
-  the three levels of identity it records (<code>resolved_ref</code> &rarr; <code>resolved_commit</code>
-  &rarr; <code>content_hash</code>), why bare <code>apm install</code> reproduces the same bytes instead
-  of chasing whatever <code>main</code> points at today, and how to turn that guarantee into a
-  fail-closed CI gate with <code>apm install --frozen</code>. You will also use <code>apm lock</code> to
-  write the contract <em>without</em> deploying, and <code>apm find</code> to trace any deployed file
-  back to the package that produced it. <a href="install-and-restore.html">Chapter 5</a> made the
-  lockfile appear as a by-product; here it becomes the subject &mdash; the moment
-  <span class="property property--reproducibility">Reproducibility</span> stops being a promise and
-  becomes a mechanism.
+  After this chapter you can read the source identities, hashes, and deployment ownership in
+  <code>apm.lock.yaml</code>, compare a restored setup with its recorded state, distinguish
+  <code>apm install --frozen</code>'s limited structural checks from content audit, and use
+  <code>apm lock</code> and <code>apm find</code> to separate resolution from deployment and trace
+  a tracked file's origin.
+</p>
+<p>
+  <strong>Edition 1.2 &mdash; inspected CLI: APM 0.31.0.</strong>
+  <a href="install-and-restore.html">Chapter 5</a> made the lockfile appear as a by-product; here it
+  becomes the subject &mdash; <span class="property property--reproducibility">Reproducibility</span>
+  made mechanical. Current examples use small recorded fixtures; the explicitly historical
+  v0.23.1 snapshot keeps its original evidence boundary.
 </p>
 
 <!-- SLOT: concept-theory -->
 <h3>A manifest resolves; a lockfile freezes</h3>
 <p>
-  Every install in <a href="install-and-restore.html">Chapter 5</a> quietly wrote
-  <code>apm.lock.yaml</code>, and you were told to notice two fields inside it &mdash;
-  <code>resolved_commit</code> and <code>content_hash</code> &mdash; without yet studying them. This is
-  the chapter that opens that file up, because it answers the question Chapter 5 deliberately deferred:
-  <em>why does re-running <code>apm install</code> reproduce the same bytes instead of fetching whatever
-  is newest?</em>
+  The package installs in <a href="install-and-restore.html">Chapter 5</a> wrote
+  <code>apm.lock.yaml</code>. You noticed <code>resolved_commit</code> and <code>content_hash</code>
+  in the Git example without yet studying them. Now ask the lockfile question familiar from npm,
+  pip, or Cargo: <em>how does another checkout reproduce a reviewed result rather than resolve
+  whatever is newest?</em>
 </p>
 <p>
   The answer is a distinction. A <strong>manifest declares intent</strong>, and intent is often a moving
   target: a dependency's ref can be a branch (<code>main</code>), a tag (<code>v1.2.0</code>), a commit
-  SHA, or a semver range (<code>^1.2.0</code>). A branch pointer moves with every upstream push; a range
-  admits whatever tag is newest the moment you run install. So two developers installing the
-  <em>same</em> <code>apm.yml</code> a week apart &mdash; or a laptop and a CI runner installing it the
-  same minute &mdash; can resolve <em>different</em> bytes. That is the agent-context version of
-  &ldquo;works on my machine.&rdquo;
+  SHA, or a semver range (<code>^1.2.0</code>). A branch can move; a range can admit a newer matching
+  tag. Two <strong>fresh resolutions without the same lock</strong> can therefore select different
+  content from the same manifest. That is the agent-context version of &ldquo;works on my machine.&rdquo;
 </p>
 <p>
-  The <strong>lockfile records the resolution</strong>: the exact commit each declared dependency
-  resolved to, for the whole transitive graph, plus a content fingerprint of the bytes that landed.
-  Where the manifest says &ldquo;give me something matching this,&rdquo; the lockfile says &ldquo;here is
-  exactly what you got.&rdquo; Its very first job, per the spec, is reproducibility: &ldquo;<code>apm
-  install --frozen</code> reinstalls the exact commits recorded here &mdash; no resolution, no network
-  drift&rdquo;
-  (<a href="https://microsoft.github.io/apm/reference/lockfile-spec/" rel="noreferrer">Lockfile
-  specification</a>). Subsequent installs <em>replay</em> the lockfile rather than re-resolving &mdash;
-  which is why restore is deterministic, and why the manifest, not the lockfile, is the thing you edit by
-  hand.
+  The <strong>lockfile records the resolution and deployment ownership</strong>. For unchanged Git
+  declarations, install reuses the recorded graph, including transitive commits and manifests.
+  Upstream changes do not silently become new inputs to that replay. Ordinary install can instead
+  <em>reconcile</em> edited declarations or local sources; a missing lock permits fresh resolution.
+  Keep the manifest, lock, local sources, targets, and CLI version together when comparing results
+  (<a href="https://github.com/microsoft/apm/blob/8fd10ac5eafee7ca77d41cc34ba139d812fdacd5/docs/src/content/docs/reference/lockfile-spec.md" rel="noreferrer">0.31.0 lockfile and replay contract</a>).
 </p>
 
-<h4>Three levels of identity</h4>
+<h4 id="ch6-identity">Three questions, source-specific answers</h4>
 <p>
-  The heart of the chapter is that each lockfile entry pins identity at <strong>three</strong> levels,
-  and keeping them straight is what makes &ldquo;the same skill&rdquo; a falsifiable claim rather than a
-  hope:
+  Separate <em>what you requested</em>, <em>what was selected</em>, and <em>how content is checked</em>.
+  For Git, <code>resolved_ref</code> &rarr; <code>resolved_commit</code> &rarr;
+  <code>content_hash</code> illustrates those questions. It is <strong>not a universal field set</strong>:
 </p>
 <table>
   <caption>
-    The three identity levels every lockfile entry records, from intent to bytes. Field definitions from
-    the <a href="https://microsoft.github.io/apm/reference/lockfile-spec/" rel="noreferrer">Lockfile
-    specification</a>.
+    Source identity in real 0.31.0 fixtures, not a synthetic combined lock schema.
   </caption>
   <thead>
     <tr>
-      <th scope="col">Level</th>
-      <th scope="col">Field</th>
-      <th scope="col">The question it answers</th>
+      <th scope="col">Source and example</th>
+      <th scope="col">Recorded selection</th>
+      <th scope="col">Integrity boundary</th>
     </tr>
   </thead>
   <tbody>
     <tr>
-      <td>Intent</td>
-      <td><code>resolved_ref</code></td>
-      <td><em>What did you ask for?</em> &mdash; the ref from <code>apm.yml</code> (<code>v1.0.0</code>, <code>main</code>, a SHA)</td>
+      <td>Git &mdash; <a href="install-and-restore.html#ch5-current-lock">Chapter 5's pinned public skill</a></td>
+      <td>Repository, host, <code>virtual_path</code>, full <code>resolved_commit</code>, and
+        <code>resolved_ref</code>; here both ref and commit are <code>fb285168&hellip;</code>.</td>
+      <td>Package-tree <code>content_hash</code> plus hashes for deployed files.</td>
     </tr>
     <tr>
-      <td>Resolution</td>
-      <td><code>resolved_commit</code></td>
-      <td><em>What did it resolve to?</em> &mdash; the exact 40-char commit SHA. <strong>The pin.</strong></td>
+      <td>Local path &mdash; <code>operations/repro</code></td>
+      <td><code>repo_url: _local/package</code>, <code>source: local</code>,
+        <code>local_path: ./package</code>.</td>
+      <td>This emitted entry has deployed hashes, no Git ref/commit or package-tree hash.
+        Its source directory must travel with the project; a path is not a version pin.</td>
     </tr>
     <tr>
-      <td>Content</td>
-      <td><code>content_hash</code></td>
-      <td><em>What are the bytes, exactly?</em> &mdash; a SHA-256 fingerprint of the source tree</td>
+      <td>Experimental registry &mdash; <code>operations/registry</code>'s <code>operations/exact</code></td>
+      <td><code>source: registry</code>, exact version/ref <code>1.0.0</code>,
+        archive <code>resolved_url</code> and <code>resolved_hash</code>; no Git commit.</td>
+      <td><code>resolved_hash</code> fingerprints the archive; package-tree and deployed hashes
+        describe different content. This fixture used an anonymous loopback server, not a public hub.</td>
     </tr>
   </tbody>
 </table>
 <p>
-  A commit SHA answers <em>where</em> the content came from; a content hash answers <em>what the content
-  is</em>. Agent context is executable &mdash; a prompt is a program for a model &mdash; so &ldquo;the
-  same review prompt&rdquo; has to mean the same <em>characters</em>, not merely the same source pointer.
-  That is why the lockfile records both the pin <em>and</em> the hash: &ldquo;<code>content_hash</code>
-  &mdash; SHA-256 of the package file tree &mdash; makes &lsquo;same install on every clone&rsquo; mean
-  byte-for-byte the same&rdquo;
-  (<a href="https://microsoft.github.io/apm/concepts/the-three-promises/" rel="noreferrer">The three
-  promises</a>). The hash is also the layer that
-  <span class="property property--security">Security</span> and provenance rest on: if the recorded hash
-  and the on-disk bytes ever diverge, something changed &mdash; full stop.
+  A source coordinate answers <em>where</em>; a hash answers <em>which content</em>.
+  Neither authenticates a publisher or proves a prompt benign.
+  <code>name</code> and ordinary Git/local <code>version</code> are self-asserted inventory metadata.
+  The pinned skill's <code>version: unknown</code> does not weaken its immutable Git commit; registry
+  and Git-semver versions have separate resolution roles
+  (<a href="https://github.com/microsoft/apm/blob/8fd10ac5eafee7ca77d41cc34ba139d812fdacd5/docs/src/content/docs/reference/lockfile-spec.md#per-entry-fields" rel="noreferrer">identity and metadata fields</a>).
 </p>
 
 <h4>The hash follows the bytes, not the ref</h4>
 <p>
-  Pinning is by <em>commit</em>; integrity is by <em>content</em> &mdash; and the two can move
-  independently. Meridian's one transitive dependency makes this concrete. In
-  <a href="install-and-restore.html">Chapter 5</a> the direct dependency was pinned
-  (<code>microsoft/apm-sample-package#v1.0.0</code>), but it pulled in a skill from
-  <code>github/awesome-copilot</code> that resolved <strong>unpinned</strong> &mdash; APM even warned
-  <code>[!] 1 dependency unpinned</code>. Because <code>#main</code> floats, its
-  <code>resolved_commit</code> moved between sessions (from <code>a4aebcd4&hellip;</code> in Chapter 5 to
-  <code>3169734b&hellip;</code> here). Yet its <code>content_hash</code> stayed
-  <strong>byte-identical</strong> (<code>sha256:9236d06a&hellip;</code>): the ref floated onto a new
-  commit whose bytes were the same, so the fingerprint did not budge. That is content-addressing &mdash;
-  and it is also the warning behind the unpinned notice. Pinning freezes the <em>commit</em>; if you want
-  the commit frozen too, pin the ref. Deliberately moving to a newer commit is the drift door
-  <a href="lifecycle.html">Chapter 7</a> opens with <code>apm update</code>.
+  The historical <strong>v0.23.1</strong> Meridian captures make this distinction concrete:
+  separate resolutions selected transitive commits <code>a4aebcd4&hellip;</code> and
+  <code>3169734b&hellip;</code>, yet the selected skill's tree hash stayed
+  <code>sha256:9236d06a&hellip;</code>. These were <em>not</em> two replays of one unchanged lock.
+  The manifest's transitive edge floated; each generated lock still pinned its selected commit.
+  The risk is the next fresh resolution, not an upstream branch overriding an existing pin.
+</p>
+<ul>
+  <li>
+    <strong>Package-tree <code>content_hash</code>:</strong> sorted relative paths and actual
+    materialized file bytes. GitCache-backed subpath checkouts set <code>core.autocrlf=false</code>,
+    but that does not override every <code>.gitattributes</code> or <code>core.eol</code> rule, or
+    rewrite CRLF committed in source.
+  </li>
+  <li>
+    <strong>Deployed-file hashes:</strong> UTF-8 text normalizes CRLF to LF; binary content is hashed
+    raw. Changing only line endings can therefore change disk bytes without changing the canonical
+    deployed-text hash. Copilot, Claude, and Cursor projections can legitimately have different
+    frontmatter and different hashes.
+  </li>
+</ul>
+<p>
+  The 0.31.0 instruction probe changed all six deployed files to CRLF: CI audit exited
+  <code>0</code>, with the lock unchanged. That proves the deployed-text normalization boundary,
+  not universal cross-platform package-tree or cross-harness byte equality
+  (<a href="https://github.com/microsoft/apm/blob/8fd10ac5eafee7ca77d41cc34ba139d812fdacd5/docs/src/content/docs/reference/lockfile-spec.md#per-entry-fields" rel="noreferrer">hash definitions</a>).
 </p>
 
 <h4>Generated, never hand-edited</h4>
 <p>
-  <code>apm.lock.yaml</code> is a <strong>build product of resolution</strong>, not an authored file. You
-  edit <code>apm.yml</code>; APM writes the lockfile. That one rule is what keeps it trustworthy: its
-  entire value is that it is a faithful, mechanical record of what resolution produced, so the review
-  story lives in the <em>diff</em>. Change the manifest, regenerate, and the lockfile diff shows exactly
-  which commits and hashes moved as a consequence &mdash; a dependency change you review like any other.
-  And reproducibility is not staleness: the lockfile guarantees the <em>same</em> bytes on replay;
-  moving to <em>newer</em> bytes is a separate, consent-gated act (<code>apm update</code>,
-  <a href="lifecycle.html">Chapter 7</a>).
+  <code>apm.lock.yaml</code> is a <strong>generated record</strong>, not an authored file. You
+  edit <code>apm.yml</code>; APM writes the lockfile. The review story lives in the <em>diff</em>:
+  regenerate after an intended change, then review which identities, hashes, and ownership rows
+  moved. Generated does not mean authenticated &mdash; protect and review both files.
+  Reproducibility is not staleness, either: refreshing an unchanged declaration deliberately is
+  the <code>apm update</code> workflow in <a href="lifecycle.html">Chapter 7</a>.
 </p>
 
 <aside class="meridian-beat">
   <h3>Meridian</h3>
   <p>
-    <strong>Priya</strong> adds a new shared dependency to the checkout project &mdash; a branch-pinned
-    package &mdash; and pushes the branch. On her laptop everything works: <code>apm install</code>
+    <strong>Priya</strong> adds a new shared Git dependency to the checkout project &mdash; selected
+    by a branch ref and absent from the old graph &mdash; and pushes the branch. On her laptop
+    everything works: <code>apm install</code>
     resolved the package and updated <code>apm.lock.yaml</code> locally. But she commits only the
     <code>apm.yml</code> change and <em>forgets to commit the regenerated lockfile</em>. CI runs
     <code>apm install --frozen</code>, and the build <strong>fails</strong>: the manifest now names a
-    package the committed lockfile does not pin, so manifest and lockfile <em>disagree</em>.
-    Reproducibility caught the drift instead of shipping it. The fix is <em>not</em> to hand-patch the
+    Git package the committed lockfile does not pin, so this missing-dependency check catches the
+    disagreement. The fix is <em>not</em> to hand-patch the
     lockfile &mdash; Priya runs <code>apm install</code> to reconcile, <strong>reviews the lockfile diff
     in the pull request</strong> (the new package's <code>resolved_commit</code> and
-    <code>content_hash</code> appear), and commits it. <code>--frozen</code> passes again, and the team
+    <code>content_hash</code> appear), and commits it. The reviewed setup restores again, and the team
     adopts a rule: the lockfile is the reproducibility contract, reviewed and committed like the code it
     pins. Note what did <em>not</em> happen &mdash; no upstream ref &ldquo;moved&rdquo;; the break was a
-    manifest that had outrun its own committed lockfile. (Whether to take a <em>newer</em> version at all
-    is <a href="lifecycle.html">Chapter 7</a>.)
+    Git declaration that had outrun its own committed lockfile. This case does not make
+    <code>--frozen</code> a veto on <em>every</em> declaration change; its
+    <a href="#ch6-frozen-boundary">local-path exception</a> matters below. Whether to take a
+    <em>newer</em> version at all is <a href="lifecycle.html">Chapter 7</a>.
   </p>
 </aside>
 
 <!-- SLOT: in-apm -->
 <h3>Inside <code>apm.lock.yaml</code></h3>
 <p>
-  Here is the actual lockfile <code>apm install</code> wrote for Meridian v0.2.0, annotated field by
-  field. Read it top to bottom: a small header, then a flat <code>dependencies</code> list holding
-  <em>both</em> direct and transitive packages, then a block for your project's own materialized files.
-  Every dependency pins by <code>resolved_commit</code> and fingerprints by <code>content_hash</code>.
+  Read the file as a resolved inventory plus an ownership record, not just a list of versions.
+  The <a href="#ch6-current-setup">worked fixture</a> contains one local package and one workspace
+  instruction, each projected to Meridian's three targets. Its real lock makes the
+  <a href="#ch6-identity">local-versus-Git distinction</a> visible:
 </p>
-<figure class="code-example">
+<!--
+  ch6-current-lock: selected scalar fields and two complete Copilot deployment rows from
+  Repro/apm.lock.yaml. Other rows and compatible deployed-file maps are omitted, not replaced.
+  Sources: repro-install, repro-restore, repro-frozen, repro-audit-ci;
+  OpsRoot/fixture-lock-provenance.json. Complete generated lock SHA-256:
+  79fe2a70ae0c8b9987ddd0105d013c6593a6c3fd8135ae94601d4df58fd22772.
+  Hash normalization: hash-crlf-ci and assertions/hash-crlf-vs-raw.json.
+-->
+<figure class="code-example" id="ch6-current-lock">
   <figcaption>
-    The lockfile <code>apm install --target copilot,claude,cursor</code> generated for Meridian v0.2.0,
-    annotated. Repetitive path/hash lines are elided (<code>&hellip;</code>) for readability; every
-    distinct field is shown. Verified on <span class="apm-version">apm v0.23.1</span>.
+    Selected fields and two intact ownership rows from
+    <code>backend/examples/updates/1.2/operations/repro/apm.lock.yaml</code>.
+    Other rows and compatible file lists/hash maps are omitted. Use the complete fixture lock
+    for replay, <strong>never this excerpt</strong>.
+    <span class="apm-version">apm v0.31.0 &mdash; observed</span>
   </figcaption>
-  <pre><code class="language-yaml">lockfile_version: '1'                         # schema version of the lockfile FORMAT itself
-generated_at: '2026-07-02T00:53:23...+00:00'  # UTC time the RESOLVED CONTENT last changed; stable across restores
-apm_version: 0.23.1                           # the CLI that wrote this lock (provenance / debugging)
-dependencies:                                 # every resolved package: DIRECT and TRANSITIVE, one flat list
-- repo_url: microsoft/apm-sample-package      # the source repo (owner/repo shorthand)
-  name: apm-sample-package
-  host: github.com
-  resolved_ref: v1.0.0                        # INTENT: the ref you pinned in apm.yml
-  resolved_commit: fb2851683be0e0e7711421d518bd8dba23b0b1f6   # RESOLUTION: the exact 40-char SHA -- the pin
-  version: 1.0.0                              # the package's declared semver (from its own apm.yml)
-  package_type: apm_package                   # kind of package; drives how it deploys
-  deployed_files:                             # DEPLOYMENT RECORD: every file this package materialized
-  - .github/agents/design-reviewer.agent.md
-  - .github/instructions/design-standards.instructions.md
-  - .claude/agents/design-reviewer.md
-  - .cursor/agents/design-reviewer.md
-  - .agents/skills/style-checker/SKILL.md
-  # ... 11 more deployed paths across .claude/ .cursor/ .github/ ...
-  deployed_file_hashes:                       # CONTENT: SHA-256 of each deployed file -- what `apm audit` checks
-    .github/agents/design-reviewer.agent.md: sha256:616988766e...   # one source primitive ->
-    .claude/agents/design-reviewer.md:        sha256:616988766e...  #   identical bytes in every harness
-    .agents/skills/style-checker/SKILL.md:    sha256:1142700284...
-    # ... 11 more path -> sha256 entries ...
-  content_hash: sha256:744cca54cc8ff7ca90aa1dd621c2f98c6291cd793815afe8518001cc94b8aba9  # fingerprint of the SOURCE tree
-- repo_url: github/awesome-copilot            # the TRANSITIVE dep (pulled in by the package above)
-  name: awesome-copilot
-  host: github.com
-  resolved_commit: 3169734bc2fb25d5e092130fc93d24b0dee3ac3a   # FLOATS: unpinned #main -- do not treat as fixed
-  version: unknown                            # unpinned: no tag resolved (hence the [!] warning at install)
-  virtual_path: skills/review-and-refactor    # the sub-path carved from the monorepo (one primitive, not a whole pkg)
-  is_virtual: true                            # a "virtual" package: a slice of a repo
-  depth: 2                                     # 1 = direct from your apm.yml; 2 = transitive
-  resolved_by: microsoft/apm-sample-package    # PROVENANCE: the parent edge that introduced this dep
-  package_type: claude_skill
-  deployed_files:
-  - .agents/skills/review-and-refactor/SKILL.md
-  - .claude/skills/review-and-refactor/SKILL.md
-  content_hash: sha256:9236d06a1500089ddb46975b866e9a63478e502afe7095b1980c618678a7c7fe  # IDENTICAL to Ch5 though the commit moved
-local_deployed_files:                         # your project's OWN .apm/ sources, materialized (no dependency involved)
-- .github/instructions/meridian-checkout.instructions.md
-- .github/prompts/checkout-review.prompt.md
-- .claude/rules/meridian-checkout.md
-# ... 3 more local paths across .claude/ .cursor/ ...
-local_deployed_file_hashes:                   # SHA-256 of each local file (environment-specific: line endings)
-  .github/instructions/meridian-checkout.instructions.md: sha256:bf0a9567...
-  # ... 5 more local path -> sha256 entries ...</code></pre>
+  <pre><code class="language-yaml">lockfile_version: '1'
+apm_version: 0.31.0
+dependencies:
+- repo_url: _local/package
+  name: operations-library
+  version: 1.0.0
+  package_type: apm_package
+  source: local
+  local_path: ./package
+deployments:
+- kind: project-relative
+  target: copilot
+  value: .github/instructions/library.instructions.md
+  runtime: null
+  scope: project
+  owners:
+  - ./package
+  active_owner: ./package
+  content_hash: sha256:bbd17dce3e54d910f4ce715acc9af57e80a18a7ca766a810e454e755db56214c
+- kind: project-relative
+  target: copilot
+  value: .github/instructions/workspace.instructions.md
+  runtime: null
+  scope: project
+  owners:
+  - .
+  active_owner: .
+  content_hash: sha256:2399c0e96cf03bf9b386d6a1f00ae3afadee2b1d58c21f321765549e27e716b3</code></pre>
 </figure>
 <p>
-  A few things are worth naming. The <code>deployed_files</code> / <code>deployed_file_hashes</code> pair
-  is the <strong>deployment record</strong> &mdash; the map <code>apm audit</code> checks against disk;
-  notice the two <code>design-reviewer</code> entries share one hash (<code>616988766e&hellip;</code>),
-  proof that &ldquo;one source primitive &rarr; many harness files&rdquo; is still <em>one</em> set of
-  bytes. The transitive entry adds three provenance fields &mdash; <code>is_virtual</code> (a slice of a
-  repo, not a whole package), <code>depth</code> (<code>2</code> = transitive), and
-  <code>resolved_by</code> (the edge that pulled it in). The <code>local_deployed_*</code> block is your
-  own <code>.apm/</code> content; its hashes are environment-specific (line endings), so treat them as
-  local, not as a cross-machine assertion. And there is <em>no</em> <code>mcp:</code> section, because
-  this project declares <code>mcp: []</code> &mdash; how MCP servers appear in the lockfile is
-  <a href="security-by-default.html">Chapter 8</a>'s story, not something to infer here.
+  Each <code>deployments</code> row identifies a destination through <code>kind</code>,
+  <code>target</code>, <code>value</code>, <code>runtime</code>, and <code>scope</code>.
+  <code>owners</code> records its claimants, oldest to newest; <code>active_owner</code> names the
+  current one and must be a member of that list.
+  Here the dependency's ownership key is <code>./package</code>, while <code>.</code> owns the
+  workspace instruction. A row's <code>content_hash</code> describes that deployed content,
+  <em>not</em> the dependency's entire tree. Native-entry and directory rows need not carry a file hash
+  (<a href="https://github.com/microsoft/apm/blob/8fd10ac5eafee7ca77d41cc34ba139d812fdacd5/docs/src/content/docs/reference/lockfile-spec.md#canonical-deployment-rows" rel="noreferrer">canonical ownership rows</a>).
 </p>
 <p>
-  One field deserves a caveat: <code>generated_at</code> stamps &ldquo;the time the resolved content last
-  changed,&rdquo; <em>not</em> &ldquo;when you last ran install.&rdquo; It advances only when resolution
-  changes, and is preserved byte-for-byte across restores &mdash; which is exactly what makes restore
-  provably deterministic:
+  The compatible per-dependency <code>deployed_files</code> list and <code>deployed_file_hashes</code> map
+  remain in the full file. Root <code>.apm/</code> outputs also retain
+  <code>local_deployed_files</code>/<code>local_deployed_file_hashes</code>.
+  A larger Git graph adds <code>depth</code> and <code>resolved_by</code> for transitive provenance.
+  An MCP-only project can have an empty APM dependency list alongside <code>mcp_servers</code>,
+  <code>mcp_configs</code>, <code>mcp_target_servers</code>, and URI ownership rows.
+  Do not infer one dependency shape from another.
 </p>
-<figure class="code-example">
-  <figcaption>
-    Determinism: two consecutive bare <code>apm install</code> runs on the unchanged project leave the
-    lockfile byte-identical &mdash; <code>generated_at</code> does not even advance. Cache-served,
-    offline. <span class="apm-version">apm v0.23.1</span>
-  </figcaption>
-  <pre><code class="language-text">$ apm install ; apm install            # restore twice, no changes
-RUN1  generated_at: 2026-07-02T00:58:03...+00:00   sha=EAD3EE9B...747D
-RUN2  generated_at: 2026-07-02T00:58:03...+00:00   sha=EAD3EE9B...747D   # &lt;- identical
-BYTE_STABLE = True                     # generated_at frozen; file unchanged</code></pre>
-</figure>
 <p>
-  That is the headline made mechanical: <code>git clone</code> + <code>apm install</code> lays down the
-  same bytes on any machine, and re-running install is a byte-stable no-op. Reproducibility, proven each
-  time you restore.
+  <strong>New locks omit <code>generated_at</code>.</strong> A legacy timestamp was retained on an
+  unchanged restore, but it is not a change oracle. Git-semver locks still record
+  <code>constraint</code>, <code>resolved_tag</code>, and <code>resolved_at</code> under format
+  <code>'2'</code>; registry locks also use format <code>'2'</code>. Even <code>apm_version</code>
+  is optional: Chapter 5's root-local-only lock omitted it. Prove a no-op by comparing
+  <strong>complete lock bytes and expected outputs</strong>, as in the
+  <a href="#ch6-current-restore">current restore exercise</a>, not by watching a timestamp or
+  an installed-package counter.
 </p>
 
-<h4><code>apm install --frozen</code> &mdash; the fail-closed CI gate</h4>
+<h4 id="ch6-frozen-boundary"><code>apm install --frozen</code> &mdash; a limited structural gate</h4>
 <p>
-  Reproducibility is only <em>real</em> if something enforces it. A regular install is forgiving &mdash;
-  if <code>apm.yml</code> gained a dependency that is not locked yet, it will resolve and lock it for you.
-  That convenience is exactly wrong in CI, where a passing build must prove that <em>what is committed</em>
-  is internally consistent. <code>apm install --frozen</code> makes the lockfile a
-  <strong>contract</strong>: it &ldquo;mirrors <code>npm ci</code>&rdquo; and refuses to install when the
-  lockfile is missing or has drifted from the manifest
-  (<a href="https://microsoft.github.io/apm/reference/cli/install/" rel="noreferrer">apm install</a>).
-  Critically, it is a <strong>structural presence check</strong>, not a byte comparator. On an in-sync
-  project it behaves like a normal restore and ends with a tell that names its own boundary:
+  CI should not silently invent an unreviewed dependency resolution. Frozen install requires an
+  existing lock and checks structural conditions, including missing direct Git dependencies and
+  declared MCP configuration. But <strong>it is not a universal declaration-change veto</strong>.
+  The independent <a href="install-and-restore.html#ch5-frozen-boundary">Chapter 5 check</a>
+  added a <em>new local path declaration</em> while retaining the old lock: frozen install exited
+  <code>0</code>, deployed the new skill, and rewrote that lock. The direct-dependency presence
+  checker skips local paths
+  (<a href="https://github.com/microsoft/apm/blob/8fd10ac5eafee7ca77d41cc34ba139d812fdacd5/src/apm_cli/install/plan.py#L453-L487" rel="noreferrer">0.31.0 structural check</a>).
 </p>
-<figure class="code-example">
-  <figcaption>
-    <code>apm install --frozen</code> on the in-sync project: a normal restore that ends with the
-    <code>--frozen</code> tell &mdash; it verified <em>presence</em> and points you at
-    <code>apm audit</code> for on-disk content. Offline (cache-served), exit <code>0</code>.
-    <span class="apm-version">apm v0.23.1</span>
-  </figcaption>
-  <pre><code class="language-text">$ apm install --frozen
-  [i] Targets: claude, copilot, cursor  (source: apm.yml)
-    [+] microsoft/apm-sample-package #v1.0.0 @fb285168 (cached)   |-- adopted
-    [+] github.com/.../review-and-refactor @3169734b (cached)     |-- (files unchanged)
-    [+] &lt;project root&gt; (local)                                    |-- adopted
-  [*] Installed 2 APM dependencies in 13.0s.
-  [i] Lockfile presence verified. Run 'apm audit' for on-disk content integrity.   # &lt;- the --frozen tell</code></pre>
-</figure>
-<p>
-  That last line is the load-bearing nuance of the whole chapter. <code>--frozen</code> guarantees the
-  <em>graph is the locked graph</em> &mdash; the lockfile exists and the manifest agrees with it. It does
-  <em>not</em> re-hash your deployed files. Here is precisely what does and does not trip it, all
-  verified on v0.23.1:
-</p>
+<!--
+  Frozen cases: frozen-missing-lock, frozen-missing-direct, frozen-missing-local-path,
+  public-frozen-ref-edit-same-commit, public-frozen-promote-transitive-shortpath,
+  frozen-edited-deployment, frozen-mcp-manifest-changed, frozen-mcp-native-changed.
+  Critical independent exception: VerifyRoot/logs/frozenlocal-new-local-frozen.json
+  (0; one dependency became two), plus frozenlocal-missing-git-frozen (1, no writes).
+  Do not turn equivalent-ref/promotion observations into an arbitrary-ref-change guarantee.
+-->
 <table>
-  <caption>What <code>apm install --frozen</code> catches &mdash; and, just as importantly, what it does not.</caption>
+  <caption>Bounded 0.31.0 observations for <code>apm install --frozen</code>, not a universal consistency test.</caption>
   <thead>
     <tr>
       <th scope="col">Situation</th>
-      <th scope="col"><code>--frozen</code></th>
-      <th scope="col">Why</th>
+      <th scope="col">Exit</th>
+      <th scope="col">Observed boundary</th>
     </tr>
   </thead>
   <tbody>
     <tr>
       <td>Lockfile missing entirely</td>
-      <td><strong>FAIL</strong> (exit <code>1</code>)</td>
-      <td>nothing to reproduce from</td>
+      <td><code>1</code></td>
+      <td>Requires a lock; no project writes.</td>
     </tr>
     <tr>
-      <td>A package declared in <code>apm.yml</code> is absent from the lock</td>
-      <td><strong>FAIL</strong> (exit <code>1</code>)</td>
-      <td>manifest &harr; lockfile disagree &mdash; <em>the real CI break</em></td>
+      <td>New direct Git package absent from the old lock</td>
+      <td><code>1</code></td>
+      <td>Names the missing package; no project writes. Priya's case.</td>
     </tr>
     <tr>
-      <td>Change a pinned ref to another ref at the <em>same</em> commit (<code>#v1.0.0</code> &rarr; <code>#main</code>)</td>
-      <td>PASS</td>
-      <td>the package is still present; the ref <em>string</em> is not what <code>--frozen</code> guards</td>
+      <td><strong>New local path declaration, old lock retained</strong></td>
+      <td><code>0</code></td>
+      <td>Installed the new local skill and changed the lock.</td>
     </tr>
     <tr>
-      <td>Add a dependency whose repo is already locked (even transitively)</td>
-      <td>PASS</td>
-      <td>the repo is present; it is promoted, not &ldquo;missing&rdquo;</td>
+      <td>Declared local source directory missing</td>
+      <td><code>1</code></td>
+      <td>A local source must actually exist; it cannot be fetched from a Git pin.</td>
     </tr>
     <tr>
-      <td>A floating ref drifts to a <em>different</em> commit</td>
-      <td>PASS (not caught)</td>
-      <td>structural, not a commit comparator &mdash; the <code>resolved_commit</code> pin holds this</td>
+      <td>Full-SHA selector changed to the public tag at the same commit</td>
+      <td><code>0</code></td>
+      <td>Lock metadata changed; not a literal-ref-string gate.</td>
     </tr>
     <tr>
-      <td>A deployed file is hand-edited on disk</td>
-      <td>PASS (not caught)</td>
-      <td>structural, not content &mdash; that is <code>apm audit</code>'s job</td>
+      <td>Already locked transitive skill declared directly at its locked SHA</td>
+      <td><code>0</code></td>
+      <td>Lock changed to represent the direct declaration.</td>
+    </tr>
+    <tr>
+      <td>Root MCP arguments changed in the manifest, old lock retained</td>
+      <td><code>1</code></td>
+      <td>Manifest-to-lock MCP configuration differs.</td>
+    </tr>
+    <tr>
+      <td>Native output edited, declaration unchanged</td>
+      <td><code>0</code></td>
+      <td>The tested instruction was restored; the tested native MCP edit was left unchanged.
+        Neither was rejected as content drift by the frozen preflight.</td>
     </tr>
   </tbody>
 </table>
 <p>
-  So the running-example break is <em>not</em> &ldquo;a ref moved upstream.&rdquo; It is a package that is
-  <strong>declared in the manifest but missing from the committed lockfile</strong> &mdash; someone added
-  a dependency and did not commit the re-locked file. The docs are explicit about the boundary:
-  &ldquo;This is a structural check, not a content check &mdash; run <code>apm audit --ci</code> for hash
-  verification&rdquo;
-  (<a href="https://microsoft.github.io/apm/reference/cli/install/" rel="noreferrer">apm install</a>).
-  Pair them and never conflate them: <code>--frozen</code> = <em>the graph is the locked graph</em>;
-  <code>apm audit</code> = <em>the bytes are the locked bytes</em> (the audit command lands in
-  <a href="lifecycle.html">Chapter 7</a>, and <a href="security-by-default.html">Chapter 8</a> builds
-  its security guarantees on the same content hash).
+  Frozen install can materialize files and change lock metadata; its successful exit does not
+  prove that the committed contract stayed unchanged. Nor is it an audit of native file bytes.
+  The CLI's reminder is literal:
+  <code>Lockfile presence verified. Run 'apm audit' for on-disk content integrity.</code>
+  With unchanged Git declarations, a moving upstream branch is handled by replaying the locked
+  commit, not by comparing the remote branch during preflight
+  (<a href="https://github.com/microsoft/apm/blob/8fd10ac5eafee7ca77d41cc34ba139d812fdacd5/docs/src/content/docs/reference/cli/install.md" rel="noreferrer">frozen mode and locked replay</a>).
+</p>
+
+<h4>Audit can replay in scratch &mdash; cold is not offline</h4>
+<!--
+  Acquisition evidence: public-cold-ci (0), public-cold-offline-ci (1),
+  public-cold-frozen (0), public-full-git-apm-cold-shortpath (0),
+  cold-local-audit-ci (0), cold-local-frozen (0).
+  MCP coverage: operations-reference.md OP06.2 and OP07.2; mcp suite.
+-->
+<p>
+  <code>apm audit --ci</code> checks supported content, consistency, and ownership separately.
+  It can acquire locked sources into an <strong>owned scratch replay</strong> when modules/cache
+  are absent. Clean public and local cold probes left the checkout unchanged; public replay with
+  acquisition deliberately unavailable exited <code>1</code>, not a harmless skip.
+  <span class="needs-network">Cold public restore or CI audit may need network access.</span>
+  A warm cache or local-only success is not proof of an offline deployment plan
+  (<a href="https://github.com/microsoft/apm/blob/8fd10ac5eafee7ca77d41cc34ba139d812fdacd5/docs/src/content/docs/reference/cli/audit.md" rel="noreferrer">CI scratch replay</a>).
+</p>
+<p>
+  Audit is not a universal native-configuration check either: in the tested MCP-only project,
+  CI audit did not detect missing or edited native MCP configuration. Frozen install recreated
+  the missing file but left the edit intact. Check such harness-specific state separately rather
+  than treating a clean exit as byte certification. <a href="lifecycle.html">Chapter 7</a> develops
+  audit; <a href="security-by-default.html">Chapter 8</a> develops its security boundaries.
 </p>
 
 <h4><code>apm lock</code> &mdash; write the contract without deploying</h4>
 <p>
-  Sometimes you want the lockfile refreshed but you do <em>not</em> want to touch your working tree &mdash;
-  a PR check that only asks &ldquo;does this manifest resolve cleanly?&rdquo;, or a headless job that
-  regenerates the lock, or an SBOM export. <code>apm lock</code> is that tool: it &ldquo;resolves
-  dependencies and writes <code>apm.lock.yaml</code> without deploying files&rdquo;
-  (<a href="https://microsoft.github.io/apm/reference/cli/lock/" rel="noreferrer">apm lock</a>). We
-  proved the no-deploy guarantee by deleting the lockfile <em>and</em> one already-deployed file as a
-  canary, then running <code>apm lock</code>:
+  Sometimes you want to resolve a declaration for review without altering harness files.
+  <code>apm lock</code> separates those jobs: it can acquire/materialize dependency metadata and
+  write the lock, but does not deploy or delete harness files. Crucially, it
+  <strong>preserves existing deployment state</strong> for later reconciliation
+  (<a href="https://github.com/microsoft/apm/blob/8fd10ac5eafee7ca77d41cc34ba139d812fdacd5/docs/src/content/docs/reference/cli/lock.md" rel="noreferrer">lock-only behavior</a>).
 </p>
-<figure class="code-example">
+<!--
+  ch6-lock-only: same command in TWO separate Repro copies; see setup in caption/table.
+  lock-retains-ownership: installed baseline, delete only the Copilot library canary,
+  KEEP the complete prior lock. Exit 0; canary absent, all lock bytes retained.
+  lock-new-resolution-only: fresh authored inputs only, no prior lock or harness outputs.
+  Exit 0; modules/lock created, no deployment rows or harness files.
+  Follow-up target-contraction-lock-only/install/ci distinguishes preservation from cleanup.
+-->
+<figure class="code-example" id="ch6-lock-only">
   <figcaption>
-    <code>apm lock</code> resolves the graph and writes the lockfile but <strong>deploys nothing</strong>
-    &mdash; a deleted deployed file (the canary) is <em>not</em> recreated, and the lock it writes omits
-    the deployment record. <span class="needs-network">needs network</span>
-    <span class="apm-version">apm v0.23.1</span>
+    Run this command once in each <em>separate</em> local scratch copy described below.
+    Both recorded runs exited <code>0</code>; neither deployed harness files. Offline fixture.
+    <span class="apm-version">apm v0.31.0 &mdash; observed</span>
   </figcaption>
-  <pre><code class="language-text">$ del apm.lock.yaml
-$ del .github/instructions/design-standards.instructions.md    # canary: an already-deployed file
-$ apm lock
-  [+] microsoft/apm-sample-package #v1.0.0 @fb285168
-  [+] github.com/github/awesome-copilot/skills/review-and-refactor #default @3169734b
-  [+] Lockfile written to apm.lock.yaml
-# lockfile regenerated? True     canary recreated? False        # &lt;- resolved + locked, but NOT deployed
-# the new lock has NO deployed_files / local_deployed_files     # &lt;- resolution-only</code></pre>
+  <pre><code class="language-bash">apm lock</code></pre>
 </figure>
+<table>
+  <caption>Same lock-only command, different prior deployment state.</caption>
+  <thead>
+    <tr><th scope="col">Scratch setup</th><th scope="col">Recorded result</th></tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>Installed <code>repro</code>; keep its lock, delete only
+        <code>.github/instructions/library.instructions.md</code> as a canary.</td>
+      <td>Canary stayed absent; previous file hashes, ownership, and complete lock bytes remained.</td>
+    </tr>
+    <tr>
+      <td>Source-only <code>repro</code>; no previous lock or harness outputs.</td>
+      <td>Resolution-only lock and modules appeared; no deployment rows or harness files.</td>
+    </tr>
+  </tbody>
+</table>
 <p>
-  That last comment is the catch: an <code>apm lock</code> file is <strong>resolution-only</strong>. It
-  records <code>resolved_commit</code> / <code>resolved_ref</code> / <code>content_hash</code> per
-  dependency but <em>omits</em> <code>deployed_files</code>, <code>deployed_file_hashes</code>, and the
-  <code>local_deployed_*</code> block &mdash; because it never deployed. It is perfect for validation and
-  <code>apm lock export</code> (SBOM/inventory), but it is not the same artifact <code>apm install</code>
-  commits: a later install will add the deployment record and change the file. Use <code>apm lock</code>
-  to <em>compute</em> the contract; use <code>apm install</code> to compute <em>and materialize</em> it.
+  Keeping ownership is not proof that files are still present. After a target contraction,
+  lock-only generation also retained Claude/Cursor files and their ownership; ordinary install
+  performed the cleanup. Use <code>apm lock</code> to compute the record without deployment,
+  not to repair a missing file or erase cleanup history.
 </p>
 
-<h4><code>apm find</code> &mdash; trace any file to its origin</h4>
+<h4>An SBOM timestamp is a different clock</h4>
 <p>
-  Reproducibility is worthless if you cannot answer <em>&ldquo;where did this file come from?&rdquo;</em>
-  <code>apm find</code> closes that loop. Reading straight from <code>apm.lock.yaml</code>, it prints the
-  package that owns a deployed file; <code>--source</code> appends the resolved coordinate, and
-  <code>--path</code> prints the full root-to-target chain, including the transitive edge:
+  Inventory export serializes a lock; it does not re-resolve or authenticate its contents.
+  The inspected help documents <code>apm lock export --timestamp</code> as an
+  <strong>SBOM timestamp control</strong>, with fallback to <code>SOURCE_DATE_EPOCH</code>, a legacy
+  lock timestamp, then the Unix epoch. That help/source contract is distinct from execution evidence:
+  separate producer probes actually exported CycloneDX and SPDX and repeated the fixed-timestamp
+  CycloneDX export byte-identically. Neither operation restores <code>generated_at</code> to new locks
+  (<a href="https://github.com/microsoft/apm/blob/8fd10ac5eafee7ca77d41cc34ba139d812fdacd5/docs/src/content/docs/reference/cli/lock.md#export-sbom-inventory" rel="noreferrer">inventory export</a>).
 </p>
-<figure class="code-example">
+<!--
+  ch6-sbom-export: NOT an OpsRoot/repro execution.
+  Input: backend/examples/updates/1.2/producer/pinned-bundle, its genuine installed lock.
+  RunRoot/producer-probes/logs/sbom-cyclonedx, sbom-cyclonedx-repeat, sbom-spdx (all 0).
+  Help-only source: OpsRoot/logs/help-lock-export-help; no export ran in that probe.
+  See producer-reference.md section 5 for byte-repeat evidence and unsigned-inventory limits.
+-->
+<figure class="code-example" id="ch6-sbom-export">
   <figcaption>
-    <code>apm find</code> traces a deployed file to the package that produced it, straight from the
-    lockfile. <code>--source</code> adds the resolved coordinate; <code>--path</code> prints the full
-    provenance chain, including the transitive edge. The <code>awesome-copilot@3169734b</code>
-    coordinate is unpinned &mdash; the tip at capture time; <code>#main</code> floats, so your run may
-    differ. Offline.
+    Recorded example using the genuine lock in
+    <code>backend/examples/updates/1.2/producer/pinned-bundle</code>, not a run on <code>repro</code>.
+    Export reads the existing lock without fetching packages; both identical
+    invocations exited <code>0</code>. <span class="apm-version">apm v0.31.0 &mdash; observed</span>
+  </figcaption>
+  <pre><code class="language-bash">apm lock export --format cyclonedx --timestamp '2026-09-16T00:00:00+00:00' -o sbom.cdx.json</code></pre>
+</figure>
+
+<h4><code>apm find</code> &mdash; trace a tracked file to its origin</h4>
+<p>
+  <em>&ldquo;Where did this instruction come from?&rdquo;</em> is the provenance question behind
+  <code>apm find</code>. It reads the lock's deployed-file records; <code>--source</code> adds the
+  source coordinate. This is a lookup, not a fresh hash check or publisher authentication
+  (<a href="https://github.com/microsoft/apm/blob/8fd10ac5eafee7ca77d41cc34ba139d812fdacd5/docs/src/content/docs/reference/cli/find.md" rel="noreferrer">provenance lookup</a>).
+</p>
+<!--
+  ch6-current-find: an unchanged installed Repro copy.
+  Sources: find-package-source (0; "_local/package  ./package"),
+  find-local-source (0; ".  (workspace)"), find-untracked (1).
+  Expected miss is deliberate; no fixture mutation or network needed.
+-->
+<figure class="code-example" id="ch6-current-find">
+  <figcaption>
+    Lookup in the installed <code>repro</code> fixture: dependency, workspace source, then a deliberate
+    untracked-path query. Recorded exits: <code>0 / 0 / 1</code>. Offline.
+    <span class="apm-version">apm v0.31.0 &mdash; observed</span>
+  </figcaption>
+  <pre><code class="language-bash">apm find .github/instructions/library.instructions.md --source
+apm find .github/instructions/workspace.instructions.md --source
+apm find .github/not-owned.md</code></pre>
+</figure>
+<p>
+  The first reports <code>_local/package  ./package</code>; the second reports
+  <code>.  (workspace)</code>. The third reports that the path is not tracked. Compare those answers
+  with the <a href="#ch6-current-lock">two ownership rows</a>: source identity and deployment
+  ownership answer related but different questions.
+</p>
+<details>
+  <summary>Historical Meridian provenance snapshot &mdash; APM 0.23.1</summary>
+  <!-- ch6-find-historical: original Ch6 find code block retained unchanged; old-code-blocks.json line 398. -->
+  <figure class="code-example" id="ch6-find-historical">
+  <figcaption>
+    Original full-package lookup capture, 2026-07-02. <code>--path</code> shows the transitive chain;
+    it remains in the 0.31.0 help, but this transcript was not rerun at that version.
+    The commit prefix is historical: an unpinned manifest edge still had a pinned commit in this
+    lock. Lookup is offline and says nothing about current on-disk integrity.
     <span class="apm-version">apm v0.23.1</span>
   </figcaption>
   <pre><code class="language-text">$ apm find .github/instructions/design-standards.instructions.md
@@ -414,34 +501,28 @@ $ apm find .github/instructions/meridian-checkout.instructions.md --source
 $ apm find .github/does-not-exist.md
   [x] '.github/does-not-exist.md' is not tracked by any installed package in apm.lock.yaml.   # exit 1</code></pre>
 </figure>
-<p>
-  Notice how the coordinate mirrors the pin: a pinned dependency resolves to <code>pkg@v1.0.0</code>
-  (the tag), an unpinned transitive one to <code>pkg@&lt;commit&gt;</code>, and a local file to
-  <code>. (workspace)</code>. Because <code>apm find</code> reads the lockfile, it is only ever as honest
-  as the committed lock &mdash; one more reason the lockfile is the artifact this whole chapter is about.
-</p>
+</details>
 
 <aside class="leader-callout">
   <h3>For engineering leaders</h3>
   <p>
     Reproducibility is the bridge between developer experience and compliance, and the lockfile is its
-    load-bearing beam. On the DX side, <code>git clone</code> + <code>apm install</code> hands every
-    developer byte-identical agent context. On the compliance side, that same committed lockfile is an
-    <em>audit record</em> &mdash; it states precisely which commits and which bytes produced a given
-    build, and <code>apm find</code> can trace any file an agent read back to the dependency edge that
-    introduced it. The stakes are simple: if you cannot say <em>which agent context produced a
-    change</em>, you cannot confidently investigate a regression or answer an audit question. Make
-    <code>apm install --frozen</code> a required CI check and treat the <code>apm.lock.yaml</code> diff as
-    a reviewable dependency change, and &ldquo;which context shipped?&rdquo; stops being an archaeology
-    project and becomes a line in the pull request.
+    load-bearing beam. On the DX side, a reviewed manifest/lock pair, fixed CLI and targets, and
+    available local sources replace hand-copying with repeatable materialization. On the compliance
+    side, the lock is a reviewable inventory of source identity and deployment ownership;
+    <code>apm find</code> traces recorded files, not everything a runtime might read.
+    If you cannot identify <em>which agent context shipped</em>, investigating a regression becomes
+    archaeology. Require frozen installation <em>with an unchanged-contract comparison</em> and
+    separate integrity checks, not frozen's exit code alone. Review the lockfile diff like a code
+    dependency change; do not mistake an unsigned inventory for publisher or runtime attestation.
   </p>
 </aside>
 
 <!-- SLOT: when-to-use-pitfalls -->
 <h3>Treat the lockfile as a contract</h3>
 <p>
-  Four moves read or write that contract; reach for them by intent. Bare restore reproduces; the other
-  three verify, regenerate, or trace.
+  Choose the job first: replay, reconcile, verify, resolve without deployment, or trace provenance.
+  A successful command answers its own question, not all five.
 </p>
 <table>
   <caption>Which lockfile-related command to reach for, by intent.</caption>
@@ -456,27 +537,34 @@ $ apm find .github/does-not-exist.md
     <tr>
       <td>set up or re-materialize a cloned repo</td>
       <td><code>apm install</code> (bare)</td>
-      <td>restore replays the locked graph byte-for-byte (<a href="install-and-restore.html">Chapter 5</a>)</td>
+      <td>Replays unchanged Git intent; reconciles changed declarations or local sources
+        (<a href="install-and-restore.html">Chapter 5</a>).</td>
     </tr>
     <tr>
-      <td>gate CI on reproducibility</td>
+      <td>materialize a reviewed contract in CI</td>
       <td><code>apm install --frozen</code></td>
-      <td>fails closed if <code>apm.yml</code> and <code>apm.lock.yaml</code> disagree</td>
+      <td>Requires a lock and performs limited structural checks; also reject unexpected
+        manifest/lock changes.</td>
     </tr>
     <tr>
-      <td>regenerate/review the lock without touching your tree</td>
+      <td>check supported deployed content and ownership</td>
+      <td><code>apm audit --ci</code></td>
+      <td>Separate integrity/replay checks; cold acquisition can need network and native coverage varies.</td>
+    </tr>
+    <tr>
+      <td>resolve/review without changing harness files</td>
       <td><code>apm lock</code></td>
-      <td>resolves and writes the lock, deploys nothing (PR checks, SBOM)</td>
+      <td>Writes resolution state, retains existing deployment ownership, deploys/deletes no harness files.</td>
     </tr>
     <tr>
       <td>find where a deployed file came from</td>
       <td><code>apm find &lt;file&gt;</code></td>
-      <td>traces it to the owning package and its provenance chain</td>
+      <td>Looks up recorded ownership/source, not current integrity or publisher identity.</td>
     </tr>
     <tr>
       <td>move to newer versions</td>
       <td><code>apm update</code> (<a href="lifecycle.html">Chapter 7</a>)</td>
-      <td>reproducibility is not staleness; version moves are deliberate</td>
+      <td>Reproducibility is not staleness; review intentional refreshes separately.</td>
     </tr>
   </tbody>
 </table>
@@ -484,11 +572,12 @@ $ apm find .github/does-not-exist.md
 <aside class="callout callout-warn">
   <h3>Pitfall: never hand-edit <code>apm.lock.yaml</code></h3>
   <p>
-    The lockfile is trustworthy <em>because</em> it is derived. Hand-patching it to make CI green produces
+    Hand-patching the lockfile to make CI green produces
     a lockfile that no resolution actually created &mdash; a fiction that will mislead the next restore
     and the next audit. When <code>--frozen</code> reports drift, the correct fix is to change the
     manifest if needed and <strong>regenerate</strong> (<code>apm install</code>, or <code>apm lock</code>
-    to review before deploying), then commit the resulting diff. Fix the recipe and rebuild the record;
+    for resolution review before deployment), then review and commit the resulting diff.
+    Fix the recipe and rebuild the record;
     do not forge the record.
   </p>
 </aside>
@@ -496,40 +585,33 @@ $ apm find .github/does-not-exist.md
 <aside class="callout callout-warn">
   <h3>Pitfall: <code>--frozen</code> checks structure, not bytes</h3>
   <p>
-    <code>apm install --frozen</code> proves the manifest and lockfile <em>agree</em> and the pins are
-    present. It will happily <strong>pass</strong> a floating ref that drifted to a different commit, or a
-    deployed file someone hand-edited on disk &mdash; those are content questions, and content is
-    <code>apm audit</code>'s department (<a href="lifecycle.html">Chapter 7</a>, with
-    <a href="security-by-default.html">Chapter 8</a> building on the same content hash). The CLI even
-    says so on every frozen run:
-    <code>Lockfile presence verified. Run 'apm audit' for on-disk content integrity.</code> Run both in
-    CI &mdash; <code>--frozen</code> for the graph, <code>apm audit --ci</code> for the bytes.
+    Do not turn &ldquo;presence verified&rdquo; into &ldquo;all declarations and native bytes match.&rdquo;
+    <a href="#ch6-frozen-boundary">New local declarations, equivalent Git refs, and promoted transitives</a>
+    can change a lock during frozen install. Managed instructions can be repaired rather than rejected.
+    Use <code>apm audit --ci</code> for the separate supported integrity checks; ordinary bare audit
+    treats routine replay drift as advisory. Neither command proves every native MCP file correct.
   </p>
 </aside>
 
 <aside class="callout callout-info">
   <h3>Commit the re-locked file &mdash; and review its diff</h3>
   <p>
-    Because <em>add</em> and <em>update</em> both rewrite <code>apm.lock.yaml</code>, the diff surfaces in
-    the pull request; review it with the same seriousness as a <code>package-lock.json</code> change. And
-    remember the other <code>--frozen</code> failure mode &mdash; if the lockfile is not committed at all,
-    a fresh checkout has nothing to reproduce from:
+    Treat the diff with the same seriousness as a <code>package-lock.json</code> change.
+    The nearest safe materialization workflow is:
   </p>
-  <figure class="code-example">
-    <figcaption>
-      <code>apm install --frozen</code> with no committed lockfile: the gate refuses before any network
-      access &mdash; there is nothing to reproduce from. Exit <code>1</code>, offline.
-      <span class="apm-version">apm v0.23.1</span>
-    </figcaption>
-    <pre><code class="language-text">$ apm install --frozen                                 # apm.lock.yaml never committed / deleted
-  [>] Installing dependencies from apm.yml...
-  --frozen requires apm.lock.yaml to exist. Run 'apm install' (without --frozen) or 'apm update' first.
-  [i] Tip: run 'apm outdated' to see what changed, then 'apm update'.
-  [!] Install interrupted after 0.3s.                  # exit 1 -- nothing written</code></pre>
-  </figure>
+  <ol>
+    <li>Pin the CLI and manifest targets; include reviewed local source directories.</li>
+    <li>Save the committed manifest/lock bytes, run <code>apm install --frozen</code> in a disposable
+      checkout, and fail CI if either file changed &mdash; even when install exited <code>0</code>.</li>
+    <li>Run <code>apm audit --ci</code>, and check native configuration separately where coverage
+      requires it. Investigate a failure; do not suppress drift to obtain a clean result.</li>
+  </ol>
   <p>
-    Commit <code>apm.yml</code>, <code>apm.lock.yaml</code>, and the deployed harness directories;
-    <code>apm_modules/</code> is auto-gitignored and rebuilt from the lockfile on every install.
+    If CI's purpose is to verify <em>already committed deployments</em>, audit before installing:
+    a restore can repair the evidence you meant to inspect. Meridian commits its authored sources,
+    manifest, lock, and reviewed harness outputs; <code>apm_modules/</code> is auto-gitignored
+    materialization, not the source of truth. Protecting the CI job and its policy inputs is
+    <a href="enterprise-at-fleet-scale.html">Chapter 11</a>'s concern.
   </p>
 </aside>
 
@@ -537,127 +619,233 @@ $ apm find .github/does-not-exist.md
 <h3>The CI break, mechanically</h3>
 <p>
   Meridian shipped <strong>v0.2.0</strong> in <a href="install-and-restore.html">Chapter 5</a> with one
-  pinned dependency and one <code>review</code> script. Now Priya adds a second, branch-pinned
-  dependency. On her laptop <code>apm install</code> resolves it and updates <code>apm.lock.yaml</code>
-  &mdash; but she commits only the manifest edit:
+  pinned dependency and one <code>review</code> script. Priya's next lesson is to commit the
+  regenerated lock, not merely the new declaration. Rehearse that boundary with a small
+  <strong>separate fixture</strong>, rather than an inaccessible private package or an invented
+  lockfile diff. This exercise does not change Meridian's milestone or canonical manifest.
 </p>
-<figure class="code-example">
+
+<h4 id="ch6-current-setup">1. Start with real local inputs</h4>
+<p>
+  Use <a href="https://github.com/microsoft/apm/releases/tag/v0.31.0" rel="noreferrer">APM 0.31.0</a>,
+  not a moving latest release. From
+  <code>backend/examples/updates/1.2/operations/repro/</code>, copy the two manifests below plus
+  <code>.apm/instructions/workspace.instructions.md</code> and
+  <code>package/.apm/instructions/library.instructions.md</code> into a new short scratch directory
+  outside the book checkout. Include the hidden directories. These sources contain only small
+  instructions: no executable primitives or network dependencies.
+</p>
+<p>
+  For this first-generation exercise, keep the fixture's genuine <code>apm.lock.yaml</code>
+  separately for comparison; start without modules, native outputs, or a lock in scratch.
+  A real clone-and-restore workflow instead brings the committed lock from the start.
+</p>
+<!--
+  ch6-repro-manifest: exact Repro/apm.yml.
+  ch6-library-manifest: exact Repro/package/apm.yml.
+  Sources: repro-install/restore/frozen/audit-ci; base_probes.py selected "repro".
+  Authored source hashes:
+  .apm/instructions/workspace.instructions.md =
+    88bddf525846c8fa1f4dd8ef500632020409a9a3abdc3a59e74a9e8729c4c50e
+  package/.apm/instructions/library.instructions.md =
+    e236df26e1700b25aee4c79922bade77ca14c2c65643a2d485665da083757989
+  Copy bytes; never regenerate or hand-patch a canonical example lock during verification.
+-->
+<figure class="code-example" id="ch6-repro-manifest">
   <figcaption>
-    The <code>apm.yml</code> change Priya committed &mdash; a new branch-pinned dependency
-    (<code>acme/checkout-guardrails</code> is a throwaway illustration for this CI-break scenario, not a
-    dependency Meridian adds to its canonical manifest). The regenerated lockfile was
-    <em>not</em> committed alongside it. <span class="apm-version">apm v0.23.1</span>
+    Complete <code>repro/apm.yml</code>: a local dependency and three explicit destinations.
+    Offline fixture. <span class="apm-version">apm v0.31.0 &mdash; observed</span>
   </figcaption>
-  <pre><code class="language-yaml">dependencies:
+  <pre><code class="language-yaml"># Recorded identity, three target projections, and a local dependency.
+name: operations-repro
+version: 1.0.0
+targets: [copilot, claude, cursor]
+dependencies:
   apm:
+    - path: ./package
+  mcp: []
+includes: auto</code></pre>
+</figure>
+<figure class="code-example" id="ch6-library-manifest">
+  <figcaption>
+    Complete <code>repro/package/apm.yml</code>, accompanying its library instruction.
+    Local identity is a path to these sources, not a Git SHA.
+    <span class="apm-version">apm v0.31.0 &mdash; observed</span>
+  </figcaption>
+  <pre><code class="language-yaml"># A safe local source; no network or executable primitives.
+name: operations-library
+version: 1.0.0
+dependencies: {}</code></pre>
+</figure>
+
+<h4>2. Generate, replay, then check</h4>
+<p>
+  Run these consecutively in the source-only scratch copy. The first install creates the recorded
+  state; the next two replay unchanged inputs. The last command asks the separate integrity
+  question. <code>--no-fail-fast -f json</code> requests all diagnostic checks in JSON, not a
+  different integrity policy.
+</p>
+<!--
+  ch6-current-restore: exact argv sequence from OpsRoot/base_probes.py for Repro.
+  Logs: repro-install, repro-restore, repro-frozen, repro-audit-ci (0/0/0/0).
+  Assert six native files, retained authored inputs, absent generated_at, complete
+  lock SHA-256 79fe2a70ae0c8b9987ddd0105d013c6593a6c3fd8135ae94601d4df58fd22772
+  after each command. Audit had no org remote; no enterprise-policy enforcement claim.
+  This unchanged-input result does NOT certify frozen refusal of new local declarations.
+-->
+<figure class="code-example" id="ch6-current-restore">
+  <figcaption>
+    Generation, bare replay, frozen replay, and CI audit of <code>repro</code>.
+    Recorded exits: <code>0 / 0 / 0 / 0</code>. Offline.
+    <span class="apm-version">apm v0.31.0 &mdash; observed</span>
+  </figcaption>
+  <pre><code class="language-bash">apm install
+apm install
+apm install --frozen
+apm audit --ci --no-fail-fast -f json</code></pre>
+</figure>
+<p>
+  The complete lock's recorded SHA-256 after each command was
+  <code>79fe2a70ae0c8b9987ddd0105d013c6593a6c3fd8135ae94601d4df58fd22772</code>.
+  This is a hash of the <em>entire lockfile</em>, not a dependency field.
+  <code>generated_at</code> was absent. Compare your complete lock and the native files below;
+  do not substitute a timestamp, summary message, or exit code for those observations.
+</p>
+<table>
+  <caption>Six native outputs of the local fixture; the authored inputs remain in place.</caption>
+  <thead>
+    <tr><th scope="col">Target</th><th scope="col">Project-relative files</th></tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>Copilot</td>
+      <td><code>.github/instructions/library.instructions.md</code><br>
+        <code>.github/instructions/workspace.instructions.md</code></td>
+    </tr>
+    <tr>
+      <td>Claude</td>
+      <td><code>.claude/rules/library.md</code><br><code>.claude/rules/workspace.md</code></td>
+    </tr>
+    <tr>
+      <td>Cursor</td>
+      <td><code>.cursor/rules/library.mdc</code><br><code>.cursor/rules/workspace.mdc</code></td>
+    </tr>
+  </tbody>
+</table>
+<p>
+  This clean instruction fixture exercises content and ownership, not live harness behavior or
+  organization-policy enforcement. For acquisition from an empty cache, use
+  <a href="install-and-restore.html#ch5-current-setup">Chapter 5's pinned public skill</a>:
+  its cold frozen restore preserved the lock while fetching the recorded source.
+  <span class="needs-network">That variant requires public Git access on a cold cache.</span>
+</p>
+
+<h4>3. Reproduce the forgotten Git lock</h4>
+<p>
+  Make a separate copy of the successfully installed fixture. Keep its old lock and all its sources,
+  but replace only the manifest's <code>dependencies</code> block with this one. The extra package
+  is real and pinned; it is deliberately absent from this copy's lock:
+</p>
+<!--
+  ch6-missing-git-manifest: dependencies mapping from the frozen-missing-direct setup
+  in OpsRoot/repro_probes.py; append the exact public #v1.0.0 string, retain other
+  Repro manifest fields and the genuine old lock. This is a partial manifest edit.
+  ch6-missing-git-frozen: frozen-missing-direct (1; complete before/after inventory equal).
+  The failure did not install the public graph. No invented successful reconcile/lock diff.
+  Independent corroboration: VerifyRoot/logs/frozenlocal-missing-git-frozen.json on its own local fixture.
+-->
+<figure class="code-example" id="ch6-missing-git-manifest">
+  <figcaption>
+    Edited dependency block only &mdash; retain the rest of <code>repro/apm.yml</code> and its old
+    lock. This negative test stops before fetching the public package.
+    <span class="apm-version">apm v0.31.0 &mdash; observed</span>
+  </figcaption>
+  <pre><code class="language-yaml"># Scratch-only edit: new Git declaration, old local-only lock.
+dependencies:
+  apm:
+    - path: ./package
     - microsoft/apm-sample-package#v1.0.0
-    - acme/checkout-guardrails#main          # &lt;- added, branch-pinned; lock re-generated locally but NOT committed
   mcp: []</code></pre>
 </figure>
-<p>
-  CI checks out that commit &mdash; new manifest, old lockfile &mdash; and runs the reproducibility gate.
-  It fails closed:
-</p>
-<figure class="code-example">
+<figure class="code-example" id="ch6-missing-git-frozen">
   <figcaption>
-    CI runs <code>apm install --frozen</code> and fails: the manifest names a package the committed
-    lockfile does not pin. Exit <code>1</code> in <code>0.1s</code>, with <strong>no network access</strong>
-    &mdash; the structural gate fires <em>before</em> any clone is attempted.
-    <span class="apm-version">apm v0.23.1</span>
+    Frozen install in the mismatched scratch copy: expected exit <code>1</code>, no project writes
+    or package fetch. <span class="apm-version">apm v0.31.0 &mdash; observed</span>
   </figcaption>
-  <pre><code class="language-text">$ apm install --frozen
-  [>] Installing dependencies from apm.yml...
-  --frozen: apm.lock.yaml is out of sync with apm.yml.
-    - acme/checkout-guardrails is declared in apm.yml but missing from apm.lock.yaml
-  [i] Tip: run 'apm outdated' to see what changed, then 'apm update'.
-  [!] Install interrupted after 0.1s.                  # &lt;- exit 1, no network, nothing written</code></pre>
+  <pre><code class="language-bash">apm install --frozen</code></pre>
 </figure>
 <p>
-  Read the message literally: the break is a <strong>manifest &harr; lockfile mismatch</strong>, not an
-  upstream ref that moved. The gate never even tried to clone <code>acme/checkout-guardrails</code>
-  &mdash; it fired in a tenth of a second, before resolution, precisely because the package is
-  <em>declared but not locked</em>. (That the illustrative repo does not exist is irrelevant: a real
-  forgotten re-lock produces the identical error, because <code>--frozen</code> is checking presence, not
-  fetching bytes.)
+  The diagnostic names <code>microsoft/apm-sample-package</code> as declared in
+  <code>apm.yml</code> but missing from <code>apm.lock.yaml</code>. This is Priya's mistake
+  mechanically, not an upstream ref moving. Do not replace the Git addition with a new local path
+  and expect the same refusal: the <a href="#ch6-frozen-boundary">independent local-path result</a>
+  was exit <code>0</code> with a changed lock.
 </p>
 <p>
-  The fix is the discipline the whole chapter argues for. Priya does <em>not</em> hand-edit the lockfile.
-  She reconciles by running plain <code>apm install</code>, which resolves the new dependency, regenerates
-  <code>apm.lock.yaml</code> with its pin and fingerprint, and deploys it. The regenerated lockfile's diff
-  is what the pull request reviews &mdash; a dependency change, read like any other:
+  Discard the disposable mismatch copy when the exercise is complete. In a real pull request where
+  the addition is intended, Priya reconciles with ordinary <code>apm install</code>, reviews the
+  genuinely generated lock and deployments, and commits them alongside the manifest.
+  <span class="needs-network">Acquiring that public Git graph can require network access.</span>
+  The rule is regenerate, review, commit &mdash; not hand-author a plausible SHA or accept whatever
+  a CI install happened to write.
 </p>
-<figure class="code-example">
+
+<h4>Repeat the bounded checks automatically</h4>
+<p>
+  The existing runner rehearses frozen replay, per-target drift, invalid ownership, CRLF hashes,
+  and the retained-lock canary in owned scratch copies. It needs Python 3.10+ and PyYAML 6;
+  use the absolute prepared APM executable. Expected negative audit exits are assertions of
+  detection, not a claim that every package type is covered.
+</p>
+<!--
+  ch6-repro-suite: existing operations/verify.py --suite repro; no fixture or runner edits.
+  Sources: operations-reference.md reusable examples and
+  OpsRoot/fixture-verification/all-final.json, repro suite records.
+  Run from book root; the runner executes APM only in fresh short scratch projects.
+  This suite does not include the separate missing-Git, fresh-lock-only, cold-public,
+  local-declaration, or producer-SBOM cases; verify those against their named inputs.
+-->
+<figure class="code-example" id="ch6-repro-suite">
   <figcaption>
-    The lockfile diff the reconcile produced &mdash; the new dependency arrives with its
-    <code>resolved_commit</code> (the pin) and <code>content_hash</code> (the fingerprint). Illustrative:
-    the exact SHA and hash depend on the package. <span class="apm-version">apm v0.23.1</span>
+    Reusable local checks; substitute your prepared executable's absolute path.
+    The runner preserves results and test projects outside the checkout.
+    <span class="apm-version">apm v0.31.0 &mdash; explorer fixture suite</span>
   </figcaption>
-  <pre><code class="language-text">  dependencies:
-   - repo_url: microsoft/apm-sample-package
-     resolved_ref: v1.0.0
-     resolved_commit: fb2851683be0e0e7711421d518bd8dba23b0b1f6
-     content_hash: sha256:744cca54...
-+  - repo_url: acme/checkout-guardrails               # the new dependency, now pinned
-+    resolved_ref: main
-+    resolved_commit: &lt;40-char SHA that #main resolved to&gt;
-+    content_hash: sha256:&lt;fingerprint of the deployed bytes&gt;</code></pre>
+  <pre><code class="language-powershell">$Apm = '&lt;absolute path to the prepared APM 0.31.0 executable&gt;'
+python .\backend\examples\updates\1.2\operations\verify.py --apm $Apm --suite repro</code></pre>
 </figure>
-<p>
-  She commits the lockfile, and CI re-runs the gate. With manifest and lockfile in agreement again,
-  <code>--frozen</code> passes and prints its tell:
-</p>
-<figure class="code-example">
-  <figcaption>
-    With the regenerated lockfile committed, the reproducibility gate is green again. Offline, exit
-    <code>0</code>. <span class="apm-version">apm v0.23.1</span>
-  </figcaption>
-  <pre><code class="language-text">$ apm install --frozen
-  ...
-  [i] Lockfile presence verified. Run 'apm audit' for on-disk content integrity.   # exit 0</code></pre>
-</figure>
-<p>
-  Nothing exotic happened: a manifest edit outran its own committed lockfile, the gate caught it before
-  touching the network, and a regenerate-review-commit brought the two back into agreement. The team
-  leaves with a rule they now treat as non-negotiable &mdash; the lockfile is the reproducibility
-  contract: generated, reviewed in the diff, and committed alongside the manifest that produced it. That
-  is <span class="property property--reproducibility">Reproducibility</span>, enforced.
-</p>
 
 <!-- SLOT: recap-and-next -->
 <h3>Recap</h3>
 <ul>
   <li>
     <strong>The manifest names intent; the lockfile freezes the fact.</strong> <code>apm.lock.yaml</code>
-    records the exact resolved graph &mdash; direct and transitive &mdash; so restore is byte-for-byte.
-    This is where <span class="property property--reproducibility">Reproducibility</span> becomes a
-    mechanism, not a promise.
+    records resolved source identities and deployment ownership. Unchanged Git intent replays the
+    locked graph; changed declarations or local sources require reconciliation.
   </li>
   <li>
-    <strong>Three levels of identity:</strong> <code>resolved_ref</code> (what you asked for) &rarr;
-    <code>resolved_commit</code> (the pin) &rarr; <code>content_hash</code> (the exact bytes). The hash
-    follows the bytes, not the ref &mdash; a floated commit with identical content keeps an identical
-    fingerprint.
+    <strong>Identity depends on source type.</strong> Git commits, local paths, and registry
+    archive identities are not interchangeable. Package-tree hashes use actual bytes;
+    deployed UTF-8 hashes normalize CRLF.
   </li>
   <li>
-    <strong><code>apm install --frozen</code> is a structural presence gate,</strong> not a content check
-    and not a ref comparator. It fails when the lockfile is missing or when a package is declared in
-    <code>apm.yml</code> but absent from the lock &mdash; the real CI break. On-disk byte integrity is
-    <code>apm audit</code>'s job, kept deliberately distinct.
+    <strong>Frozen checks are limited.</strong> Missing locks and the tested missing Git declaration
+    fail; a newly declared local path can install and rewrite the old lock. Compare the committed
+    contract before/after, and audit supported content separately. Cold CI replay may need network.
   </li>
   <li>
-    <strong><code>apm lock</code> writes the contract without deploying</strong> (resolution-only; omits
-    the deployment record) &mdash; ideal for PR checks and SBOMs. <strong><code>apm find</code></strong>
-    traces any deployed file to its owning package and provenance chain.
+    <strong><code>apm lock</code> leaves harness files alone and retains existing deployment state.</strong>
+    A fresh resolution-only lock has no previous ownership to retain.
+    <code>apm find</code> traces recorded files; neither a lookup nor an SBOM authenticates a publisher.
   </li>
   <li>
     <strong>Never hand-edit the lockfile.</strong> Fix the manifest, regenerate, review the diff like a
-    dependency change, and commit the re-locked file. Restore is byte-stable &mdash; a no-op install even
-    leaves <code>generated_at</code> unchanged.
+    dependency change, and commit the re-locked file. New locks omit <code>generated_at</code>;
+    the current exercise proves a no-op with complete lock bytes and expected native outputs.
   </li>
   <li>
-    Meridian's CI break was a <strong>manifest&harr;lockfile mismatch</strong> &mdash; a declared package
-    missing from the committed lock &mdash; caught offline in <code>0.1s</code> and fixed by
-    reconcile-review-commit.
+    Meridian's CI break was a <strong>new Git declaration missing from the committed lock</strong>,
+    not an upstream ref moving. Priya's lasting fix is reconcile-review-commit.
   </li>
 </ul>
 
@@ -665,7 +853,7 @@ $ apm find .github/does-not-exist.md
 <p>
   Reproducibility holds the graph <em>still</em>; the next question is how to move it <em>deliberately</em>.
   <a href="lifecycle.html">Chapter 7 &mdash; Lifecycle</a> opens the intentional-change door named here:
-  <code>apm outdated</code> to see what drifted, <code>apm update</code> to move pins forward on purpose,
-  and <code>apm audit</code> &mdash; the content-integrity companion to <code>--frozen</code> &mdash; to
-  verify that the bytes on disk still match the bytes the lockfile promised.
+  <code>apm outdated</code> to report available versions, <code>apm update</code> to refresh on purpose,
+  and <code>apm audit</code> &mdash; the separate integrity companion to <code>--frozen</code> &mdash; to
+  check the resulting supported content and ownership.
 </p>

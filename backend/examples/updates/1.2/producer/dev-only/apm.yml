@@ -1,0 +1,11 @@
+# Installed author tooling is not part of the published dependency closure.
+name: dev-boundary
+version: 1.0.0
+description: A producer's development tooling must not ship.
+license: MIT
+targets: [copilot]
+dependencies: {}
+devDependencies:
+  apm:
+    - path: ./tool
+includes: auto

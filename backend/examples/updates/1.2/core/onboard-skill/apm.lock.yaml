@@ -1,0 +1,33 @@
+lockfile_version: '1'
+apm_version: 0.31.0
+dependencies:
+- repo_url: _local/checkout-review
+  name: checkout-review
+  version: unknown
+  package_type: claude_skill
+  deployed_files:
+  - .agents/skills/checkout-review
+  - .agents/skills/checkout-review/SKILL.md
+  deployed_file_hashes:
+    .agents/skills/checkout-review/SKILL.md: sha256:5a6599461a905a241ad544f87c54a39c945982e327a1f19fa748d19c0a994e49
+  source: local
+  local_path: ./.claude/skills/checkout-review
+deployments:
+- kind: project-relative
+  target: copilot
+  value: .agents/skills/checkout-review
+  runtime: null
+  scope: project
+  owners:
+  - ./.claude/skills/checkout-review
+  active_owner: ./.claude/skills/checkout-review
+  content_hash: null
+- kind: project-relative
+  target: copilot
+  value: .agents/skills/checkout-review/SKILL.md
+  runtime: null
+  scope: project
+  owners:
+  - ./.claude/skills/checkout-review
+  active_owner: ./.claude/skills/checkout-review
+  content_hash: sha256:5a6599461a905a241ad544f87c54a39c945982e327a1f19fa748d19c0a994e49

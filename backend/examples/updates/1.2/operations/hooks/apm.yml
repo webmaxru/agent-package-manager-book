@@ -1,0 +1,8 @@
+# APM installs these hook definitions but does not run a harness.
+name: operations-hooks
+version: 1.0.0
+targets: [copilot, claude, cursor]
+dependencies:
+  apm:
+    - path: ./package
+includes: auto

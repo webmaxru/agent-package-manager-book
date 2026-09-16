@@ -1,0 +1,146 @@
+{
+  "book_edition": "1.2",
+  "apm_version": "0.31.0",
+  "scope": "Source identity bridge for final integration review. Raw Windows working-tree attestations are distinct from canonical Git/LF bytes; this is not a Linux CLI execution claim.",
+  "normalization": "Only CRLF to LF for expected Git objects. Post-review prose/comment changes are explicitly linked to independent delta reports.",
+  "chapters": [
+    {
+      "chapter": 1,
+      "path": "content/chapters/the-context-problem.html",
+      "review_report": "ch01-review.md",
+      "verification_report": "ch01-verification.md",
+      "reviewed_worktree_sha256": "61b7d7e0b15f5f9b36c2bb013aeb9cad61578a2409bf5bcd6c8f5675e8713c89",
+      "current_worktree_sha256": "61b7d7e0b15f5f9b36c2bb013aeb9cad61578a2409bf5bcd6c8f5675e8713c89",
+      "canonical_lf_sha256": "91aa0d901be95691b4cfc63d035d8548affe1c9af10a16bfb5b37b46fe1b90bb",
+      "expected_git_blob_oid": "03ecbb52b41d6f4fd1c1061f6eeb2c8b7cb94c4b",
+      "post_review_delta": "none"
+    },
+    {
+      "chapter": 2,
+      "path": "content/chapters/lessons-from-package-managers.html",
+      "review_report": "ch02-review.md",
+      "verification_report": "ch02-verification.md",
+      "reviewed_worktree_sha256": "a4e626f634b7a930483e233023e79bf61f092bbd95e316c33f91f253f8260ff7",
+      "current_worktree_sha256": "a4e626f634b7a930483e233023e79bf61f092bbd95e316c33f91f253f8260ff7",
+      "canonical_lf_sha256": "3b2ed68da20a64d1267611055662aaae275b6307185d39e0dc93c8ba8a067221",
+      "expected_git_blob_oid": "17fec77c8fb406184dea0d716597ea2eb5b21595",
+      "post_review_delta": "none"
+    },
+    {
+      "chapter": 3,
+      "path": "content/chapters/primitives-and-harnesses.html",
+      "review_report": "ch03-review.md",
+      "verification_report": "ch03-verification.md",
+      "reviewed_worktree_sha256": "cd9c17d28a240a3cf82f34239d6eec05faa11215825c8a400fca7231e7362741",
+      "current_worktree_sha256": "cd9c17d28a240a3cf82f34239d6eec05faa11215825c8a400fca7231e7362741",
+      "canonical_lf_sha256": "5ac0bf9ae071d937e51ee82b09e5f19bc1a93fbb776cf971b093338d06a1373b",
+      "expected_git_blob_oid": "4d17ed5f790355b6d97797ea6b1520983d8903bf",
+      "post_review_delta": "none"
+    },
+    {
+      "chapter": 4,
+      "path": "content/chapters/the-manifest-apm-yml.html",
+      "review_report": "ch04-review.md",
+      "verification_report": "ch04-verification.md",
+      "reviewed_worktree_sha256": "c0f3d81788556838e3f55b1adc225b9716231786040544aa98ab098e73c41005",
+      "current_worktree_sha256": "c0f3d81788556838e3f55b1adc225b9716231786040544aa98ab098e73c41005",
+      "canonical_lf_sha256": "906b759de63805bd9f4e9a9f51dbb460f7c90c4e7cd3b03e35de34fdae85240c",
+      "expected_git_blob_oid": "5a71d4f22f173106a1f85e5a0d568cd2fe40a60a",
+      "post_review_delta": "none"
+    },
+    {
+      "chapter": 5,
+      "path": "content/chapters/install-and-restore.html",
+      "review_report": "ch05-review.md",
+      "verification_report": "ch05-verification.md",
+      "reviewed_worktree_sha256": "c06627ac2367a41f9d8a427a6021b695c4c4d28237ca4c3cda951a56effe1e25",
+      "current_worktree_sha256": "286f2d6a873b7152a09033a0e5c2330bbef8004a42818e103e6b7e594e9c3d1a",
+      "canonical_lf_sha256": "b5c89f1e0dfbcfaf52f289a471d6ab163e55a08b2c39f4305d3ac48cdea52ead",
+      "expected_git_blob_oid": "83548da521bd4bea995fd92aa63854aee4f25ae3",
+      "post_review_delta": "Opening-comment privacy aliases only; ch05-verification privacy-delta closure."
+    },
+    {
+      "chapter": 6,
+      "path": "content/chapters/the-lockfile-and-reproducibility.html",
+      "review_report": "ch06-review.md",
+      "verification_report": "ch06-verification.md",
+      "reviewed_worktree_sha256": "45aa09e83b7d2b64353921c8b7f13b37d6b68dffa71181ad1659432aaf6662e2",
+      "current_worktree_sha256": "45aa09e83b7d2b64353921c8b7f13b37d6b68dffa71181ad1659432aaf6662e2",
+      "canonical_lf_sha256": "592a07ebff2ffe06497a16680de3794a9738528140e8de88ba17c2fa14440906",
+      "expected_git_blob_oid": "e04bb5e419ce63f2112eb34560e5d24b01ca6e7d",
+      "post_review_delta": "none"
+    },
+    {
+      "chapter": 7,
+      "path": "content/chapters/lifecycle.html",
+      "review_report": "ch07-review.md",
+      "verification_report": "ch07-verification.md",
+      "reviewed_worktree_sha256": "e45b3d6410caf0b030fe90da58660008c8ce088d6b1f2656f5af94620fe75c72",
+      "current_worktree_sha256": "e45b3d6410caf0b030fe90da58660008c8ce088d6b1f2656f5af94620fe75c72",
+      "canonical_lf_sha256": "e866e2f54c7b9f7e8b040456146282a2099bee3d44a826974b0a1efcc0e29214",
+      "expected_git_blob_oid": "ead1d6aa0b24c415a1a3b603dd3fe516d6ef29df",
+      "post_review_delta": "none"
+    },
+    {
+      "chapter": 8,
+      "path": "content/chapters/security-by-default.html",
+      "review_report": "ch08-review.md",
+      "verification_report": "ch08-verification.md",
+      "reviewed_worktree_sha256": "21efe99d2991b10b85e8ce00c0d569bccbe66ff71422756172eeb902d04af450",
+      "current_worktree_sha256": "21efe99d2991b10b85e8ce00c0d569bccbe66ff71422756172eeb902d04af450",
+      "canonical_lf_sha256": "893ff428288260283285fa04b6cc934fb469db7928f8f320a3151eff4b688324",
+      "expected_git_blob_oid": "3abb4faf4c76584d17a1c980e126219b0b0e76ae",
+      "post_review_delta": "none"
+    },
+    {
+      "chapter": 9,
+      "path": "content/chapters/governance-and-policy.html",
+      "review_report": "ch09-review.md",
+      "verification_report": "ch09-verification.md",
+      "reviewed_worktree_sha256": "11391907af254a6c13866d431d40100043d1b43f6857dd4dc3e3e70091dbd01a",
+      "current_worktree_sha256": "11391907af254a6c13866d431d40100043d1b43f6857dd4dc3e3e70091dbd01a",
+      "canonical_lf_sha256": "4a031ad04dd98275e66884df1c04c80b0fa80ef4c3c28fca8a835e28701cce6f",
+      "expected_git_blob_oid": "5316bf0a61f9960d21b2f8a894e8342b0eb79617",
+      "post_review_delta": "none"
+    },
+    {
+      "chapter": 10,
+      "path": "content/chapters/becoming-a-producer.html",
+      "review_report": "ch10-review.md",
+      "verification_report": "ch10-verification.md",
+      "reviewed_worktree_sha256": "250ba7641d1e9af6f1633f723eacdebfd82e9a93ea5af66598bf89e084c61b75",
+      "current_worktree_sha256": "f42b35736a232965057c72b754b87bbe9e105f759b03de01ef2f66ef80b10dee",
+      "canonical_lf_sha256": "255d9d7b5882f302790f72f55cb27930b8dc92db15837a52f389257387a4db22",
+      "expected_git_blob_oid": "f2c6fdd58267cad2fdf765163ef21f50d83eb9ef",
+      "post_review_delta": "Integration F2 narrative carry-forward plus earlier privacy comment; ch10-verification delta."
+    },
+    {
+      "chapter": 11,
+      "path": "content/chapters/enterprise-at-fleet-scale.html",
+      "review_report": "ch11-review.md",
+      "verification_report": "ch11-verification.md",
+      "reviewed_worktree_sha256": "4a77f11386578721414e4797077d4eb17073919b55cc56b351141660e970ede5",
+      "current_worktree_sha256": "4a77f11386578721414e4797077d4eb17073919b55cc56b351141660e970ede5",
+      "canonical_lf_sha256": "a4ccff8ba0c272103a9651e81b7a72840ad352aadc9b812e2159a41f9124849b",
+      "expected_git_blob_oid": "68213ccdec179f757d36eb414fcd2883095928b9",
+      "post_review_delta": "none"
+    },
+    {
+      "chapter": 12,
+      "path": "content/chapters/the-landscape-and-whats-next.html",
+      "review_report": "ch12-review.md",
+      "verification_report": "ch12-verification.md",
+      "reviewed_worktree_sha256": "7460ab5177c7e68718dedbc9237ecba98f2da903d7dbd1610c119803e4062aed",
+      "current_worktree_sha256": "4de95a5d3d756c538d1137e0b42c4516f915b23d47bee9288d828ed997efc1fa",
+      "canonical_lf_sha256": "6a17d91975d92314c77d248c8a8f7c1fee8db8dc01feef261f2a7c5fa5f8168a",
+      "expected_git_blob_oid": "f2c5fe061294fcade83c931cb43219a3420e555d",
+      "post_review_delta": "Integration F3 source-only semantic cross-reference; ch12-verification delta."
+    }
+  ],
+  "toc": {
+    "path": "content/toc.yml",
+    "current_worktree_sha256": "b46c306d6781692d40e5a9b4eef3b86225f815232abfcf4d476150b157ac80ed",
+    "canonical_lf_sha256": "02d5a116ddd8e13fb47f16fbb06fb6e6464baa006300e15fb8442f70e2067e36",
+    "expected_git_blob_oid": "c41565496d3c2c2b95e84cacea149655cce5e45d"
+  }
+}

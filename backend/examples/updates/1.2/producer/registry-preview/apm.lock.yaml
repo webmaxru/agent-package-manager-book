@@ -1,0 +1,26 @@
+lockfile_version: '1'
+dependencies: []
+deployments:
+- kind: project-relative
+  target: legacy
+  value: .agents/skills/review
+  runtime: null
+  scope: project
+  owners:
+  - .
+  active_owner: .
+  content_hash: null
+- kind: project-relative
+  target: legacy
+  value: .agents/skills/review/SKILL.md
+  runtime: null
+  scope: project
+  owners:
+  - .
+  active_owner: .
+  content_hash: sha256:228bc30502802e2d1bab96ac16bd9841e4b62702a68b76ab4e5a05eab5368842
+local_deployed_files:
+- .agents/skills/review
+- .agents/skills/review/SKILL.md
+local_deployed_file_hashes:
+  .agents/skills/review/SKILL.md: sha256:228bc30502802e2d1bab96ac16bd9841e4b62702a68b76ab4e5a05eab5368842

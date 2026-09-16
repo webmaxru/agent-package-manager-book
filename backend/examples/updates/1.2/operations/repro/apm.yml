@@ -1,0 +1,9 @@
+# Recorded identity, three target projections, and a local dependency.
+name: operations-repro
+version: 1.0.0
+targets: [copilot, claude, cursor]
+dependencies:
+  apm:
+    - path: ./package
+  mcp: []
+includes: auto

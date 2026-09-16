@@ -1,0 +1,13 @@
+# Configuration-only probe. The intentionally nonexistent command is never launched.
+name: operations-mcp
+version: 1.0.0
+targets: [copilot, vscode, claude]
+dependencies:
+  apm: []
+  mcp:
+    - name: operations-fixture
+      registry: false
+      transport: stdio
+      command: operations-fixture-not-a-real-server
+      args: [--fixture]
+includes: auto

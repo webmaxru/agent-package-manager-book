@@ -1,0 +1,20 @@
+# Anonymous loopback fixture only; run with verify.py's isolated registry suite.
+name: operations-registry-constraints
+version: 1.0.0
+targets: [copilot]
+registries:
+  fixture:
+    url: http://127.0.0.1:18431
+  default: fixture
+dependencies:
+  apm:
+    - registry: fixture
+      id: operations/exact
+      version: 1.0.0
+    - registry: fixture
+      id: operations/range
+      version: ^1.0.0
+    - registry: fixture
+      id: operations/other
+      version: ^1.0.0
+includes: auto

@@ -1,0 +1,9 @@
+# This display name is deliberately distinct from the canonical local-path identity.
+name: friendly-display-name
+version: 1.0.0
+dependencies:
+  mcp:
+    - name: operations-trust-fixture
+      registry: false
+      transport: stdio
+      command: operations-trust-not-a-real-server

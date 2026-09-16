@@ -1,0 +1,37 @@
+lockfile_version: '1'
+apm_version: 0.31.0
+dependencies:
+- repo_url: microsoft/apm-sample-package
+  name: style-checker
+  host: github.com
+  resolved_commit: fb2851683be0e0e7711421d518bd8dba23b0b1f6
+  resolved_ref: fb2851683be0e0e7711421d518bd8dba23b0b1f6
+  version: unknown
+  virtual_path: .apm/skills/style-checker
+  is_virtual: true
+  package_type: claude_skill
+  deployed_files:
+  - .agents/skills/style-checker
+  - .agents/skills/style-checker/SKILL.md
+  deployed_file_hashes:
+    .agents/skills/style-checker/SKILL.md: sha256:1142700284d253c15e561434362ae6203db08e41ef07e7082386df3651738829
+  content_hash: sha256:867912713bf45048211440b81ea0ced396ad0a0993447dd540fe5c219722d318
+deployments:
+- kind: project-relative
+  target: copilot
+  value: .agents/skills/style-checker
+  runtime: null
+  scope: project
+  owners:
+  - microsoft/apm-sample-package/.apm/skills/style-checker
+  active_owner: microsoft/apm-sample-package/.apm/skills/style-checker
+  content_hash: null
+- kind: project-relative
+  target: copilot
+  value: .agents/skills/style-checker/SKILL.md
+  runtime: null
+  scope: project
+  owners:
+  - microsoft/apm-sample-package/.apm/skills/style-checker
+  active_owner: microsoft/apm-sample-package/.apm/skills/style-checker
+  content_hash: sha256:1142700284d253c15e561434362ae6203db08e41ef07e7082386df3651738829

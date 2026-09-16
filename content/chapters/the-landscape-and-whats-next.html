@@ -2,18 +2,21 @@
   Chapter 12 - The Landscape & What's Next (authored content fragment).
   Injected by site/generate.py into site/chapters/the-landscape-and-whats-next.html at each
   SLOT marker below. No page chrome, no h1/h2 (the shell renders those).
-  APM CLI referenced: v0.23.1. Landscape snapshot dated 2026-07-01. OpenAPM v0.1 is an
-  editor's Working Draft; there is no central registry today and the registry API is on the
-  public roadmap (OpenAPM v0.2).
+  Edition 1.2 APM capability reference: exactly v0.31.0, from baseline v0.23.1.
+  Competitor data remains the historical 2026-07-01 snapshot, not a new market survey.
+  OpenAPM v0.1 remains an editor's Working Draft. The shipped experimental REST client
+  and implementable HTTP API do not establish a Microsoft-operated public hub or
+  normative OpenAPM v0.2 delivery.
   This is the CLOSING chapter -- it is mostly conceptual (no runnable apm examples), ties the
   whole book back to the four properties + the Meridian journey, and ENDS ON OPEN QUESTIONS.
-  Ground truth: content/research/12-the-landscape-and-whats-next-theory.md.
-  Notes for the verifier: (1) every tool named is pre-1.0 and moving -- re-verify each cell of
-  the comparison table against its primary source before publication; (2) the AGENTS.md Linux
-  Foundation stewardship line is cited to agents.md and must be confirmed there at publication;
-  (3) references to `gh skill install`, `gh-aw` / `shared/apm.md`, and OpenAPM are references, not
-  verified apm commands, so they carry no apm-version stamp. Meridian's org = meridian-finance; internal pkg =
-  meridian-standards; new joiner = Anika (established in earlier chapters). No real person names.
+  Sources: historical content/research/12-the-landscape-and-whats-next-theory.md;
+  content/research/updates/1.2/{theory,producer-reference,core-reference}.md;
+  session files/book-v1.2/impact.md and the v0.31.0 source checkout at
+  8fd10ac5eafee7ca77d41cc34ba139d812fdacd5.
+  No executable blocks added or historical verification stamps advanced.
+  gh-aw source/probe boundaries are recorded beside that subsection below.
+  Meridian's org = meridian-finance; internal pkg = meridian-standards;
+  new joiner = Anika (established in earlier chapters). No real person names.
 -->
 
 <!-- SLOT: objective -->
@@ -23,21 +26,26 @@
   <span class="property property--reproducibility">Reproducibility</span>,
   <span class="property property--security">Provenance / security</span>, and
   <span class="property property--governance">Governance</span>) as the map's coordinates rather than
-  marketing claims. You will name the shared <strong>standards layer</strong> APM builds on
-  (SKILL.md, AGENTS.md, MCP) and the broader <strong>OpenAPM</strong> bid it advances; compare APM
-  honestly against <code>gh skill</code>, <code>orthogonalhq/apm</code>, <code>TheLarkInn/aipm</code>,
-  and <code>vercel-labs/skills</code>; and make the <strong>adopt / watch / build-around</strong> call
-  as a decision about <em>scope and governance</em>, not install ergonomics. One discipline frames the
-  whole chapter: this is a snapshot dated <strong>2026-07-01</strong>, and every tool named below
-  &mdash; APM included &mdash; is <strong>pre-1.0 and moving</strong>, so treat the map as a map, not a
-  verdict.
+  marketing claims. You will name the shared <a href="#ch12-standards">standards layer</a> APM builds on
+  (SKILL.md, AGENTS.md, MCP), distinguish Agent Plugins from the broader <strong>OpenAPM</strong>
+  draft, compare APM honestly against <code>gh skill</code>, <code>orthogonalhq/apm</code>,
+  <code>TheLarkInn/aipm</code>, and <code>vercel-labs/skills</code>, and make the
+  <strong>adopt / watch / build-around</strong> call
+  as a decision about <em>scope and governance</em>, not install ergonomics.
+</p>
+<p>
+  <strong>Two evidence baselines.</strong> Book 1.2 updates APM's capabilities from
+  <code>0.23.1</code> to exactly <span class="apm-version">APM 0.31.0</span>.
+  The competitor entries remain the <strong>2026-07-01 historical snapshot</strong>; their versions,
+  feature claims, and counts have not been re-researched for this edition. Treat the map as a map,
+  not a current market verdict.
 </p>
 
 <!-- SLOT: concept-theory -->
 <h3>A young category that has not settled</h3>
 <p>
-  &ldquo;Agent context management&rdquo; is a genuinely new tool category &mdash; barely a year old as
-  a named idea. APM was introduced on the GitHub Blog in October 2025
+  &ldquo;Agent context management&rdquo; is an emerging tool category. APM was introduced on the
+  GitHub Blog in October 2025
   (<a href="https://github.blog/ai-and-ml/github-copilot/how-to-build-reliable-ai-workflows-with-agentic-primitives-and-context-engineering/" rel="noreferrer">How
   to build reliable AI workflows with agentic primitives and context engineering</a>) and only reached
   the <code>microsoft/apm</code> organization in early 2026
@@ -65,32 +73,31 @@
 <aside class="callout callout-warn">
   <h3>Misconception: &ldquo;there's a standard package manager for agents now, and APM is it&rdquo;</h3>
   <p>
-    Not yet. The category is contested. A broad specification (OpenAPM) and a widely adopted narrow
+    Not yet. The category is contested. A broad draft specification (OpenAPM) and a shared narrow
     format (SKILL.md) are both in play, and several capable installers exist alongside APM. APM is
-    <em>a</em> strong, broad answer &mdash; not <em>the</em> settled answer. Overclaiming here would cost
+    <em>a</em> broad answer &mdash; not <em>the</em> settled answer. Overclaiming here would cost
     you exactly the credibility the rest of this chapter depends on.
   </p>
 </aside>
 
-<h3>The standards layer underneath the tools</h3>
+<h3 id="ch12-standards">The standards layer underneath the tools</h3>
 <p>
   Beneath the competing command-line tools sits a shared <strong>standards layer</strong> that most of
   them build on. APM's own framing is that it is &ldquo;built on open standards&rdquo;
-  (<a href="https://github.com/microsoft/apm" rel="noreferrer">microsoft/apm</a>) &mdash; it does not
+  (<a href="https://raw.githubusercontent.com/microsoft/apm/v0.31.0/README.md" rel="noreferrer">APM 0.31.0 README</a>) &mdash; it does not
   compete <em>with</em> these formats, it <strong>consumes and composes</strong> them:
 </p>
 <ul>
   <li>
     <strong>SKILL.md / Agent Skills</strong>
     (<a href="https://agentskills.io" rel="noreferrer">agentskills.io</a>) &mdash; the community format
-    for packaging a reusable skill, adopted across a large number of agents. APM implements it for its
+    for packaging a reusable skill. APM implements it for its
     <code>skill</code> primitive.
   </li>
   <li>
     <strong>AGENTS.md</strong> (<a href="https://agents.md" rel="noreferrer">agents.md</a>) &mdash; the
-    shared convention for the agent instruction file, now maintained as an open community standard (its
-    stewardship moved under the Linux Foundation's Agentic AI Foundation in late 2025; see
-    <a href="https://agents.md" rel="noreferrer">agents.md</a>). APM builds on it as a foundation.
+    shared convention for the agent instruction file. APM builds on it as a foundation; the
+    standard's own site is the authority on its stewardship, not the package manager.
   </li>
   <li>
     <strong>MCP</strong> &mdash; the Model Context Protocol for tool and data servers
@@ -98,82 +105,141 @@
     declares and governs MCP servers as a primitive rather than reinventing them.
   </li>
   <li>
+    <strong>Agent Plugins 1.0</strong> &mdash; a plugin-container schema, with a root
+    <code>plugin.json</code>, skills, and MCP configuration in APM's
+    <a href="https://raw.githubusercontent.com/microsoft/apm/v0.31.0/docs/src/content/docs/reference/cli/pack.md" rel="noreferrer">opt-in implementation</a>.
+    Its <code>1.0</code> version does not mean APM or OpenAPM has reached 1.0, nor that every harness
+    can load the same plugin. See the <a href="#ch12-plugin-boundary">format and native-host boundary</a>
+    below.
+  </li>
+  <li>
     <strong>OpenAPM v0.1</strong>
-    (<a href="https://microsoft.github.io/apm/specs/openapm-v01/" rel="noreferrer">the OpenAPM
+    (<a href="https://raw.githubusercontent.com/microsoft/apm/v0.31.0/docs/src/content/docs/specs/openapm-v0.1.md" rel="noreferrer">the target-tag OpenAPM
     spec</a>) &mdash; Microsoft's own <em>broader</em> bid. Where SKILL.md standardizes one primitive,
     OpenAPM tries to standardize the whole <strong>manifest&nbsp;+&nbsp;lockfile&nbsp;+&nbsp;policy</strong>
     triad (<code>apm.yml</code>, <code>apm.lock.yaml</code>, <code>apm-policy.yml</code>), dependency
-    resolution, and the primitive type system. It is an editor's Working Draft with no backward-compat
-    guarantee before v1.0, and &mdash; the fact that matters most this chapter &mdash; it defines
-    <strong>no central registry today; the registry API is on the public roadmap (OpenAPM v0.2)</strong>.
+    resolution, and the primitive type system. It remains an <strong>editor's Working Draft</strong>
+    with no backward-compatibility guarantee before v1.0. It treats the implemented registry HTTP
+    API as <em>informational</em> in v0.1 and reserves a normative wire contract, publisher
+    signing/attestation, and version withdrawal for v0.2. That is a specification boundary,
+    <strong>not a claim that registry implementation is absent</strong>.
   </li>
 </ul>
 <p>
   Hold two distinctions apart, because the rest of the chapter leans on them. First,
   <strong>standard vs. tool</strong>: a <em>spec</em> (SKILL.md, OpenAPM) defines a format; a
   <em>tool</em> (APM, <code>gh skill</code>) implements one. Second, <strong>narrow vs. broad</strong>:
-  SKILL.md standardizes a single primitive (the skill), while OpenAPM standardizes the packaging system
-  across every primitive. That makes SKILL.md and OpenAPM not rivals for one slot but
+  SKILL.md standardizes a single primitive (the skill), while OpenAPM describes the packaging system
+  across multiple primitive types. That makes SKILL.md and OpenAPM not rivals for one slot but
   <strong>two live bids at different scopes</strong> &mdash; a broad spec that can <em>consume</em> the
   narrow one. The open question is <em>convergence</em>: whether the broad spec absorbs or aligns with
-  the widely adopted narrow one over time. That is something to watch, not to bet on.
+  the shared narrow one over time. That is something to watch, not to bet on.
 </p>
 <p>
   The standards layer is also <em>why</em> the properties are possible at all. Shared formats are what
   make <span class="property property--portability">Portability</span> real: a skill written to
   SKILL.md or an instruction file written to AGENTS.md moves across harnesses because the
-  <em>format</em> is shared, not the tool. OpenAPM extends that same shared-format guarantee to
-  <span class="property property--reproducibility">Reproducibility</span> (a normative lockfile) and
-  <span class="property property--governance">Governance</span> (a normative policy file). Standards
-  are the substrate; the four properties are what they buy.
+  <em>format</em> is shared, not the tool &mdash; provided the receiving harness supports it.
+  OpenAPM applies shared formats to
+  <span class="property property--reproducibility">Reproducibility</span> (the lockfile) and
+  <span class="property property--governance">Governance</span> (the policy file). A draft contract
+  makes interoperability possible; it does not certify every implementation or runtime.
 </p>
 
 <!-- SLOT: in-apm -->
-<h3>Where APM sits on the map</h3>
+<!--
+  Current-capability evidence, not new executions:
+  producer-reference sections 4, 7, 10; core-reference sections 3, 5.
+  Probe IDs: meridian-portable-rejected, native-bundle-declared-install,
+  native-bundle-audit, portable-default-alias, registry-manifest-gate,
+  registry-publish-gate, registry-publish-dry-run. Native loading and a live
+  registry service were not exercised. Target catalog claims are bounded
+  help/source evidence; no additional Meridian harness is implied.
+-->
+<h3 id="ch12-apm-scope">Where APM sits on the map</h3>
 <p>
   APM's distinctive position has two halves, and honesty requires stating both. The first half is its
-  strength: among the tools in this space, APM has the <strong>broadest primitive coverage</strong>
-  &mdash; the seven types you met in <a href="primitives-and-harnesses.html">Chapter 3</a> (instructions,
-  prompts, skills, agents, plugins, MCP servers, and hooks) &mdash; <em>and</em> it ships enterprise
-  <strong>governance</strong> in <code>apm-policy.yml</code>
-  (<a href="governance-and-policy.html">Chapter 9</a>), which no skills-only installer offers. In the
-  language of the four properties, APM is the tool that carries <em>all four</em> across
-  <em>all</em> primitive types, not one property over a single slice.
+  strength: <strong>mixed-context management plus install-time governance</strong>. The vocabulary
+  from <a href="primitives-and-harnesses.html">Chapter 3</a> includes instructions, prompts/commands,
+  skills, agents, MCP servers, and harness hooks, alongside plugin packages that contain components.
+  APM connects those to a manifest, a lockfile, and <code>apm-policy.yml</code>
+  (<a href="governance-and-policy.html">Chapter 9</a>). This is broader scope than moving a skill
+  alone, but not a promise that every component has the same deployment, audit, or execution
+  semantics on every harness
+  (<a href="https://raw.githubusercontent.com/microsoft/apm/v0.31.0/docs/src/content/docs/reference/package-types.md" rel="noreferrer">package layouts</a>;
+  <a href="https://raw.githubusercontent.com/microsoft/apm/v0.31.0/docs/src/content/docs/reference/targets-matrix.md" rel="noreferrer">target matrix</a>).
+</p>
+<p id="ch12-plugin-boundary">
+  A concrete example is <strong>Agent Plugins 1.0</strong>: the opt-in <code>agent-plugin</code>
+  output carries skills and MCP, not Meridian's complete instruction&nbsp;+&nbsp;prompt&nbsp;+&nbsp;skill
+  package. Packing that package in this format is rejected rather than silently discarding its
+  instructions and prompt. The default bundle
+  remains Claude-compatible; the <code>plugin</code> format alias does not select Agent Plugins.
+  Recognized Agent Plugins stay whole under <code>apm_modules</code> for native
+  <strong>Copilot</strong> registration, rather than being flattened into loose primitives.
+  Loading that registration requires <strong>Copilot CLI 1.0.81 or newer</strong>; APM need not
+  locate or execute Copilot to register it. Other targets are outside this native route
+  (<a href="https://raw.githubusercontent.com/microsoft/apm/v0.31.0/docs/src/content/docs/consumer/copilot-agent-plugins.md" rel="noreferrer">native consumer contract</a>).
+  Use <a href="becoming-a-producer.html">Chapter 10</a>'s format choices and native replay caveat,
+  not a wholesale migration of Meridian's package.
 </p>
 <p>
-  The second half is the gap: APM has <strong>no central, searchable registry today</strong>.
-  Distribution is git-based &mdash; &ldquo;any git repository is a valid APM package&rdquo;
-  (<a href="https://microsoft.github.io/apm/concepts/what-is-apm/" rel="noreferrer">What is APM?</a>)
-  &mdash; while several narrower rivals already ship a registry or GitHub-backed discovery. The registry
-  HTTP API (publisher identity, search, yank/deprecate) is on the public roadmap
-  (<strong>OpenAPM v0.2</strong>), and its progress is tracked on
-  <a href="https://github.com/microsoft/apm" rel="noreferrer">microsoft/apm</a>. This is the
-  category's biggest open question for APM, and the book has said so plainly since
-  <a href="lessons-from-package-managers.html">Chapter 2</a> &mdash; it is not a footnote.
+  The <a href="https://raw.githubusercontent.com/microsoft/apm/v0.31.0/docs/src/content/docs/reference/targets-matrix.md" rel="noreferrer">0.31.0 target catalog</a>
+  includes Grok Build and Kiro agent support; <strong>Hermes is stable but explicit-only</strong>,
+  not auto-detected or included in the default <code>all</code> expansion. Grok Cloud remains
+  experimental. Catalog support is not a runtime compatibility test.
+  Meridian still uses Copilot, Claude Code, and Cursor: portability means the same declared intent
+  in supported native forms, not identical files or runtime behavior.
+</p>
+<h4 id="ch12-registry-boundary">Implemented registries, hosted discovery, and draft standards</h4>
+<p>
+  The second half is the distribution choice. Git remains the default and needs no central APM
+  service, but <strong>APM 0.31.0 ships experimental REST registry consumption and publication</strong>.
+  Its <a href="https://raw.githubusercontent.com/microsoft/apm/v0.31.0/docs/src/content/docs/reference/registry-http-api.md" rel="noreferrer">implementable HTTP API v1</a>
+  describes version listing, archive download, and publication. You need an actual compatible
+  backend and the experimental feature enabled
+  (<a href="https://raw.githubusercontent.com/microsoft/apm/v0.31.0/docs/src/content/docs/guides/registries.md" rel="noreferrer">registries guide</a>).
+  Neither the client nor that API is evidence of a <strong>Microsoft-operated public searchable
+  hub</strong>; the API does not define a search endpoint. Nor does its <code>v1</code> label deliver
+  the normative OpenAPM v0.2 work reserved by the <a href="#ch12-standards">draft</a>.
 </p>
 
-<h4>Why the missing registry is not a missing core</h4>
+<h4>Why discovery is not the management core</h4>
 <p>
   Here <a href="lessons-from-package-managers.html">Chapter 2</a> pays off. The registry is the
   <strong>most optional</strong> part of a package manager; the load-bearing parts are the
-  <em>manifest</em> (declared intent) and the <em>lockfile</em> (a pinned, verified result). npm, pip,
-  and Cargo all resolved git and path sources long before a central index mattered. So git-based APM
-  <em>already</em> delivers all four properties today: a team gets
-  <span class="property property--portability">Portability</span> from the manifest,
+  <em>manifest</em> (declared intent) and the <em>lockfile</em> (a pinned result you can check).
+  Git sources can supply the same management core without a public hub. In the supported
+  configurations taught here, a team gets
+  <span class="property property--portability">Portability</span> from the manifest and target selection,
   <span class="property property--reproducibility">Reproducibility</span> from the lockfile
   (<a href="the-lockfile-and-reproducibility.html">Chapter 6</a>),
   <span class="property property--security">Provenance / security</span> from content-hash pinning and
-  install-time scanning (<a href="security-by-default.html">Chapter 8</a>), and
+  scanning before agent-readable deployment (<a href="security-by-default.html">Chapter 8</a>), and
   <span class="property property--governance">Governance</span> from policy
-  (<a href="governance-and-policy.html">Chapter 9</a>) &mdash; none of which needs an index.
+  (<a href="governance-and-policy.html">Chapter 9</a>) &mdash; none of which needs a public index.
+  The cryptographic hashes detect changed bytes relative to trusted metadata;
+  <strong>they are not publisher signatures</strong> or proof of benign content
+  (<a href="https://raw.githubusercontent.com/microsoft/apm/v0.31.0/docs/src/content/docs/enterprise/security.md" rel="noreferrer">security boundaries</a>).
 </p>
 <p>
-  The clean line to draw: <strong>&ldquo;no registry&rdquo; limits <em>discovery</em>, not
-  <em>management</em>.</strong> What git-based APM does not yet give you is easy search and browse of
-  third-party packages. That is a real limitation &mdash; but it is about the convenience of
-  <em>finding</em> packages, not the ability to declare, pin, verify, and govern them. Conflating the
-  two is the trap; it is the Chapter 2 misconception (&ldquo;a package manager is basically a downloader
-  with a registry&rdquo;) in new clothes.
+  The clean line to draw is <strong>discovery versus management</strong>, not &ldquo;registry absent
+  versus present.&rdquo; Git sources, a marketplace catalog, a transport proxy, a REST package
+  backend, and an offline bundle solve different problems. A proxy does not become a discovery
+  index, and a catalog is not the REST server. Follow
+  <a href="becoming-a-producer.html">Chapter 10</a> for distribution formats and
+  <a href="enterprise-at-fleet-scale.html">Chapter 11</a> for their operational boundaries rather
+  than treating any one as a substitute for the others.
+</p>
+<p id="ch12-roadmap">
+  <strong>Read roadmap evidence as planning.</strong> The
+  <a href="https://raw.githubusercontent.com/microsoft/apm/v0.31.0/GOVERNANCE.md" rel="noreferrer">target-tag project governance document</a>
+  points to an active, <a href="https://github.com/orgs/microsoft/projects/2304/views/5" rel="noreferrer">issue-backed public roadmap</a>:
+  issues carry scope and evidence, <em>Now / Next / Later</em> horizons express priority, and
+  milestones group plausible release cohorts. Placement is neither implementation approval nor
+  a delivery guarantee. This is contributor planning, not the enterprise
+  <code>apm-policy.yml</code> engine, and it does not turn OpenAPM v0.2's reserved work into a
+  promised release.
 </p>
 
 <aside class="leader-callout">
@@ -181,52 +247,53 @@
   <p>
     The make-vs-adopt decision is a <strong>scope-and-governance</strong> decision, not an install-UX
     comparison. A narrow skill installer can be exactly right for a single developer who only needs
-    skills and wants a registry today. A regulated, multi-team organization that has already committed
+    skills and values discovery. A regulated, multi-team organization that has already committed
     to the four properties needs the manifest&nbsp;+&nbsp;lockfile&nbsp;+&nbsp;<strong>policy</strong>&nbsp;+&nbsp;audit
-    story across <em>every</em> primitive type &mdash; which today points to APM, eyes open about the
-    git-based distribution and the registry that has not landed yet. Building that in-house means re-deriving OpenAPM;
-    adopting APM means inheriting it. The strategic variable to track is <strong>OpenAPM v0.2</strong>
-    (registry, publisher identity, yank/deprecate), because it decides whether the category consolidates
-    on a broad standard or fragments across narrower tools. Adopt for the contract you can rely on now;
-    budget <em>attention</em>, not a blocking dependency, for the registry.
+    story for the primitives and targets it actually uses. APM supplies that management layer;
+    you still own compatibility checks and protected enforcement. Git-first adoption does not
+    require a public hub. Operating a compatible experimental registry is a separate cost and
+    responsibility, not a service you inherit by installing the CLI. Track usable discovery services
+    and the <strong>OpenAPM v0.2</strong> specification work separately: an issue or roadmap horizon
+    is planning, not a delivery promise. Adopt for the contract you can rely on now; build around a
+    demonstrated operational need, and budget <em>attention</em>, not a blocking dependency, for
+    future standards.
   </p>
 </aside>
 
 <!-- SLOT: when-to-use-pitfalls -->
 <h3>The tools, side by side</h3>
 <p>
-  Several tools overlap with APM, and none of them is a strawman. Each is real and actively developed;
-  each optimizes a <em>subset</em> of the four properties over a <em>narrower</em> primitive set. Read
+  Several tools overlap with APM, and none of them is a strawman. The historical research mapped
+  different choices of primitive scope, discovery, and governance. Read
   the table below as &ldquo;which properties, over how many primitive types&rdquo; &mdash; not
   &ldquo;which install command is shortest.&rdquo;
 </p>
 
 <aside class="callout callout-warn">
-  <h3>Pre-1.0 caveat: this is a snapshot, not a verdict</h3>
+  <h3>Different evidence dates, not a refreshed market survey</h3>
   <p>
-    Every tool in the next table is pre-1.0 and moving. This is a snapshot dated
-    <strong>2026-07-01</strong> (APM <code>apm-cli</code> v0.23.1; OpenAPM v0.1 Working Draft). APM
-    itself ships roughly one to three releases a week
-    (<a href="https://github.com/microsoft/apm" rel="noreferrer">microsoft/apm</a>), with no
-    backward-compat guarantee until v1.0
-    (<a href="https://microsoft.github.io/apm/specs/openapm-v01/" rel="noreferrer">the OpenAPM
-    spec</a>), and its rivals are just as early. Re-verify each cell against its primary source before
-    you rely on it.
+    Only the <strong>Microsoft APM entry</strong> is updated to <strong>0.31.0</strong>.
+    The four competitor entries reproduce the <strong>2026-07-01 historical snapshot</strong>,
+    including their original version and coverage claims; they are not newly verified September
+    data. APM remains pre-1.0, and OpenAPM v0.1 remains a Working Draft. Those version labels say
+    nothing about the maturity of every other tool or format. Consult each linked primary source
+    for a present-day selection.
   </p>
 </aside>
 
 <table>
   <caption>
     Agent-context tools by the four-property axes &mdash; manifest, lockfile, registry, primitive
-    coverage, and governance. Versions as of 2026-07-01; every tool is pre-1.0.
+    coverage, and governance. APM: 0.31.0. Competitors: unchanged historical snapshot,
+    2026-07-01; not re-researched for book 1.2.
   </caption>
   <thead>
     <tr>
-      <th scope="col">Tool (2026-07-01)</th>
+      <th scope="col">Tool / evidence baseline</th>
       <th scope="col">Owner &middot; language</th>
       <th scope="col">Manifest</th>
       <th scope="col">Lockfile</th>
-      <th scope="col">Central registry</th>
+      <th scope="col">Registry / discovery</th>
       <th scope="col">Primitive coverage</th>
       <th scope="col">Governance / policy</th>
     </tr>
@@ -236,14 +303,14 @@
       <td>
         <strong>Microsoft APM</strong> <em>(this book)</em><br>
         <a href="https://github.com/microsoft/apm" rel="noreferrer"><code>microsoft/apm</code></a>,
-        <code>apm-cli</code> v0.23.1
+        <code>apm-cli</code> v0.31.0
       </td>
       <td>Microsoft &middot; Python</td>
       <td><code>apm.yml</code></td>
       <td><code>apm.lock.yaml</code> (versions + content hashes)</td>
-      <td><strong>None yet</strong> &mdash; git-based; registry API on the public roadmap (OpenAPM v0.2)</td>
-      <td><strong>Broadest</strong> &mdash; all seven: skills, prompts, instructions, agents, plugins, MCP servers, hooks</td>
-      <td><code>apm-policy.yml</code>, install-time, tighten-only inheritance</td>
+      <td>Git default; <a href="#ch12-registry-boundary">experimental REST client + implementable API</a>. A Microsoft-operated public searchable hub is not established by the release evidence.</td>
+      <td><a href="#ch12-apm-scope">Mixed primitives</a>: instructions, prompts/commands, skills, agents, MCP, hooks; legacy/native plugin intake with target and format limits</td>
+      <td><code>apm-policy.yml</code>, install-time, tighten-only inheritance; enforcement remains early preview</td>
     </tr>
     <tr>
       <td>
@@ -297,17 +364,17 @@
 </table>
 
 <p>
-  Mapped onto the four properties, the table reads cleanly. Every tool delivers some
-  <span class="property property--portability">Portability</span> &mdash; that is the price of entry
-  &mdash; but only APM and <code>aipm</code> carry it across every primitive type.
-  <span class="property property--reproducibility">Reproducibility</span> needs a lockfile, which APM,
-  <code>orthogonalhq/apm</code>, and (in plan) <code>aipm</code> have but the two skills-only
-  installers do not. On <span class="property property--security">Provenance / security</span>,
-  <code>gh skill</code> has the cleanest supply-chain story (immutable releases, tree-SHA) via
-  GitHub-as-registry (<a href="https://github.blog/changelog/2026-04-16-manage-agent-skills-with-github-cli/" rel="noreferrer">the
-  gh skill changelog</a>), while APM leans on content-hash pinning plus install-time scanning. And on
-  <span class="property property--governance">Governance</span>, APM is effectively alone: no skills-only
-  installer offers an org-level allow/deny gate.
+  Mapped onto the four properties, the useful distinction is scope.
+  <span class="property property--portability">Portability</span> for one skill is not the same
+  requirement as projecting a mixed package onto several targets.
+  <span class="property property--reproducibility">Reproducibility</span> asks what identity and
+  content each tool records and can restore, not merely whether it has a file called a lock.
+  For <span class="property property--security">Provenance / security</span>, the historical
+  <code>gh skill</code> announcement describes immutable releases and tree-SHA checks
+  (<a href="https://github.blog/changelog/2026-04-16-manage-agent-skills-with-github-cli/" rel="noreferrer">April 2026 changelog</a>);
+  APM provides hash-based integrity and install-time scanning, not publisher signing.
+  For <span class="property property--governance">Governance</span>, evaluate APM's explicit policy
+  contract against your organization-wide requirements, without inferring a current market ranking.
 </p>
 
 <h3>When a narrow installer is enough &mdash; and when it isn't</h3>
@@ -318,11 +385,11 @@
 <ul>
   <li>
     <strong>A narrow skill installer is plenty</strong> when an <em>individual</em> workflow only needs
-    skills and values a registry or clean provenance <em>today</em> &mdash; <code>gh skill</code> for
-    GitHub-native provenance, <code>orthogonalhq/apm</code> for a searchable index,
-    <code>vercel-labs/skills</code> for the widest agent reach. A skills-only tool cannot express a
-    project's prompts, instructions, agents, and MCP servers as one governed, locked dependency graph,
-    but if you never needed that graph, the ceremony would be overkill.
+    skills and values discovery or source provenance. The historical entries illustrate those
+    choices: <code>gh skill</code>'s GitHub-native provenance, <code>orthogonalhq/apm</code>'s
+    searchable index, and <code>vercel-labs/skills</code>' cross-agent skill focus. A skills-only tool
+    cannot express a project's prompts, instructions, agents, and MCP servers as one governed,
+    locked dependency graph, but if you never needed that graph, the ceremony would be overkill.
   </li>
   <li>
     <strong>You need the full manifest / lockfile / policy / audit story</strong> when context is
@@ -332,9 +399,13 @@
     is the shape Meridian has been building toward for eleven chapters.
   </li>
   <li>
-    <strong>&ldquo;Build around&rdquo;</strong> &mdash; a thin wrapper or an internal registry proxy
-    (<a href="enterprise-at-fleet-scale.html">Chapter 11</a>) &mdash; is the middle path for a team that
-    wants APM's contract <em>and</em> internal discovery before the official registry lands.
+    <strong>&ldquo;Build around&rdquo;</strong> is the middle path when you want APM's management
+    contract and have a specific gap: an internal catalog for discovery, a proxy for approved
+    transport, or an operated compatible REST backend. They are different investments, not
+    synonyms for &ldquo;registry.&rdquo; Use
+    <a href="becoming-a-producer.html">Chapter 10</a>'s distribution guidance and
+    <a href="enterprise-at-fleet-scale.html">Chapter 11</a>'s infrastructure boundaries; do not
+    make the plan depend on an assumed public-hub launch.
   </li>
 </ul>
 
@@ -343,65 +414,117 @@
   <p>
     <a href="lessons-from-package-managers.html">Chapter 2</a> warned that several unrelated tools share
     the name &ldquo;apm.&rdquo; This chapter is where that warning grows teeth. <code>orthogonalhq/apm</code>
-    is not a thought experiment &mdash; it is a real, actively developed Rust CLI with the <em>same
-    command name</em> and, pointedly, the <strong>public registry APM itself lacks</strong>
-    (<a href="https://apm.orthg.nl" rel="noreferrer">apm.orthg.nl</a>). A teammate who searches
+    was recorded in the July snapshot as a Rust CLI with the <em>same command name</em> and a
+    <strong>public registry</strong> (<a href="https://apm.orthg.nl" rel="noreferrer">apm.orthg.nl</a>).
+    A registry capability alone cannot identify the right tool: Microsoft APM also has an
+    experimental registry client. A teammate who searches
     &ldquo;apm install&rdquo; can very plausibly land on it, or on <code>TheLarkInn/aipm</code>, and
     install a different tool with a different manifest, scope, and trust model. The fix is the same
     three-part tell from Chapter 2: this book's APM is <code>apm-cli</code> from
     <a href="https://github.com/microsoft/apm" rel="noreferrer"><code>microsoft/apm</code></a> with the
     <code>apm.yml</code> / <code>apm.lock.yaml</code> / <code>apm-policy.yml</code> triad. Worth noting
-    without defensiveness: <code>aipm</code>'s own design notes ship a point-by-point critique of
+    without defensiveness: the historical research also noted <code>aipm</code>'s point-by-point critique of
     Microsoft APM (<a href="https://github.com/TheLarkInn/aipm" rel="noreferrer">TheLarkInn/aipm</a>)
-    &mdash; a useful, non-hyped signal of where a serious competitor thinks APM is over-broad.
+    &mdash; a dated design perspective, not a fresh comparison of the two current releases.
   </p>
 </aside>
 
 <p>
-  Two more tools are adjacent rather than head-to-head, and worth knowing so you do not miscategorize
-  them: <a href="https://github.com/anthropics/skills" rel="noreferrer"><code>anthropics/skills</code></a>
-  is the SKILL.md reference implementation and a content library, <em>not</em> a manager; and the
+  The same historical map includes adjacent projects rather than head-to-head managers:
+  <a href="https://github.com/anthropics/skills" rel="noreferrer"><code>anthropics/skills</code></a>
+  as a SKILL.md reference implementation and content library; and the
   <a href="https://github.com/modelcontextprotocol/registry" rel="noreferrer">MCP Registry</a> and
-  <a href="https://smithery.ai" rel="noreferrer">Smithery</a> are MCP-server indexes APM can
-  <em>consume</em> rather than replace.
+  <a href="https://smithery.ai" rel="noreferrer">Smithery</a> as MCP-server indexes, not APM package
+  registries. Keep those roles distinct.
 </p>
 
-<h3>A different relationship: tools that <em>consume</em> APM</h3>
+<!--
+  ch12-gh-aw: contract sources are the v0.31.0 shared import and integration guide;
+  source commit 8fd10ac5eafee7ca77d41cc34ba139d812fdacd5.
+  Retained explorer evidence: producer-probes/gh-aw-contract.json (static binding checks,
+  canonical vendored SHA-256 6ebe127ee1ae527249b81239a8fa52f3a3ead298042b2d43122d6a68faf0f3ae);
+  logs/action-instruction-{install,pack,unpack}.{json,txt};
+  logs/action-cli-{pack,unpack}-apm.{json,txt}.
+  Inputs: backend/examples/updates/1.2/producer/{action-pinned,pinned-bundle,ci/gh-aw-review.md}.
+  Action source independently inspected at v1.10.0 / d723bb64ed70c135bbaf87d126b721dd2dae0439.
+  These are recorded local CLI observations, not a new run or an Action/gh-aw PASS.
+-->
+<h3 id="ch12-gh-aw">A different relationship: tools that <em>consume</em> APM</h3>
 <p>
-  Not every neighbour on the map is a rival. The most consequential one is a <em>consumer</em>:
+  Not every neighbour on the map is a rival. One useful relationship is a <em>consumer</em>:
   <a href="https://github.github.com/gh-aw/" rel="noreferrer">GitHub Agentic Workflows</a>
-  (<code>gh-aw</code>), a GitHub&nbsp;Next / Microsoft&nbsp;Research framework that compiles a markdown
-  workflow file into a deterministic GitHub Actions run. The rivals above answer &ldquo;should I use APM
+  (<code>gh-aw</code>), which compiles markdown workflows into GitHub Actions jobs.
+  The rivals above answer &ldquo;should I use APM
   or something else to <em>manage</em> context?&rdquo; <code>gh-aw</code> answers the question that comes
-  <em>after</em> that one: once context is managed, <strong>who runs it?</strong> It does not reimplement
-  packaging &mdash; it <strong>imports APM</strong>. A workflow adds a <code>shared/apm.md</code> import
-  that runs <code>microsoft/apm-action</code> (the turnkey action from
-  <a href="enterprise-at-fleet-scale.html">Chapter&nbsp;11</a>) to pack the declared packages into a
-  bundle, then restores that bundle before the agent starts
-  (<a href="https://github.github.com/gh-aw/reference/dependencies/" rel="noreferrer">gh-aw APM
-  dependencies</a>; <a href="https://microsoft.github.io/apm/integrations/gh-aw/" rel="noreferrer">the
-  APM&nbsp;&middot;&nbsp;gh-aw integration guide</a>).
+  <em>after</em> that one: once context is managed, <strong>who runs it?</strong> Its execution
+  layer is independent of APM. The shared integration uses <code>microsoft/apm-action</code> to
+  install imported packages, pack a bundle, and restore it before the agent starts
+  (<a href="https://raw.githubusercontent.com/microsoft/apm/v0.31.0/docs/src/content/docs/integrations/gh-aw.md" rel="noreferrer">0.31.0 integration guide</a>).
 </p>
 <p>
-  Through the four properties, the division of labour is clean &mdash; and it is why a consumer belongs on
-  this map at all. APM supplies <span class="property property--portability">Portability</span>,
-  <span class="property property--reproducibility">Reproducibility</span> (the same
-  <code>apm.lock.yaml</code> SHA pins from <a href="the-lockfile-and-reproducibility.html">Chapter&nbsp;6</a>,
-  whose diffs are reviewable in the pull request), install-time
-  <span class="property property--security">Provenance / security</span>
-  (<a href="security-by-default.html">Chapter&nbsp;8</a>), and org
-  <span class="property property--governance">Governance</span> via <code>apm-policy.yml</code>
-  (<a href="governance-and-policy.html">Chapter&nbsp;9</a>). <code>gh-aw</code> contributes the one thing
-  APM deliberately does <em>not</em> own: a <strong>sandboxed runtime</strong> that separates the model
-  &mdash; which reads untrusted input and holds no write token &mdash; from the deterministic step that is
-  allowed to write, so a prompt-injection payload cannot become a pushed commit. GitHub documents the
-  pairing as an enterprise pattern in its Well-Architected guidance
-  (<a href="https://learn.github.com/well-architected/governance/recommendations/governing-agentic-workflows" rel="noreferrer">Governing
-  agentic workflows with gh-aw and APM</a>), including the integration&rsquo;s <code>isolated</code>
-  import mode, which hides repo-level config from a consumed skill so its <em>publisher</em> &mdash; not a
-  compromised repo &mdash; controls what the agent is told to do. This is the honest shape of the
-  category: APM is not the whole stack, it is the <em>context layer</em> other runtimes build on.
+  <code>shared/apm.md</code> is a <strong>local, vendored import</strong>, resolved at
+  <code>.github/workflows/shared/apm.md</code>, not a remote <code>uses</code> reference.
+  For this baseline, use the
+  <a href="https://raw.githubusercontent.com/microsoft/apm/v0.31.0/.github/workflows/shared/apm.md" rel="noreferrer">canonical file at the frozen APM tag</a>,
+  then recompile with a separately reviewed gh-aw compiler. Re-vendoring and recompilation are
+  separate from upgrading the CLI. A Copilot workflow must pair <code>engine: copilot</code> with
+  <code>target: copilot</code> under the import's <code>with:</code>; the shared file rejects
+  <code>all</code>. It still defaults to <strong>APM 0.28.0</strong> and selects
+  <code>microsoft/apm-action</code> <strong>v1.10.0</strong>. To select this book's baseline,
+  explicitly set <code>apm-version: '0.31.0'</code>, which reaches <strong>both pack and restore</strong>.
+  Those pins define the intended combination; they do not prove compatibility.
 </p>
+<p>
+  The import runs <strong>isolated</strong> with its own manifest and resolved package set.
+  Only its declared <code>packages:</code> supply context; the host repository's
+  <code>apm.yml</code>, <code>apm.lock.yaml</code>, and local primitives are
+  <strong>not automatically imported</strong>. Pin the imported sources and inspect the resulting
+  bundle rather than claiming the host lockfile governs it. Host policy is not automatically
+  carried over either: establish the policy authority available to the isolated job.
+  For imports without GitHub App credentials, the optional <code>token-source: github-token</code>
+  selects read-only access to private content in the <em>current repository</em>, not other private
+  repositories. For a workflow that intentionally consumes the host manifest, the
+  <a href="https://github.com/microsoft/apm/blob/8fd10ac5eafee7ca77d41cc34ba139d812fdacd5/docs/src/content/docs/integrations/gh-aw.md" rel="noreferrer">frozen upstream
+  integration guide</a> describes an <code>apm-action</code> pre-step alternative. That is
+  source-only guidance requiring separate integration validation, not a verified recipe here
+  or an assumption about this isolated import.
+</p>
+<p>
+  Through the four properties, APM is still the <em>context layer</em>:
+  <span class="property property--portability">Portability</span> for supported projections,
+  <span class="property property--reproducibility">Reproducibility</span> for the imported graph and
+  bundle, install-time <span class="property property--security">Provenance / security</span>, and
+  <span class="property property--governance">Governance</span> when the relevant policy is enforced.
+  gh-aw owns workflow execution, sandboxing, and the separation of model activity from
+  permissioned write steps. Those controls <strong>reduce risk; they do not make prompt injection
+  impossible</strong>. GitHub's
+  <a href="https://learn.github.com/well-architected/governance/recommendations/governing-agentic-workflows" rel="noreferrer">Well-Architected guidance</a>
+  explains the complementary roles, not a transfer of runtime safety responsibility to APM.
+</p>
+<aside class="callout callout-warn" id="ch12-gh-aw-compatibility">
+  <h3>Compatibility has a scope</h3>
+  <p>
+    The recorded local <strong>APM 0.31.0</strong> probes exercised the Action's legacy
+    <code>apm</code> bundle format and restore path. One nonempty
+    <code>design-standards.instructions.md</code> from
+    <code>microsoft/apm-sample-package</code>, pinned at
+    <code>fb2851683be0e0e7711421d518bd8dba23b0b1f6</code>, packed and restored byte-for-byte.
+    That did not create a consumer manifest or lockfile. In contrast, the tested
+    <code>style-checker</code> skill deployed under <code>.agents/skills/</code> was
+    <strong>omitted by legacy Copilot packing</strong>: pack and restore exited 0, but the archive
+    and restored context contained no skill. That omission is a real compatibility limitation,
+    not a network skip
+    (<a href="https://raw.githubusercontent.com/microsoft/apm/v0.31.0/src/apm_cli/bundle/lockfile_enrichment.py" rel="noreferrer">target-filtering source</a>).
+    The positive instruction control does not establish full-package or all-skills compatibility.
+    <a href="enterprise-at-fleet-scale.html">Chapter 11</a> carries the bounded integration guidance.
+  </p>
+  <p>
+    <strong>SKIPPED-needs-network:</strong> gh-aw compilation, GitHub Actions artifact jobs,
+    authentication, and actual agent loading were not exercised; no separately frozen gh-aw
+    compiler/runner and authorized runtime integration were supplied. The local CLI results and
+    static shared-file checks are not an end-to-end workflow run.
+  </p>
+</aside>
 
 <!-- SLOT: worked-example -->
 <aside class="meridian-beat">
@@ -423,10 +546,17 @@
       the contract the team already relies on across Copilot, Claude Code, and Cursor.
     </li>
     <li>
-      <strong>Watch, don't block on.</strong> The OpenAPM <strong>v0.2 registry</strong> story;
-      whether SKILL.md and OpenAPM <em>converge</em>; and whether an internal registry proxy
-      (<a href="enterprise-at-fleet-scale.html">Chapter 11</a>) should bridge the discovery gap before
-      v0.2 ships. None of these is a reason to delay adoption.
+      <strong>Watch, don't block on.</strong> The ecosystem around the shipped experimental registry
+      client/API, separately from <strong>OpenAPM v0.2's normative work</strong>; and how SKILL.md,
+      Agent Plugins, and OpenAPM compose without losing capabilities. Track
+      <a href="#ch12-roadmap">issues and release evidence</a>, not an assumed public-hub date.
+    </li>
+    <li>
+      <strong>Build around a demonstrated gap.</strong> Assign an internal catalog owner if
+      discovery needs one. Evaluate a compatible REST backend separately if registry distribution
+      is required; keep any proxy investment about transport, not discovery
+      (<a href="enterprise-at-fleet-scale.html">Chapter 11</a>).
+      The team need not replace its Git-first package management to make that decision.
     </li>
     <li>
       <strong>Guard against.</strong> The name collision. Internal setup docs and search links say
@@ -437,9 +567,9 @@
   </ul>
   <p>
     The note ends not with a victory lap but with the questions the team will carry into next quarter:
-    <em>if the official registry slips, do we stand up our own proxy or wait? If SKILL.md and OpenAPM
-    diverge instead of converging, which do our internal packages track?</em> Those are open on purpose
-    &mdash; the same honest posture the whole book has kept.
+    <em>which discovery service can we actually operate and trust? If the formats evolve in different
+    directions, what compatibility evidence will we require for our internal packages?</em>
+    Those are open on purpose &mdash; the same honest posture the whole book has kept.
   </p>
 </aside>
 
@@ -460,13 +590,15 @@
   <li>
     <span class="property property--reproducibility">Reproducibility</span> &mdash; the
     <code>apm.lock.yaml</code> lockfile
-    (<a href="the-lockfile-and-reproducibility.html">Chapter 6</a>), forced by a CI break, made restores
-    byte-for-byte; <a href="lifecycle.html">Chapter 7</a> made change deliberate.
+    (<a href="the-lockfile-and-reproducibility.html">Chapter 6</a>), forced by a CI break, made locked
+    source identity and restore checks reviewable; <a href="lifecycle.html">Chapter 7</a> made change deliberate.
   </li>
   <li>
-    <span class="property property--security">Provenance / security</span> &mdash; install-time scanning
-    and content-hash pinning (<a href="security-by-default.html">Chapter 8</a>) blocked a sketchy
-    transitive MCP server before it touched disk.
+    <span class="property property--security">Provenance / security</span> &mdash; scanning,
+    content-hash checks, and transitive-MCP admission rules
+    (<a href="security-by-default.html">Chapter 8</a>) checked deployable content and kept an
+    undeclared transitive server out of the agent's configuration. They did not certify runtime
+    safety or publisher identity.
   </li>
   <li>
     <span class="property property--governance">Governance</span> &mdash; <code>apm-policy.yml</code>
@@ -479,9 +611,10 @@
 </ul>
 <p>
   And this chapter turned those four properties into a <strong>yardstick</strong>: a grounded map of a
-  young category, where APM sits as the broad-coverage, policy-carrying, git-based option among narrower
-  installers &mdash; the make-vs-adopt call reframed as scope and governance, not install UX, and the
-  Chapter 2 name collision confirmed as real, not hypothetical.
+  young category, where APM is a mixed-context, policy-carrying, Git-first option with experimental
+  REST registry support &mdash; the make-vs-adopt call reframed as scope and governance, not install
+  UX. The Chapter 2 name collision still matters; so does distinguishing shipped implementation,
+  draft standards, hosted services, and planned work.
 </p>
 
 <h3>Open questions</h3>
@@ -492,27 +625,33 @@
 </p>
 <ul>
   <li>
-    <strong>Does the registry land, and when?</strong> OpenAPM v0.2 &mdash; the registry HTTP API,
-    publisher identity, yank/deprecate &mdash; is the roadmap milestone that decides whether discovery
-    stops being APM's rough edge (<a href="https://github.com/microsoft/apm" rel="noreferrer">microsoft/apm</a>).
+    <strong>Which registry ecosystem can your team depend on?</strong> The experimental client and
+    implementable API exist. A usable hosted discovery service, a normative wire standard,
+    publisher attestations, and version withdrawal are separate questions &mdash; not all answered
+    by that implementation
+    (<a href="https://raw.githubusercontent.com/microsoft/apm/v0.31.0/docs/src/content/docs/specs/openapm-v0.1.md" rel="noreferrer">OpenAPM's status and reserved scope</a>).
   </li>
   <li>
     <strong>Do the standards converge or fragment?</strong> Whether the broad OpenAPM bid aligns with
-    the widely adopted SKILL.md format &mdash; or the two drift apart &mdash; will shape which packages
-    stay portable across tools.
+    SKILL.md and Agent Plugins formats without losing primitives or trust information will shape
+    which packages stay portable across tools. A shared schema alone does not prove native
+    runtime compatibility.
   </li>
   <li>
     <strong>Does the category consolidate?</strong> Whether one broad standard emerges or the space
-    splinters across narrower installers is genuinely undecided at v0.23.1 &mdash; and everything above
-    is a 2026-07-01 snapshot that will move.
+    splinters across narrower installers remains an open question. The competitor map here is still
+    the <strong>2026-07-01 historical snapshot</strong>; updating APM to 0.31.0 does not supply new
+    evidence about the rest of the market.
   </li>
 </ul>
 <p>
-  Your move is the one Meridian made: <strong>adopt APM for the contract you can rely on now</strong>
-  &mdash; the manifest, the lockfile, policy, and your own internal packages, delivering all four
-  properties over git today &mdash; while you <strong>watch</strong> the registry and the standards, and
+  Your move is the one Meridian made: <strong>adopt APM for the contract you can verify now</strong>
+  &mdash; the manifest, the lockfile, policy, and your own internal packages on the Git-first path
+  &mdash; while you <strong>watch</strong> services and standards, <strong>build around</strong> specific
+  operational needs, and
   <strong>guard against</strong> installing the wrong &ldquo;apm.&rdquo; Start where the drift hurts most
   (<a href="https://github.com/microsoft/apm" rel="noreferrer"><code>microsoft/apm</code></a>,
   <a href="https://microsoft.github.io/apm/" rel="noreferrer">the docs</a>), declare one manifest, and
-  carry the open questions above into your own adoption.
+  carry the open questions above into your own adoption: <em>what will you standardize now, and
+  what will you require evidence for next quarter?</em>
 </p>

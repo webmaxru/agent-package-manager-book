@@ -1,0 +1,9 @@
+# Local policy rehearsals use explicit --policy; this is not a published authority.
+name: operations-policy
+version: 1.0.0
+description: Safe local policy rehearsal.
+targets: [copilot, claude, cursor]
+dependencies:
+  apm: []
+  mcp: []
+includes: auto

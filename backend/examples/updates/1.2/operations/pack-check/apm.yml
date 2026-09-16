@@ -1,0 +1,15 @@
+# check-clean validates generated marketplace output, not deployed-file integrity.
+name: operations-pack-check
+version: 1.0.0
+description: Local-only marketplace cleanliness rehearsal.
+targets: [claude]
+dependencies: {}
+includes: auto
+marketplace:
+  owner:
+    name: Example maintainers
+  packages:
+    - name: local-review
+      source: ./package
+      version: 1.0.0
+      description: Inert local review guidance.

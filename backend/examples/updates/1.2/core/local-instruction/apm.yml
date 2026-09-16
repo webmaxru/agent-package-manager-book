@@ -1,0 +1,15 @@
+# Materialize one local instruction in three native target formats.
+name: meridian-checkout-agent-context
+version: 0.1.0
+description: Shared AI-agent context for the Meridian checkout service.
+author: Meridian Checkout Team
+targets:
+  - copilot
+  - claude
+  - cursor
+
+dependencies:
+  apm: []
+  mcp: []
+includes: auto
+scripts: {}

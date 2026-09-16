@@ -1,0 +1,4 @@
+name: local-review
+version: 1.0.0
+description: Inert local review guidance.
+dependencies: {}
