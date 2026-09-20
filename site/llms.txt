@@ -24,7 +24,7 @@ An interactive, multi-page HTML book. Chapters build in order, concept before co
 ## About
 
 - [Home](https://apm.isainative.dev/): overview, reading paths, and the full table of contents.
-- [Download the full book (PDF)](https://apm.isainative.dev/apm-book.pdf): the entire book as one printable, offline PDF.
+- [Get the free PDF](https://isainative.substack.com/p/free-agentic-workflows-book): request the book PDF from the author.
 - [How the fleet built this](https://apm.isainative.dev/orchestration.html): the agent-orchestration pipeline that produced the book.
 
 ## Reference
@@ -33,4 +33,4 @@ An interactive, multi-page HTML book. Chapters build in order, concept before co
 - [microsoft/apm](https://github.com/microsoft/apm): the APM source repository and samples.
 - [Book source](https://github.com/webmaxru/agent-package-manager-book): source for this book.
 - [Changelog](https://github.com/webmaxru/agent-package-manager-book/blob/main/content/CHANGELOG.md): what changed in each content edition.
-- [Releases](https://github.com/webmaxru/agent-package-manager-book/releases): versioned editions, each with a downloadable PDF.
+- [Releases](https://github.com/webmaxru/agent-package-manager-book/releases): versioned content editions and release notes.

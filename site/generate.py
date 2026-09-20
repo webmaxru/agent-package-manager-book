@@ -40,9 +40,7 @@ BOOK_AUTHOR = "Maxim Salnikov"
 AUTHOR_URL = "https://www.linkedin.com/in/webmaxru/"
 REPO_URL = "https://github.com/webmaxru/agent-package-manager-book"
 APM_DOCS_URL = "https://microsoft.github.io/apm/"
-# Single-file, printable PDF of the whole book. Built by generate_pdf.py into
-# site/ and offered as a download from the site; regenerated on every build.
-PDF_FILENAME = "apm-book.pdf"
+BOOK_DOWNLOAD_URL = "https://isainative.substack.com/p/free-agentic-workflows-book"
 LOCALE = "en_US"
 OG_IMAGE_PATH = "assets/og-cover.png"
 OG_IMAGE_ALT = "The Missing Package Manager \u2014 Managing AI Agent Context with APM"
@@ -436,7 +434,7 @@ def render_index(chapters: list[dict[str, Any]]) -> str:
           <p class="hero-sub">{esc(BOOK_INTRO)}</p>
           <div class="hero-actions">
             <a class="btn btn-primary" href="{esc(start_href)}">Start reading</a>
-            <a class="btn btn-secondary" href="{PDF_FILENAME}" download>Download PDF</a>
+            <a class="btn btn-secondary" href="{BOOK_DOWNLOAD_URL}" rel="noreferrer">Get the free PDF</a>
             <a class="btn btn-secondary" href="https://github.com/microsoft/apm" rel="noreferrer">View microsoft/apm</a>
           </div>
           <p class="hero-edition"><a href="{RELEASES_URL}" rel="noreferrer">{esc(edition_label())}</a></p>
@@ -484,7 +482,7 @@ def render_index(chapters: list[dict[str, Any]]) -> str:
 
   <footer class="site-footer">
     <div class="container">
-      <p>By <a href="https://www.linkedin.com/in/webmaxru/" rel="noreferrer">Maxim Salnikov</a> &middot; <a href="https://github.com/webmaxru/agent-package-manager-book" rel="noreferrer">Source on GitHub</a> &middot; <a href="{PDF_FILENAME}" download>Download the book (PDF)</a></p>
+      <p>By <a href="https://www.linkedin.com/in/webmaxru/" rel="noreferrer">Maxim Salnikov</a> &middot; <a href="https://github.com/webmaxru/agent-package-manager-book" rel="noreferrer">Source on GitHub</a> &middot; <a href="{BOOK_DOWNLOAD_URL}" rel="noreferrer">Get the free PDF</a></p>
       <p class="footer-edition"><a href="{RELEASES_URL}" rel="noreferrer">{esc(edition_label())}</a></p>
     </div>
   </footer>
@@ -616,7 +614,7 @@ def render_chapter(chapters: list[dict[str, Any]], index: int) -> str:
       </main>
 
       <footer class="site-footer chapter-footer">
-        <p>By <a href="https://www.linkedin.com/in/webmaxru/" rel="noreferrer">Maxim Salnikov</a> &middot; <a href="https://github.com/webmaxru/agent-package-manager-book" rel="noreferrer">Source on GitHub</a> &middot; <a href="../{PDF_FILENAME}" download>Download the book (PDF)</a></p>
+        <p>By <a href="https://www.linkedin.com/in/webmaxru/" rel="noreferrer">Maxim Salnikov</a> &middot; <a href="https://github.com/webmaxru/agent-package-manager-book" rel="noreferrer">Source on GitHub</a> &middot; <a href="{BOOK_DOWNLOAD_URL}" rel="noreferrer">Get the free PDF</a></p>
         <p class="footer-edition"><a href="{RELEASES_URL}" rel="noreferrer">{esc(edition_label())}</a></p>
       </footer>
     </div>
@@ -748,7 +746,6 @@ def render_sitemap(chapters: list[dict[str, Any]]) -> str:
     """XML sitemap for the home page, chapters, and the orchestration page."""
     entries: list[tuple[str, str]] = [(abs_url(), "1.0")]
     entries += [(abs_url(chapter_url(chapter)), "0.8") for chapter in chapters]
-    entries.append((abs_url(PDF_FILENAME), "0.6"))
     entries.append((abs_url("orchestration.html"), "0.5"))
     rows = "\n".join(
         "  <url>\n"
@@ -820,7 +817,7 @@ def render_llms(chapters: list[dict[str, Any]]) -> str:
         "## About",
         "",
         f"- [Home]({abs_url()}): overview, reading paths, and the full table of contents.",
-        f"- [Download the full book (PDF)]({abs_url(PDF_FILENAME)}): the entire book as one printable, offline PDF.",
+        f"- [Get the free PDF]({BOOK_DOWNLOAD_URL}): request the book PDF from the author.",
         f"- [How the fleet built this]({abs_url('orchestration.html')}): the agent-orchestration pipeline that produced the book.",
         "",
         "## Reference",
@@ -829,7 +826,7 @@ def render_llms(chapters: list[dict[str, Any]]) -> str:
         "- [microsoft/apm](https://github.com/microsoft/apm): the APM source repository and samples.",
         f"- [Book source]({REPO_URL}): source for this book.",
         f"- [Changelog]({CHANGELOG_URL}): what changed in each content edition.",
-        f"- [Releases]({RELEASES_URL}): versioned editions, each with a downloadable PDF.",
+        f"- [Releases]({RELEASES_URL}): versioned content editions and release notes.",
         "",
     ]
     return "\n".join(lines)
@@ -907,32 +904,19 @@ def write_analytics_config() -> None:
     (assets_dir / "analytics-config.js").write_text(body, encoding="utf-8")
 
 
-def build_pdf_artifact(chapters: list[dict[str, Any]]) -> None:
-    """Regenerate the downloadable book PDF as part of the site build.
-
-    This keeps the PDF in lock-step with the book: any change to the HTML site
-    (which is driven by content/toc.yml + content/chapters/*) rebuilds the PDF
-    from the same sources in the same run. Building the PDF needs Playwright +
-    Chromium, so it is optional by default: a plain HTML build still works
-    without that toolchain and only prints an actionable skip notice. CI sets
-    APM_PDF_REQUIRED=1 to make a missing/broken toolchain a hard failure, so the
-    published site never ships without a fresh PDF.
-    """
-    required = os.environ.get("APM_PDF_REQUIRED", "").strip().lower() in {"1", "true", "yes"}
-    try:
-        import generate_pdf  # local module in site/; imported lazily to avoid a cycle
-    except ImportError as exc:
-        message = "generate: generate_pdf module unavailable; skipping apm-book.pdf."
-        if required:
-            raise RuntimeError(message) from exc
-        print(message)
-        return
-    generate_pdf.build_pdf(chapters, required=required)
+def remove_stale_pdf_artifact() -> bool:
+    """Remove a legacy generated PDF so it cannot be deployed with the site."""
+    pdf_path = SITE / "apm-book.pdf"
+    if not pdf_path.is_file():
+        return False
+    pdf_path.unlink()
+    return True
 
 
 def main() -> None:
     chapters = load_chapters()
     CHAPTERS_DIR.mkdir(parents=True, exist_ok=True)
+    removed_pdf = remove_stale_pdf_artifact()
     (SITE / "index.html").write_text(render_index(chapters), encoding="utf-8")
     for index, _chapter in enumerate(chapters):
         output = CHAPTERS_DIR / f"{chapters[index]['slug']}.html"
@@ -944,9 +928,10 @@ def main() -> None:
     print("Wrote robots.txt, sitemap.xml, site.webmanifest, llms.txt; copied assets/og-cover.png")
     connection_present = "present" if read_connection_string() else "absent (no-op)"
     print(f"Wrote assets/analytics-config.js (enabled={bool(ANALYTICS_ENABLED)}, connection string {connection_present})")
+    if removed_pdf:
+        print("Removed legacy site/apm-book.pdf from the public-site output")
     if removed:
         print(f"Removed {len(removed)} stale chapter file(s): {', '.join(removed)}")
-    build_pdf_artifact(chapters)
 
 
 if __name__ == "__main__":

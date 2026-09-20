@@ -79,12 +79,6 @@
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://apm.isainative.dev/apm-book.pdf</loc>
-    <lastmod>2026-09-16</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.6</priority>
-  </url>
-  <url>
     <loc>https://apm.isainative.dev/orchestration.html</loc>
     <lastmod>2026-09-16</lastmod>
     <changefreq>monthly</changefreq>

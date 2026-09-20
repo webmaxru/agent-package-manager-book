@@ -145,7 +145,8 @@ class ReleaseMetadataTests(unittest.TestCase):
     def test_sitemap_uses_edition_date_not_the_rebuild_date(self):
         with patch.object(generate, "CONTENT_DATE", "2026-07-08"):
             sitemap = generate.render_sitemap([])
-        self.assertEqual(sitemap.count("<lastmod>2026-07-08</lastmod>"), 3)
+        self.assertEqual(sitemap.count("<lastmod>2026-07-08</lastmod>"), 2)
+        self.assertNotIn("apm-book.pdf", sitemap)
 
 
 if __name__ == "__main__":

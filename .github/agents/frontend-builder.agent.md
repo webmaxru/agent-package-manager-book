@@ -30,9 +30,10 @@ makes the concept→tool learning path obvious and pleasant to follow.
 
 For incremental updates, keep the existing shell/design and generate pages with
 `python site/generate.py` from the accepted fragments and TOC. Do not scaffold again or fix
-unrelated styling. Run release preflight before the final build, set `APM_PDF_REQUIRED=1`, and
-confirm the edition on the HTML and PDF, changed chapter navigation, and cross-links. A successful
-render does not replace example verification or editorial ACCEPT.
+unrelated styling. Run release preflight before the final build, confirm the edition on the HTML,
+changed chapter navigation, and cross-links, and build a release PDF separately only when a
+release artifact is required. A successful render does not replace example verification or
+editorial ACCEPT.
 
 ## Principles
 - **Content/presentation separation.** Don't bake chapter prose into templates; pull it in.
