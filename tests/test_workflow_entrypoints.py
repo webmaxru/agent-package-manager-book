@@ -84,7 +84,10 @@ class WorkflowContractTests(unittest.TestCase):
         build = next(i for i, step in enumerate(steps)
                      if step.get("run") == "python site/generate.py")
         self.assertLess(preflight, build)
-        self.assertEqual(steps[build]["env"]["APM_PDF_REQUIRED"], "1")
+        pdf_build = next(i for i, step in enumerate(steps)
+                         if step.get("run") == "python site/generate_pdf.py")
+        self.assertGreater(pdf_build, build)
+        self.assertNotIn("APM_PDF_REQUIRED", str(steps))
         self.assertNotIn("::warning::", str(steps))
         self.assertTrue(steps[0]["env"]["RELEASE_TAG"])
         self.assertNotIn("${{", steps[0]["run"])
@@ -98,7 +101,7 @@ class WorkflowContractTests(unittest.TestCase):
         self.assertEqual(job["strategy"]["matrix"]["os"], ["ubuntu-latest", "windows-latest"])
         self.assertIn("unittest discover", str(job["steps"]))
         self.assertIn("validate_release.py --base-ref", str(job["steps"]))
-        self.assertIn("APM_PDF_REQUIRED", str(job["steps"]))
+        self.assertNotIn("APM_PDF_REQUIRED", str(job["steps"]))
 
     def test_pages_runs_preflight_before_build_and_remains_main_only(self):
         workflow = self.workflow("deploy-pages.yml")
@@ -109,7 +112,7 @@ class WorkflowContractTests(unittest.TestCase):
         build = next(i for i, step in enumerate(steps)
                      if step.get("run") == "python site/generate.py")
         self.assertLess(preflight, build)
-        self.assertEqual(steps[build]["env"]["APM_PDF_REQUIRED"], "1")
+        self.assertNotIn("APM_PDF_REQUIRED", str(steps))
 
 
 if __name__ == "__main__":

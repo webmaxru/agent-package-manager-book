@@ -52,14 +52,6 @@ jobs:
           .\scripts\run-fleet.ps1 -DryRun
           .\scripts\run-fleet.ps1 -UpdateBook -CheckOnly -DryRun
 
-      - name: Install PDF dependencies
+      - name: Build generated HTML without publishing
         if: runner.os == 'Linux'
-        run: |
-          python -m pip install playwright
-          python -m playwright install --with-deps chromium
-
-      - name: Build HTML and required PDF without publishing
-        if: runner.os == 'Linux'
-        env:
-          APM_PDF_REQUIRED: "1"
         run: python site/generate.py

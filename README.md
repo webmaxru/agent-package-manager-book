@@ -163,15 +163,14 @@ content/
 backend/
   examples/           # example apm.yml projects (+ apm.lock.yaml)
 site/
-  generate.py             # renders the HTML site + the downloadable PDF from content/
-  generate_pdf.py         # assembles + renders site/apm-book.pdf (Playwright/Chromium)
+  generate.py             # renders the HTML site from content/
+  generate_pdf.py         # assembles a release-only PDF (Playwright/Chromium)
   extract_release_notes.py # turns a CHANGELOG section into GitHub Release notes
   release_metadata.py     # shared strict edition/changelog parsing
   validate_release.py     # content-delta and merged-tag preflight
   index.html
   chapters/*.html         # chapter subpages
   assets/                 # style.css + app.js
-  apm-book.pdf            # generated: full-book PDF (rebuilt on every build)
 scripts/
   run-fleet.ps1       # bootstrap/update launcher, with dry-run and check-only modes
   check_upstream.py   # read-only, complete stable APM release-gap discovery
@@ -189,29 +188,33 @@ python -m http.server
 # then open http://localhost:8000
 ```
 
-### Rebuild the site + downloadable PDF
+### Rebuild the site
 
-The site (and the single-file **[Download the book (PDF)](https://apm.isainative.dev/apm-book.pdf)**
-offered on every page) is generated from the same source of truth — `content/toc.yml` plus the
-`content/chapters/*.html` fragments — so the PDF never drifts from the book:
+The site (including the **[Get the free PDF](https://isainative.substack.com/p/free-agentic-workflows-book)**
+link offered on every page) is generated from the same source of truth — `content/toc.yml` plus the
+`content/chapters/*.html` fragments:
 
 ```powershell
-# from the repository root — rebuilds every HTML page AND site/apm-book.pdf
+# from the repository root — rebuilds every HTML page and SEO file
 python .\site\generate.py
 ```
 
-The PDF is rendered with headless Chromium via Playwright. Install the toolchain once:
+The GitHub Pages deployment publishes the HTML site only; it does not include a direct PDF file.
+Release automation renders a versioned PDF separately for the GitHub Release asset. To build that
+release artifact locally, install the toolchain once:
 
 ```powershell
 python -m pip install pyyaml playwright
 python -m playwright install chromium
 ```
 
-If Playwright/Chromium isn't installed, `generate.py` still builds the HTML and prints an
-actionable notice instead of failing. On deploy, the GitHub Pages workflow installs the toolchain
-and sets `APM_PDF_REQUIRED=1`, so **the PDF is regenerated on every book change** and a broken PDF
-build fails the deploy rather than shipping a stale file. The generated `site/apm-book.pdf` is
-gitignored and rebuilt fresh each time.
+Then run:
+
+```powershell
+python .\site\generate_pdf.py
+```
+
+The generated `site/apm-book.pdf` is gitignored and is used only as the source for a release asset.
 
 ### Free-tier Application Insights
 
@@ -251,12 +254,12 @@ changes never move the number.
   [`content/CHANGELOG.md`](content/CHANGELOG.md) records the reader-facing changes.
   The root `apm.lock.yaml` tracks installed authoring skills, not this reviewed baseline.
 - **Where it shows:** the edition and its "updated" date render on the home hero, every page footer,
-  the JSON-LD (`bookEdition`), `llms.txt`, and on the PDF cover + page footer — all generated from
-  the same source, so the online edition and the PDF can never disagree.
+  the JSON-LD (`bookEdition`), `llms.txt`, and on the release PDF cover + page footer — all
+  generated from the same source, so the online edition and the release PDF can never disagree.
   Sitemap dates also use the edition date, so rebuilding an old tag does not claim fresh content.
 - **GitHub Releases:** each edition maps to a `vX.Y` tag. Pushing the tag runs
-  [`release-content.yml`](.github/workflows/release-content.yml), which builds the site + PDF, turns
-  the matching changelog section into the release notes, and attaches a per-edition
+  [`release-content.yml`](.github/workflows/release-content.yml), which builds the site and a
+  release-only PDF, turns the matching changelog section into the release notes, and attaches a per-edition
   `apm-book-vX.Y.pdf`.
 
 ### Update from an APM release
@@ -302,7 +305,8 @@ Never replace those gates with a green build or relabel old verification stamps 
 ### Prepare, then publish
 
 Use **`/release-content`** after the content gates pass. Its default **prepare** mode updates
-`content/version.yml` and the matching changelog section, requires a fresh HTML/PDF build, and
+`content/version.yml` and the matching changelog section, requires a fresh HTML build plus a
+release-only PDF build, and
 commits only the reviewed update locally. Choose the next minor book edition for an incremental
 content update; APM's `0.31.0` and the book's `1.2` are independent version numbers.
 
@@ -311,8 +315,8 @@ Before committing, with the real previous tag and proposed edition substituted:
 ```powershell
 python .\site\validate_release.py --base-ref v1.1
 python .\site\extract_release_notes.py 1.2
-$env:APM_PDF_REQUIRED = "1"
 python .\site\generate.py
+python .\site\generate_pdf.py
 ```
 
 Stop on any failure. Missing/empty/duplicate notes, malformed metadata, edition/date mismatches,
@@ -332,7 +336,7 @@ The tag must equal the file edition, point at the checked-out commit, and be mer
 `origin/main`. Push **only the intended tag**, never every local tag. The two publishing paths
 are separate: merging to `main` triggers **Deploy book to GitHub Pages**; pushing `vX.Y` triggers
 **Publish content release**, which attaches `apm-book-vX.Y.pdf`. Confirm both expected runs,
-the online edition, and the release notes/PDF before declaring publication complete.
+the online edition, and the release notes before declaring publication complete.
 
 To retry a failed release build, manually run **Publish content release** with its existing tag.
 It rebuilds the **tag's inputs**, not later edits on `main`. Content corrections need a new edition
@@ -340,7 +344,7 @@ and tag; do not move public tags. Historical v1.0/v1.1 predate the release metad
 their tags: keep their existing assets rather than attempting to reconstruct them with this flow.
 
 The **Check book update** PR workflow runs the tooling regressions and preflight on Windows/Linux,
-and builds the required PDF on Linux without deployment permissions. Run its offline checks locally:
+and builds the generated HTML on Linux without deployment permissions. Run its offline checks locally:
 
 ```powershell
 python -m unittest discover -s tests -v
@@ -352,7 +356,7 @@ current practice fixtures, explicit historical snapshots, and documented compati
 The [edition evidence](content/research/updates/1.2/integration-review.md) records the independent
 verification and integration acceptance. **v1.1** added GitHub Agentic Workflows as a consumer;
 **v1.0** was the initial 12-chapter edition. Browse the
-[releases](https://github.com/webmaxru/agent-package-manager-book/releases) for downloadable PDFs.
+[releases](https://github.com/webmaxru/agent-package-manager-book/releases) for version history and release notes.
 
 ---
 

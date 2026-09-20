@@ -1,4 +1,4 @@
-"""Render a single downloadable PDF of the whole APM book.
+"""Render a release PDF of the whole APM book.
 
 The PDF is built from the *same* source of truth as the HTML site
 (``content/toc.yml`` + ``content/chapters/<slug>.html`` fragments), so it stays
@@ -9,12 +9,11 @@ the website.
 
 Pipeline: assemble one print-optimised HTML document (cover -> table of
 contents -> every chapter) with a self-contained print stylesheet, then let
-headless Chromium (via Playwright) paginate it to ``site/apm-book.pdf`` with a
-navigable outline (PDF bookmarks), a tagged/accessible tree, and a page-number
-footer.
+headless Chromium (via Playwright) paginate it to ``site/apm-book.pdf`` for
+attachment to a versioned GitHub Release. The public website does not publish
+this generated file.
 
-Run directly (``python site/generate_pdf.py``) or let ``generate.py`` invoke it
-at the end of a normal site build.
+Run directly (``python site/generate_pdf.py``) when preparing a release.
 """
 from __future__ import annotations
 
@@ -34,7 +33,7 @@ ASSETS = SITE / "assets"
 COVER_SVG = generate.ROOT / "assets" / "cover.svg"
 OUT_PDF = SITE / "apm-book.pdf"
 
-# Public download name/URL surfaced on the site.
+# Release asset name.
 PDF_FILENAME = "apm-book.pdf"
 
 

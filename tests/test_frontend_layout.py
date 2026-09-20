@@ -70,6 +70,21 @@ class FrontendLayoutTests(unittest.TestCase):
         self.assertEqual(book["version"], generate.CONTENT_VERSION)
         self.assertEqual(book["dateModified"], generate.CONTENT_DATE)
 
+    def test_public_download_links_are_gated_through_substack(self):
+        chapters = generate.load_chapters()
+        linked_pages = [
+            generate.render_index(chapters),
+            generate.render_chapter(chapters, 0),
+            generate.render_llms(chapters),
+        ]
+        for page in linked_pages:
+            with self.subTest(page=page[:40]):
+                self.assertIn(generate.BOOK_DOWNLOAD_URL, page)
+                self.assertNotIn("apm-book.pdf", page)
+        sitemap = generate.render_sitemap(chapters)
+        self.assertNotIn(generate.BOOK_DOWNLOAD_URL, sitemap)
+        self.assertNotIn("apm-book.pdf", sitemap)
+
 
 if __name__ == "__main__":
     unittest.main()

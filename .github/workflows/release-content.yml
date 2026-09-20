@@ -4,7 +4,7 @@ name: Publish content release
 #
 # The book content is versioned independently of the site tooling (see
 # content/version.yml + content/CHANGELOG.md). Pushing a `vX.Y` tag builds the
-# site + the downloadable PDF from that content and publishes a GitHub Release
+# site and a release-only PDF from that content, then publishes a GitHub Release
 # whose notes come straight from the changelog, with a per-edition PDF attached
 # (apm-book-vX.Y.pdf). Re-running for an existing tag updates it in place.
 
@@ -68,18 +68,20 @@ jobs:
           RELEASE_TAG: ${{ steps.meta.outputs.tag }}
         run: python site/validate_release.py --tag "$RELEASE_TAG"
 
-      - name: Install Chromium for PDF rendering
-        run: python -m playwright install --with-deps chromium
-
-      - name: Build the site + PDF from content/toc.yml
+      - name: Build the site from content/toc.yml
         run: python site/generate.py
         env:
           # Public, write-only Application Insights client key (repo variable). If
           # unset the cookieless beacon is a safe no-op.
           APPINSIGHTS_CONNECTION_STRING: ${{ vars.APPINSIGHTS_CONNECTION_STRING }}
-          # Fail loudly if the PDF toolchain is unavailable so a release never
-          # ships without its downloadable edition.
-          APM_PDF_REQUIRED: "1"
+
+      - name: Install Chromium for release PDF rendering
+        run: |
+          python -m pip install playwright
+          python -m playwright install --with-deps chromium
+
+      - name: Build release-only PDF
+        run: python site/generate_pdf.py
 
       - name: Name the PDF for this edition
         env:

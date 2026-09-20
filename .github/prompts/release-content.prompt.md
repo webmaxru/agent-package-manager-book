@@ -54,11 +54,12 @@ stop with the merge requirement; do not assume permission to merge it yourself.
    Stop on a nonzero exit code. Missing/empty/duplicate notes, malformed metadata, mismatched
    dates, a content change without a version bump, or a tooling-only bump are errors, not warnings.
 
-5. **Require a fresh HTML/PDF build:**
+5. **Require a fresh HTML build and release PDF:**
    ```powershell
-   $env:APM_PDF_REQUIRED = "1"
    python .\site\generate.py
-   if ($LASTEXITCODE -ne 0) { throw "Book/PDF build failed" }
+   if ($LASTEXITCODE -ne 0) { throw "Book HTML build failed" }
+   python .\site\generate_pdf.py
+   if ($LASTEXITCODE -ne 0) { throw "Release PDF build failed" }
    ```
    If required dependencies are missing, install the documented Python/Playwright toolchain
    and rerun. Confirm the intended edition/date on the home hero, a chapter footer, and the
@@ -90,7 +91,7 @@ stop with the merge requirement; do not assume permission to merge it yourself.
    Never use `git push --tags`, a floating branch as the release input, or a force push.
 
 3. Observe the **two separate workflows**. `deploy-pages.yml` runs on the merge/push to `main`
-   and publishes the website/current PDF. `release-content.yml` runs on the tag, rebuilds its
+   and publishes the website. `release-content.yml` runs on the tag, rebuilds its
    content, and publishes the release notes plus `apm-book-vX.Y.pdf`; it does not deploy Pages.
    Match each run to its expected commit/tag. Do not dispatch duplicates while a run is active.
 
