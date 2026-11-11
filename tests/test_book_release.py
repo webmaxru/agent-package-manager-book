@@ -258,13 +258,19 @@ class PublishTests(unittest.TestCase):
                     return {"draft": False, "id": 4}
                 raise AssertionError(path)
             def pages(self, _path):
-                return [{"name": "apm-book-v1.3.pdf", "size": 99}]
+                return [{"name": "apm-book-v1.3.pdf", "size": 99, "state": self.state}]
         with tempfile.TemporaryDirectory() as directory:
             pdf, notes = Path(directory) / "book.pdf", Path(directory) / "notes.md"
             pdf.write_bytes(b"%PDF-1.7 fixture")
             notes.write_text("notes", encoding="utf-8")
+            api = API()
+            api.state = "uploaded"
             with patch.object(release.subprocess, "run") as run:
-                release.publish(API(), "v1.3", MERGE, str(pdf), str(notes))
+                release.publish(api, "v1.3", MERGE, str(pdf), str(notes))
+                run.assert_not_called()
+                api.state = "starter"
+                with self.assertRaisesRegex(release.GateError, "incomplete"):
+                    release.publish(api, "v1.3", MERGE, str(pdf), str(notes))
                 run.assert_not_called()
 
     def test_build_first_then_draft_upload_and_publish_without_promoting_old_edition(self):
@@ -338,7 +344,8 @@ class RecoveryTests(unittest.TestCase):
             if path == "issues/7/comments":
                 return [comment()]
             if path == "releases/42/assets":
-                return ([{"name": "apm-book-v1.3.pdf", "size": 99}] if self.assets else [])
+                return ([{"name": "apm-book-v1.3.pdf", "size": 99, "state": "uploaded"}]
+                        if self.assets else [])
             raise AssertionError(path)
 
     def test_unrelated_tag_and_missing_published_pdf_fail(self):
@@ -355,6 +362,21 @@ class RecoveryTests(unittest.TestCase):
         api.pull["user"]["login"] = "someone-else"
         with self.assertRaisesRegex(release.GateError, "approval"):
             release.release_plan(api, tag="v1.3")
+
+    def test_asset_must_be_uploaded_and_have_valid_integer_size(self):
+        for asset in [
+            {"name": "apm-book-v1.3.pdf", "size": 99, "state": "starter"},
+            {"name": "apm-book-v1.3.pdf", "size": True, "state": "uploaded"},
+            {"name": "apm-book-v1.3.pdf", "size": "99", "state": "uploaded"},
+            {"name": "apm-book-v1.3.pdf", "size": 0, "state": "uploaded"},
+        ]:
+            with self.subTest(asset=asset):
+                self.assertFalse(release.uploaded_pdf([asset], "v1.3"))
+                api = self.API()
+                pages = api.pages
+                api.pages = lambda path: [asset] if path == "releases/42/assets" else pages(path)
+                with self.assertRaisesRegex(release.GateError, "incomplete"):
+                    release.release_plan(api, tag="v1.3")
 
 
 if __name__ == "__main__":

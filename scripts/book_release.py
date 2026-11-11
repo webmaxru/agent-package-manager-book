@@ -68,6 +68,15 @@ def full_sha(value):
     return value
 
 
+def uploaded_pdf(assets, tag):
+    return any(
+        asset.get("name") == f"apm-book-{tag}.pdf"
+        and asset.get("state") == "uploaded"
+        and type(asset.get("size")) is int and asset["size"] > 5
+        for asset in assets
+    )
+
+
 def allowed_path(path):
     parts = PurePosixPath(path).parts
     if not parts or ".." in parts or "\\" in path or path.startswith("/"):
@@ -265,7 +274,7 @@ def release_plan(api, *, number=None, head=None, base=None, merge_sha=None, tag=
             raise GateError("Tag does not match the edition at the approved merge.")
     if existing and not existing["draft"]:
         assets = api.pages(f"releases/{existing['id']}/assets")
-        if not any(a["name"] == f"apm-book-{tag}.pdf" and a["size"] > 5 for a in assets):
+        if not uploaded_pdf(assets, tag):
             raise GateError("Published release is incomplete; immutable assets were not overwritten.")
         output({"merge_sha": merge_sha, "tag": tag, "recovery": "true"})
         return
@@ -296,7 +305,7 @@ def publish(api, tag, sha, pdf, notes):
     existing = api.request("GET", f"releases/tags/{tag}", missing=True)
     if existing and not existing["draft"]:
         assets = api.pages(f"releases/{existing['id']}/assets")
-        if not any(a["name"] == f"apm-book-{tag}.pdf" and a["size"] > 5 for a in assets):
+        if not uploaded_pdf(assets, tag):
             raise GateError("Published release is incomplete; do not overwrite immutable assets.")
         print("Existing published edition preserved.")
         return
