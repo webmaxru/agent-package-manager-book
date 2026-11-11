@@ -257,10 +257,9 @@ changes never move the number.
   the JSON-LD (`bookEdition`), `llms.txt`, and on the release PDF cover + page footer — all
   generated from the same source, so the online edition and the release PDF can never disagree.
   Sitemap dates also use the edition date, so rebuilding an old tag does not claim fresh content.
-- **GitHub Releases:** each edition maps to a `vX.Y` tag. Pushing the tag runs
-  [`release-content.yml`](.github/workflows/release-content.yml), which builds the site and a
-  release-only PDF, turns the matching changelog section into the release notes, and attaches a per-edition
-  `apm-book-vX.Y.pdf`.
+- **GitHub Releases:** each edition maps to a `vX.Y` tag. The approved-content workflow
+  validates the exact merged commit, builds its PDF, and publishes changelog notes with
+  `apm-book-vX.Y.pdf`. Pushing a tag alone does not publish.
 
 ### Update from an APM release
 
@@ -302,7 +301,13 @@ each affected chapter and the integration pass must ACCEPT. CI validates metadat
 and builds the book, **not** the factual accuracy of prose or execution of agent examples.
 Never replace those gates with a green build or relabel old verification stamps without reruns.
 
-### Prepare, then publish
+For an automated release, the edition's `commit-binding.json` must bind every changed chapter,
+TOC, and example input, as well as each affected chapter's verification/review reports and the
+integration review, to their Git blob IDs. It must list affected chapter numbers and each example
+result. See [`scripts/README.md`](scripts/README.md#edition-evidence) for the format. This
+structural check cannot verify whether an agent's prose or examples are actually correct.
+
+### Prepare, approve, then publish
 
 Use **`/release-content`** after the content gates pass. Its default **prepare** mode updates
 `content/version.yml` and the matching changelog section, requires a fresh HTML build plus a
@@ -322,29 +327,31 @@ python .\site\generate_pdf.py
 Stop on any failure. Missing/empty/duplicate notes, malformed metadata, edition/date mismatches,
 reader-content changes without an edition bump, and tooling-only bumps are hard errors.
 
-Publication is a separate explicit **`/release-content Mode: publish`** request, after review and
-merge. Use a clean checkout of the **exact reviewed merge commit**, with `origin/main` refreshed:
+Open a same-repository content PR targeting `main`. **Check book update** builds HTML and a PDF,
+checks metadata and evidence, and exposes the stable **Book release preflight** check. After
+review, `webmaxru` can approve a PR authored by someone else using GitHub's review. GitHub does
+not allow authors to approve their own PRs: for an owner-authored PR, post the exact comment
+`/release-book <full-40-character-head-sha>`. This explicitly approves only that revision;
+new commits require a new approval.
 
-```powershell
-git tag v1.2 HEAD
-python .\site\validate_release.py --tag v1.2
-if ($LASTEXITCODE -ne 0) { throw "Do not push: release tag preflight failed" }
-git push origin refs/tags/v1.2
-```
+**Release approved book** rechecks the owner approval, current head, checks, base and the full
+changed-file allowlist; it runs an independent read-only HTML/PDF preflight before a
+SHA-conditional squash merge. Mixed infrastructure/workflow PRs are never auto-merged.
+The exact resulting merge commit is explicitly dispatched to **Publish content release**,
+which rebuilds, validates provenance, creates the immutable tag, uploads the PDF to a draft,
+then publishes and explicitly dispatches Pages. Approving before checks finish is supported.
+Release and Pages runs remain separately observable; the website retains its Substack PDF gate.
 
-The tag must equal the file edition, point at the checked-out commit, and be merged into
-`origin/main`. Push **only the intended tag**, never every local tag. The two publishing paths
-are separate: merging to `main` triggers **Deploy book to GitHub Pages**; pushing `vX.Y` triggers
-**Publish content release**, which attaches `apm-book-vX.Y.pdf`. Confirm both expected runs,
-the online edition, and the release notes before declaring publication complete.
+For a failed publication, dispatch **Publish content release** with the same PR number and
+merge SHA or with the existing exact `vX.Y` tag. It rechecks provenance and never moves a tag.
+Already published historical editions are left unchanged; an old edition is not promoted
+to latest. For a failed pre-merge attempt, dispatch **Release approved book** with the PR number.
 
-To retry a failed release build, manually run **Publish content release** with its existing tag.
-It rebuilds the **tag's inputs**, not later edits on `main`. Content corrections need a new edition
-and tag; do not move public tags. Historical v1.0/v1.1 predate the release metadata/tooling at
-their tags: keep their existing assets rather than attempting to reconstruct them with this flow.
+Content corrections need a new edition and tag; do not move public tags. Historical v1.0/v1.1
+predate release metadata/tooling, so their published assets are preserved rather than rebuilt.
 
 The **Check book update** PR workflow runs the tooling regressions and preflight on Windows/Linux,
-and builds the generated HTML on Linux without deployment permissions. Run its offline checks locally:
+and builds HTML and a PDF on Linux without deployment permissions. Run its offline checks locally:
 
 ```powershell
 python -m unittest discover -s tests -v

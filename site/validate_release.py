@@ -41,7 +41,17 @@ def resolve_commit(root: Path, ref: str) -> str:
 def changed_content(root: Path, base: str) -> list[str]:
     tracked = git(root, "diff", "--name-only", "--no-renames", base, "--", *CONTENT_PATHS)
     untracked = git(root, "ls-files", "--others", "--exclude-standard", "--", *CONTENT_PATHS)
-    return sorted(set(tracked.splitlines()) | set(untracked.splitlines()))
+    paths = set(tracked.splitlines()) | set(untracked.splitlines())
+    toc = root / "content" / "toc.yml"
+    if "content/toc.yml" in paths and toc.is_file():
+        old = parse_metadata(git(root, "show", f"{base}:content/toc.yml"), base)
+        try:
+            new = parse_metadata(toc.read_text(encoding="utf-8"), str(toc))
+        except (OSError, UnicodeError) as error:
+            raise ReleaseError(f"Cannot read {toc}: {error}") from error
+        if old == new:
+            paths.remove("content/toc.yml")
+    return sorted(paths)
 
 
 def validate_change(root: Path, base_ref: str) -> None:

@@ -1,0 +1,108 @@
+name: Release approved book
+
+on:
+  workflow_run:
+    workflows: ["Book approval signal", "Check book update"]
+    types: [completed]
+  issue_comment:
+    types: [created]
+  workflow_dispatch:
+    inputs:
+      pr:
+        description: "Content PR number to re-evaluate"
+        required: true
+
+permissions: {}
+
+concurrency:
+  group: approved-book-${{ github.event.issue.number || github.event.inputs.pr || github.event.workflow_run.head_branch }}
+  cancel-in-progress: false
+
+jobs:
+  authorize:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: read
+      actions: read
+    outputs:
+      eligible: ${{ steps.gate.outputs.eligible }}
+      pr: ${{ steps.gate.outputs.pr }}
+      head: ${{ steps.gate.outputs.head }}
+      base: ${{ steps.gate.outputs.base }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          persist-credentials: false
+      - name: Check owner approval, PR scope and existing checks
+        id: gate
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python scripts/book_release.py inspect
+
+  preflight:
+    needs: authorize
+    if: needs.authorize.outputs.eligible == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout trusted validators
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          path: trusted
+          persist-credentials: false
+      - name: Checkout exact approved revision
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.authorize.outputs.head }}
+          path: book
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: python -m pip install pyyaml playwright
+      - run: python -m playwright install --with-deps chromium
+      - name: Validate edition and current evidence
+        env:
+          BASE: ${{ needs.authorize.outputs.base }}
+        run: |
+          python trusted/site/validate_release.py --root book --base-ref "$BASE"
+          python trusted/site/validate_evidence.py --root book --base-ref "$BASE"
+      - name: Build exact approved HTML and PDF
+        working-directory: book
+        run: |
+          python site/generate.py
+          python site/generate_pdf.py
+          test -s site/index.html
+          test -s site/apm-book.pdf
+          head -c 5 site/apm-book.pdf | grep -Fx '%PDF-'
+      - uses: actions/upload-artifact@v4
+        with:
+          name: approved-book-preview-${{ needs.authorize.outputs.head }}
+          path: book/site/apm-book.pdf
+          if-no-files-found: error
+
+  merge:
+    needs: [authorize, preflight]
+    if: needs.authorize.outputs.eligible == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+      actions: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          persist-credentials: false
+      - name: Recheck and merge exact head, then dispatch publisher
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR: ${{ needs.authorize.outputs.pr }}
+          HEAD: ${{ needs.authorize.outputs.head }}
+          BASE: ${{ needs.authorize.outputs.base }}
+        run: python scripts/book_release.py merge --pr "$PR" --head "$HEAD" --base "$BASE"

@@ -16,8 +16,8 @@ Use `/update-book` first when upstream research and chapter changes are still ne
 - **Content changes:** reader-facing additions/fixes only.
 
 Prepare means local files/commits only. It never merges, pushes, tags, creates a PR or release,
-or dispatches a publishing workflow. If publication was requested but the content is unmerged,
-stop with the merge requirement; do not assume permission to merge it yourself.
+or dispatches a publishing workflow. A later owner approval on a qualifying content PR is the
+explicit authorization for the automated merge and release.
 
 ## Prepare
 
@@ -32,7 +32,9 @@ stop with the merge requirement; do not assume permission to merge it yourself.
    `SKIPPED-needs-network` reason; every chapter and integration review must ACCEPT.
    Check that reports cover the current inputs and exact target. No reports or stale reports
    means not ready, even if CI is green. Never invent verdicts. Tooling-only changes need no
-   edition and must not be released as one.
+   edition and must not be released as one. Produce `commit-binding.json` as documented in
+   `scripts/README.md#edition-evidence`; bind the actual reviewed source and report blobs and
+   enumerate the real example outcomes. Run `python .\site\validate_evidence.py --base-ref <base>`.
 
 3. **Update the source metadata together:** edition, date, and reviewed `apm_version` in
    `content/version.yml`. Preserve the previous baseline until verification is complete.
@@ -70,32 +72,21 @@ stop with the merge requirement; do not assume permission to merge it yourself.
    Preserve unrelated work. Commit with the required co-author trailer. Report the prepared
    edition, upstream range, evidence, skips, and commit. In `prepare` mode, stop here.
 
-## Publish the merged revision
+## Approve and publish
 
-1. Confirm the reviewed change is merged into remote `main`, then fetch that branch and its tags.
-   Identify the **exact merged commit**, accounting for squash/rebase merges. Compare its content,
-   metadata, and reports with the prepared update; do not blindly tag whatever HEAD happens to be.
-   Work in a clean checkout of that commit (a separate worktree if `main` is in use).
+1. Open a same-repository content-only PR targeting `main` when explicitly requested. Require
+   **Book release preflight** and the actual editorial evidence. The owner `webmaxru` approves
+   another author's PR through a GitHub review. Since GitHub does not allow author self-review,
+   an owner-authored PR requires the exact owner comment `/release-book <full-head-sha>`.
+   New commits invalidate approval. Do not authorize mixed workflow/tooling changes.
 
-2. Run preflight against the previous book tag and the required HTML/PDF build on that checkout.
-   Do not move or replace an existing edition tag. Create a new tag on the exact merged SHA,
-   validate its ancestry and contents, and push **only that tag**:
-   ```powershell
-   # HEAD must be the exact reviewed merge commit established above.
-   git tag v1.2 HEAD
-   python .\site\validate_release.py --tag v1.2
-   if ($LASTEXITCODE -ne 0) { throw "Do not push: release tag preflight failed" }
-   git push origin refs/tags/v1.2
-   ```
-   `--tag` requires the tag at HEAD, a clean checkout, and ancestry in `origin/main`.
-   Never use `git push --tags`, a floating branch as the release input, or a force push.
+2. **Release approved book** rechecks the owner approval, PR scope and exact head, runs
+   read-only HTML/PDF/evidence preflight, then SHA-conditionally squash-merges and explicitly
+   dispatches **Publish content release**. The publisher verifies the exact merged tree,
+   builds before creating the immutable `vX.Y` tag, uploads the PDF to a draft release, publishes
+   and explicitly dispatches Pages. Tag pushes themselves do not publish. Never move a tag.
 
-3. Observe the **two separate workflows**. `deploy-pages.yml` runs on the merge/push to `main`
-   and publishes the website. `release-content.yml` runs on the tag, rebuilds its
-   content, and publishes the release notes plus `apm-book-vX.Y.pdf`; it does not deploy Pages.
-   Match each run to its expected commit/tag. Do not dispatch duplicates while a run is active.
-
-4. Confirm both completed successfully, inspect the live edition and PDF, and inspect:
+3. Confirm both completed successfully, inspect the live edition and PDF, and inspect:
    ```powershell
    gh release view v1.2 --repo webmaxru/agent-package-manager-book --json tagName,body,assets,url
    ```
@@ -104,9 +95,10 @@ stop with the merge requirement; do not assume permission to merge it yourself.
 
 ## Reruns and historical editions
 
-- To retry a failed build or reconstruct the **same tagged inputs**, use Actions ->
-  **Publish content release** -> **Run workflow** with an existing `vX.Y` tag. The workflow
-  checks out `refs/tags/vX.Y`; it does not include later content/changelog edits on `main`.
+- To retry before merge, dispatch **Release approved book** with the PR number. After merge,
+  dispatch **Publish content release** with the PR number and exact merge SHA, or use the existing
+  exact `vX.Y` tag. Recovery requires the same approved merged provenance; already published
+  releases are left unchanged.
 - Correcting published content or its source changelog requires a **new edition and new tag**.
   Do not retag a public edition or replace its PDF with content from another commit.
 - Historical `v1.0` and `v1.1` were published before version metadata/release tooling existed at

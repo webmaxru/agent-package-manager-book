@@ -1,107 +1,159 @@
 name: Publish content release
 
-# Cuts a versioned GitHub Release for a **content edition** of the book.
-#
-# The book content is versioned independently of the site tooling (see
-# content/version.yml + content/CHANGELOG.md). Pushing a `vX.Y` tag builds the
-# site and a release-only PDF from that content, then publishes a GitHub Release
-# whose notes come straight from the changelog, with a per-edition PDF attached
-# (apm-book-vX.Y.pdf). Re-running for an existing tag updates it in place.
-
 on:
-  push:
-    tags:
-      - "v*"
   workflow_dispatch:
     inputs:
+      pr:
+        description: "Approved merged content PR number"
+        required: false
+      head_sha:
+        description: "Approved PR head"
+        required: false
+      base_sha:
+        description: "Preflight base"
+        required: false
+      merge_sha:
+        description: "Exact resulting merge commit"
+        required: false
       tag:
-        description: "Existing merged edition tag with release metadata/tooling, e.g. v1.2"
-        required: true
+        description: "Existing vX.Y tag for safe recovery"
+        required: false
 
-# Needed to create/update Releases and upload the PDF asset.
-permissions:
-  contents: write
-
+permissions: {}
 concurrency:
-  group: release-${{ github.event.inputs.tag || github.ref_name }}
+  group: book-publish
   cancel-in-progress: false
 
 jobs:
-  release:
+  authorize:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: read
+      actions: read
+    outputs:
+      sha: ${{ steps.gate.outputs.merge_sha }}
+      base: ${{ steps.gate.outputs.base }}
+      recovery: ${{ steps.gate.outputs.recovery }}
     steps:
-      - name: Validate the requested tag
-        id: meta
-        env:
-          RELEASE_TAG: ${{ inputs.tag || github.ref_name }}
-        run: |
-          if [[ ! "$RELEASE_TAG" =~ ^v(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$ ]]; then
-            echo "::error::Release input must be an existing vX.Y tag, not a branch or expression."
-            exit 1
-          fi
-          echo "tag=$RELEASE_TAG" >> "$GITHUB_OUTPUT"
-          echo "version=${RELEASE_TAG#v}" >> "$GITHUB_OUTPUT"
-
-      - name: Checkout (full history for changelog + tags)
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
         with:
-          fetch-depth: 0
-          ref: refs/tags/${{ steps.meta.outputs.tag }}
-
-      - name: Require release tooling at the tag
-        run: |
-          if [[ ! -f content/version.yml || ! -f site/validate_release.py ]]; then
-            echo "::error::This tag predates release metadata/tooling. Preserve its historical assets; publish corrections as a new edition."
-            exit 1
-          fi
-
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.12"
-
-      - name: Install dependencies
-        run: python -m pip install --upgrade pip pyyaml playwright
-
-      - name: Validate edition, changelog, content delta, and merged tag
-        env:
-          RELEASE_TAG: ${{ steps.meta.outputs.tag }}
-        run: python site/validate_release.py --tag "$RELEASE_TAG"
-
-      - name: Build the site from content/toc.yml
-        run: python site/generate.py
-        env:
-          # Public, write-only Application Insights client key (repo variable). If
-          # unset the cookieless beacon is a safe no-op.
-          APPINSIGHTS_CONNECTION_STRING: ${{ vars.APPINSIGHTS_CONNECTION_STRING }}
-
-      - name: Install Chromium for release PDF rendering
-        run: |
-          python -m pip install playwright
-          python -m playwright install --with-deps chromium
-
-      - name: Build release-only PDF
-        run: python site/generate_pdf.py
-
-      - name: Name the PDF for this edition
-        env:
-          RELEASE_TAG: ${{ steps.meta.outputs.tag }}
-        run: cp site/apm-book.pdf "apm-book-$RELEASE_TAG.pdf"
-
-      - name: Build release notes from the changelog
-        env:
-          RELEASE_VERSION: ${{ steps.meta.outputs.version }}
-        run: python site/extract_release_notes.py "$RELEASE_VERSION" > RELEASE_NOTES.md
-
-      - name: Publish or update the GitHub Release
+          ref: main
+          persist-credentials: false
+      - id: gate
+        name: Validate approved merge provenance or existing published tag
         env:
           GH_TOKEN: ${{ github.token }}
-          RELEASE_TAG: ${{ steps.meta.outputs.tag }}
+          PR: ${{ inputs.pr }}
+          HEAD: ${{ inputs.head_sha }}
+          BASE: ${{ inputs.base_sha }}
+          MERGE: ${{ inputs.merge_sha }}
+          TAG: ${{ inputs.tag }}
         run: |
-          EXISTING_TAGS="$(gh api --paginate "repos/$GITHUB_REPOSITORY/releases?per_page=100" --jq '.[].tag_name')"
-          if grep -Fxq -- "$RELEASE_TAG" <<< "$EXISTING_TAGS"; then
-            gh release edit "$RELEASE_TAG" --title "Book $RELEASE_TAG" --notes-file RELEASE_NOTES.md
-          else
-            gh release create "$RELEASE_TAG" --verify-tag --title "Book $RELEASE_TAG" --notes-file RELEASE_NOTES.md
-          fi
-          gh release upload "$RELEASE_TAG" "apm-book-$RELEASE_TAG.pdf" --clobber
+          args=()
+          [[ -z "$PR" ]] || args+=(--pr "$PR")
+          [[ -z "$HEAD" ]] || args+=(--head "$HEAD")
+          [[ -z "$BASE" ]] || args+=(--base "$BASE")
+          [[ -z "$MERGE" ]] || args+=(--merge-sha "$MERGE")
+          [[ -z "$TAG" ]] || args+=(--tag "$TAG")
+          python scripts/book_release.py release-plan "${args[@]}"
+
+  build:
+    needs: authorize
+    if: needs.authorize.outputs.recovery != 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    outputs:
+      tag: ${{ steps.meta.outputs.tag }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          path: trusted
+          persist-credentials: false
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.authorize.outputs.sha }}
+          path: book
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: python -m pip install pyyaml playwright
+      - run: python -m playwright install --with-deps chromium
+      - name: Validate merge and bound editorial evidence
+        env:
+          BASE: ${{ needs.authorize.outputs.base }}
+        run: |
+          python trusted/site/validate_release.py --root book --base-ref "$BASE"
+          python trusted/site/validate_evidence.py --root book --base-ref "$BASE"
+      - name: Determine edition and require previous tag
+        id: meta
+        working-directory: book
+        run: |
+          python ../trusted/site/release_candidate.py --root . >> "$GITHUB_OUTPUT"
+      - name: Build exact merge HTML and PDF
+        working-directory: book
+        run: |
+          python site/generate.py
+          python site/generate_pdf.py
+          test -s site/index.html
+          test -s site/apm-book.pdf
+          head -c 5 site/apm-book.pdf | grep -Fx '%PDF-'
+      - name: Prepare release artifact and notes
+        env:
+          TAG: ${{ steps.meta.outputs.tag }}
+        run: |
+          mkdir artifacts
+          cp book/site/apm-book.pdf "artifacts/apm-book-$TAG.pdf"
+          python book/site/extract_release_notes.py "${TAG#v}" > artifacts/notes.md
+          test -s artifacts/notes.md
+      - uses: actions/upload-artifact@v4
+        with:
+          name: release-book-${{ needs.authorize.outputs.sha }}
+          path: artifacts
+          if-no-files-found: error
+
+  publish:
+    needs: [authorize, build]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: read
+      actions: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          persist-credentials: false
+      - uses: actions/download-artifact@v4
+        with:
+          name: release-book-${{ needs.authorize.outputs.sha }}
+          path: artifacts
+      - name: Recheck authorization and publish draft after PDF upload
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          PR: ${{ inputs.pr }}
+          HEAD: ${{ inputs.head_sha }}
+          BASE: ${{ inputs.base_sha }}
+          MERGE: ${{ needs.authorize.outputs.sha }}
+          TAG: ${{ needs.build.outputs.tag }}
+          RECOVERY_TAG: ${{ inputs.tag }}
+        run: |
+          args=()
+          [[ -z "$PR" ]] || args+=(--pr "$PR")
+          [[ -z "$HEAD" ]] || args+=(--head "$HEAD")
+          [[ -z "$BASE" ]] || args+=(--base "$BASE")
+          [[ -z "$RECOVERY_TAG" ]] || args+=(--tag "$RECOVERY_TAG")
+          python scripts/book_release.py release-plan --merge-sha "$MERGE" "${args[@]}"
+          python scripts/book_release.py publish --tag "$TAG" --merge-sha "$MERGE" \
+            --pdf "artifacts/apm-book-$TAG.pdf" --notes artifacts/notes.md
+      - name: Explicitly dispatch Pages for token-created merge
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          MERGE: ${{ needs.authorize.outputs.sha }}
+        run: gh workflow run deploy-pages.yml --ref main -f sha="$MERGE"

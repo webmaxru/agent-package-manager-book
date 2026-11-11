@@ -73,24 +73,20 @@ class WorkflowContractTests(unittest.TestCase):
         with (ROOT / ".github" / "workflows" / filename).open(encoding="utf-8") as handle:
             return yaml.load(handle, Loader=yaml.BaseLoader)
 
-    def test_release_uses_exact_tag_and_preflight_before_build(self):
+    def test_release_build_is_read_only_and_publish_rechecks_provenance(self):
         workflow = self.workflow("release-content.yml")
-        steps = workflow["jobs"]["release"]["steps"]
-        checkout = next(step for step in steps if step.get("uses", "").startswith("actions/checkout"))
-        self.assertEqual(checkout["with"]["fetch-depth"], "0")
-        self.assertEqual(checkout["with"]["ref"], "refs/tags/${{ steps.meta.outputs.tag }}")
-        preflight = next(i for i, step in enumerate(steps)
-                         if "validate_release.py --tag" in step.get("run", ""))
-        build = next(i for i, step in enumerate(steps)
-                     if step.get("run") == "python site/generate.py")
-        self.assertLess(preflight, build)
-        pdf_build = next(i for i, step in enumerate(steps)
-                         if step.get("run") == "python site/generate_pdf.py")
-        self.assertGreater(pdf_build, build)
-        self.assertNotIn("APM_PDF_REQUIRED", str(steps))
-        self.assertNotIn("::warning::", str(steps))
-        self.assertTrue(steps[0]["env"]["RELEASE_TAG"])
-        self.assertNotIn("${{", steps[0]["run"])
+        self.assertEqual(workflow["permissions"], {})
+        self.assertNotIn("push", workflow["on"])
+        self.assertEqual(workflow["jobs"]["build"]["permissions"], {"contents": "read"})
+        steps = workflow["jobs"]["build"]["steps"]
+        self.assertIn("validate_evidence.py", str(steps))
+        self.assertIn("python site/generate_pdf.py", str(steps))
+        self.assertIn("needs.authorize.outputs.sha", str(steps))
+        publish = workflow["jobs"]["publish"]
+        self.assertEqual(publish["needs"], ["authorize", "build"])
+        self.assertIn("release-plan", str(publish["steps"]))
+        self.assertIn("scripts/book_release.py publish", str(publish["steps"]))
+        self.assertIn("gh workflow run deploy-pages.yml", str(publish["steps"]))
 
     def test_pr_workflow_is_read_only_and_covers_both_platforms(self):
         workflow = self.workflow("check-book.yml")
@@ -101,7 +97,21 @@ class WorkflowContractTests(unittest.TestCase):
         self.assertEqual(job["strategy"]["matrix"]["os"], ["ubuntu-latest", "windows-latest"])
         self.assertIn("unittest discover", str(job["steps"]))
         self.assertIn("validate_release.py --base-ref", str(job["steps"]))
+        self.assertIn("validate_evidence.py", str(job["steps"]))
+        self.assertIn("site/generate_pdf.py", str(job["steps"]))
+        self.assertEqual(workflow["jobs"]["book-release-preflight"]["name"], "Book release preflight")
         self.assertNotIn("APM_PDF_REQUIRED", str(job["steps"]))
+
+    def test_approval_signal_is_unprivileged_and_controller_uses_trusted_ref(self):
+        signal = self.workflow("book-approval-signal.yml")
+        self.assertEqual(signal["permissions"], {})
+        self.assertNotIn("checkout", str(signal["jobs"]))
+        controller = self.workflow("approved-book.yml")
+        self.assertEqual(controller["permissions"], {})
+        self.assertIn("workflow_run", controller["on"])
+        self.assertIn("issue_comment", controller["on"])
+        self.assertEqual(controller["jobs"]["preflight"]["permissions"], {"contents": "read"})
+        self.assertIn("ref': 'main", str(controller["jobs"]["authorize"]["steps"]))
 
     def test_pages_runs_preflight_before_build_and_remains_main_only(self):
         workflow = self.workflow("deploy-pages.yml")
