@@ -82,7 +82,7 @@ jobs:
         with:
           python-version: "3.12"
       - run: python -m pip install pyyaml playwright
-      - run: python -m playwright install --with-deps chromium
+      - run: python -m playwright install chromium
         timeout-minutes: 10
       - name: Validate merge and bound editorial evidence
         env:
