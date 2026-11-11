@@ -344,8 +344,10 @@ Release and Pages runs remain separately observable; the website retains its Sub
 
 For a failed publication, dispatch **Publish content release** with the same PR number and
 merge SHA or with the existing exact `vX.Y` tag. It rechecks provenance and never moves a tag.
-Already published historical editions are left unchanged; an old edition is not promoted
-to latest. For a failed pre-merge attempt, dispatch **Release approved book** with the PR number.
+Already published releases are left unchanged; a successful no-op requires the same approval
+provenance and an existing PDF. Historical releases without that provenance fail closed and remain
+unchanged. An old edition is not promoted to latest. For a failed pre-merge attempt, dispatch
+**Release approved book** with the PR number.
 
 Content corrections need a new edition and tag; do not move public tags. Historical v1.0/v1.1
 predate release metadata/tooling, so their published assets are preserved rather than rebuilt.

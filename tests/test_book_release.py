@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import contextlib
+import base64
 import copy
 import json
 import os
@@ -290,6 +291,70 @@ class PublishTests(unittest.TestCase):
             self.assertIn("--draft", calls[0])
             self.assertIn("--draft=false", calls[2])
             self.assertIn("--latest=false", calls[2])
+
+
+class RecoveryTests(unittest.TestCase):
+    class API:
+        repo = "webmaxru/book"
+        def __init__(self, *, associated=True, assets=True):
+            self.associated = associated
+            self.assets = assets
+            self.pull = pr()
+            self.pull.update({"state": "closed", "merged": True, "merge_commit_sha": MERGE})
+
+        def request(self, method, path, data=None, **_kwargs):
+            if method != "GET":
+                raise AssertionError("Recovery must be read-only")
+            if path == "git/ref/tags/v1.3":
+                return {"object": {"type": "commit", "sha": MERGE}}
+            if path == "releases/tags/v1.3":
+                return {"draft": False, "id": 42}
+            if path == "pulls/7":
+                return self.pull
+            if path == f"git/commits/{MERGE}":
+                return {"parents": [{"sha": BASE}], "tree": {"sha": "tree"}}
+            if path == f"git/commits/{HEAD}":
+                return {"tree": {"sha": "tree"}}
+            if path.startswith("actions/workflows/check-book.yml/runs"):
+                return {"workflow_runs": [{"id": 3, "status": "completed", "conclusion": "success",
+                                            "head_sha": HEAD, "head_branch": "content",
+                                            "head_repository": {"full_name": "webmaxru/book"}}]}
+            if path == f"compare/{MERGE}...main":
+                return {"merge_base_commit": {"sha": MERGE}}
+            if path == f"contents/content/version.yml?ref={MERGE}":
+                return {"encoding": "base64",
+                        "content": base64.b64encode(b'version: "1.3"\n').decode()}
+            raise AssertionError(path)
+
+        def pages(self, path):
+            if path == f"commits/{MERGE}/pulls":
+                return ([{"number": 7, "merged_at": "2026-01-03T00:00:00Z",
+                          "merge_commit_sha": MERGE}] if self.associated else [])
+            if path == "pulls/7/files":
+                return [{"filename": p} for p in
+                        ["content/chapters/a.html", "content/version.yml", "content/CHANGELOG.md"]]
+            if path in {"pulls/7/reviews", "issues/7/timeline"}:
+                return []
+            if path == "issues/7/comments":
+                return [comment()]
+            if path == "releases/42/assets":
+                return ([{"name": "apm-book-v1.3.pdf", "size": 99}] if self.assets else [])
+            raise AssertionError(path)
+
+    def test_unrelated_tag_and_missing_published_pdf_fail(self):
+        with self.assertRaisesRegex(release.GateError, "approved, merged content PR"):
+            release.release_plan(self.API(associated=False), tag="v1.3")
+        with self.assertRaisesRegex(release.GateError, "incomplete"):
+            release.release_plan(self.API(assets=False), tag="v1.3")
+
+    def test_complete_recovery_requires_current_approval_and_bound_tag(self):
+        api = self.API()
+        with patch.object(release, "output") as output:
+            release.release_plan(api, tag="v1.3")
+            self.assertEqual(output.call_args.args[0]["recovery"], "true")
+        api.pull["user"]["login"] = "someone-else"
+        with self.assertRaisesRegex(release.GateError, "approval"):
+            release.release_plan(api, tag="v1.3")
 
 
 if __name__ == "__main__":

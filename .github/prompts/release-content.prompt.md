@@ -97,8 +97,9 @@ explicit authorization for the automated merge and release.
 
 - To retry before merge, dispatch **Release approved book** with the PR number. After merge,
   dispatch **Publish content release** with the PR number and exact merge SHA, or use the existing
-  exact `vX.Y` tag. Recovery requires the same approved merged provenance; already published
-  releases are left unchanged.
+  exact `vX.Y` tag. Recovery requires the same approved merged provenance; a published release
+  is a successful no-op only if its versioned PDF is present. Releases lacking provenance or
+  the PDF fail explicitly and are left unchanged.
 - Correcting published content or its source changelog requires a **new edition and new tag**.
   Do not retag a public edition or replace its PDF with content from another commit.
 - Historical `v1.0` and `v1.1` were published before version metadata/release tooling existed at

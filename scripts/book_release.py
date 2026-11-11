@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import argparse
+import base64
 import json
 import os
 import re
@@ -225,6 +226,7 @@ def merge(api, number, head, base):
 
 
 def release_plan(api, *, number=None, head=None, base=None, merge_sha=None, tag=None):
+    existing = None
     if tag:
         if not TAG.fullmatch(tag):
             raise GateError("Recovery requires an exact vX.Y tag.")
@@ -233,9 +235,6 @@ def release_plan(api, *, number=None, head=None, base=None, merge_sha=None, tag=
             ref = api.request("GET", f"git/tags/{ref['sha']}")["object"]
         merge_sha = full_sha(ref["sha"])
         existing = api.request("GET", f"releases/tags/{tag}", missing=True)
-        if existing and not existing["draft"]:
-            output({"merge_sha": merge_sha, "tag": tag, "recovery": "true"})
-            return
         associated = api.pages(f"commits/{merge_sha}/pulls")
         matches = [p for p in associated if p.get("merged_at") and p["merge_commit_sha"] == merge_sha]
         if len(matches) != 1:
@@ -256,6 +255,20 @@ def release_plan(api, *, number=None, head=None, base=None, merge_sha=None, tag=
     source = api.request("GET", f"git/commits/{actual_head}")
     if commit["parents"][0]["sha"] != actual_base or source["tree"]["sha"] != commit["tree"]["sha"]:
         raise GateError("Merged tree or base differs from the approved preflight.")
+    if tag:
+        metadata = api.request("GET", f"contents/content/version.yml?ref={merge_sha}")
+        if metadata.get("encoding") != "base64":
+            raise GateError("Cannot verify the tagged edition metadata.")
+        data = base64.b64decode(metadata["content"], validate=False).decode("utf-8")
+        versions = re.findall(r'(?m)^version:\s*["\'](0|[1-9][0-9]*)\.(0|[1-9][0-9]*)["\']\s*$', data)
+        if len(versions) != 1 or f"v{versions[0][0]}.{versions[0][1]}" != tag:
+            raise GateError("Tag does not match the edition at the approved merge.")
+    if existing and not existing["draft"]:
+        assets = api.pages(f"releases/{existing['id']}/assets")
+        if not any(a["name"] == f"apm-book-{tag}.pdf" and a["size"] > 5 for a in assets):
+            raise GateError("Published release is incomplete; immutable assets were not overwritten.")
+        output({"merge_sha": merge_sha, "tag": tag, "recovery": "true"})
+        return
     output({"merge_sha": merge_sha, "head": actual_head, "base": actual_base,
             "pr": str(number), "tag": tag or "", "recovery": "false"})
 
