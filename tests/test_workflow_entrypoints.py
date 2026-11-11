@@ -112,6 +112,7 @@ class WorkflowContractTests(unittest.TestCase):
                          {"group": "approved-book", "cancel-in-progress": "false"})
         self.assertIn("workflow_run", controller["on"])
         self.assertIn("issue_comment", controller["on"])
+        self.assertIn("schedule", controller["on"])
         self.assertEqual(controller["jobs"]["preflight"]["permissions"], {"contents": "read"})
         self.assertIn("ref': 'main", str(controller["jobs"]["authorize"]["steps"]))
 

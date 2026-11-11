@@ -349,6 +349,11 @@ provenance and an existing PDF. Historical releases without that provenance fail
 unchanged. An old edition is not promoted to latest. For a failed pre-merge attempt, dispatch
 **Release approved book** with the PR number.
 
+GitHub may replace a pending run in a concurrency group. A bounded scheduled scan re-evaluates
+up to 30 recently updated open PRs and rotates among eligible approvals; if a schedule is
+disabled or an older PR falls outside that window, dispatch **Release approved book** with its
+PR number. Both paths recheck the same owner approval, checks, head and current main base.
+
 Content corrections need a new edition and tag; do not move public tags. Historical v1.0/v1.1
 predate release metadata/tooling, so their published assets are preserved rather than rebuilt.
 

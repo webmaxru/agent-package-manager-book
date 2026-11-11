@@ -83,6 +83,7 @@ class FixtureServer:
         self.pull_reads = 0
         self.change_during_read = False
         self.check_result = "success"
+        self.behind = False
 
     def route(self, method, path, body):
         self.actions.append((method, path, body))
@@ -108,6 +109,8 @@ class FixtureServer:
                                         "pull_requests": []}]}
         if path == "git/ref/heads/main":
             return {"object": {"sha": BASE}}
+        if path == f"compare/{BASE}...{HEAD}":
+            return {"merge_base_commit": {"sha": "d" * 40 if self.behind else BASE}}
         if path == "pulls/7/merge" and method == "PUT":
             if body != {"sha": HEAD, "merge_method": "squash"}:
                 raise AssertionError(body)
@@ -205,6 +208,28 @@ class ControllerEndToEndTests(unittest.TestCase):
         result = self.run_controller(fixture, "merge", "--pr", "7", "--head", HEAD, "--base", BASE)
         self.assertNotEqual(result.returncode, 0)
         self.assertFalse(any(action[0] != "GET" for action in fixture.actions))
+
+    def test_head_behind_main_cannot_merge(self):
+        fixture = FixtureServer()
+        fixture.behind = True
+        result = self.run_controller(fixture, "merge", "--pr", "7", "--head", HEAD, "--base", BASE)
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("behind main", result.stderr)
+        self.assertFalse(any(action[0] != "GET" for action in fixture.actions))
+
+    def test_scheduled_scan_rotates_among_current_eligible_prs(self):
+        class API:
+            def request(self, method, path, data=None, **_kwargs):
+                self.query = (method, path)
+                return [{"number": 7}, {"number": 8}]
+        api = API()
+        with patch.object(release, "candidate", side_effect=lambda _api, number, **_kw:
+                          ({"merged": False}, HEAD, BASE)) as gate:
+            with patch.object(release, "output") as output:
+                release.inspect(api, {"schedule": "17,47 * * * *"})
+        self.assertIn("per_page=30", api.query[1])
+        self.assertEqual(gate.call_count, 2)
+        self.assertIn(output.call_args.args[0]["pr"], {"7", "8"})
 
 
 class PublishTests(unittest.TestCase):

@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import argparse
 import base64
+import datetime
 import json
 import os
 import re
@@ -155,6 +156,10 @@ def candidate(api, number, *, expected_head=None, expected_base=None, checks=Fal
         base = full_sha(commit["parents"][0]["sha"])
     if expected_base and base != full_sha(expected_base):
         raise GateError("PR base changed after preflight.")
+    if not pr.get("merged"):
+        comparison = api.request("GET", f"compare/{base}...{head}")
+        if comparison["merge_base_commit"]["sha"] != base:
+            raise GateError("PR head is behind main; update it and obtain fresh approval.")
     if checks:
         response = api.request(
             "GET", f"actions/workflows/check-book.yml/runs?head_sha={head}&event=pull_request&per_page=100"
@@ -189,6 +194,12 @@ def event_numbers(api, event):
         return []
     if event.get("inputs", {}).get("pr"):
         return [int(event["inputs"]["pr"])]
+    if event.get("schedule"):
+        # A fixed cap bounds API usage. Older PRs outside this window can still
+        # be re-evaluated by the explicit PR-number dispatch.
+        return [p["number"] for p in api.request(
+            "GET", "pulls?state=open&base=main&sort=updated&direction=desc&per_page=30"
+        )]
     run = event.get("workflow_run", {})
     if (run.get("head_repository") or {}).get("full_name") != api.repo:
         return []
@@ -210,9 +221,15 @@ def inspect(api, event):
             print(f"PR {number} not eligible: {error}", file=sys.stderr)
             continue
         eligible.append({"pr": str(number), "head": head, "base": base})
-    if len(eligible) > 1:
+    if len(eligible) > 1 and not event.get("schedule"):
         raise GateError("Ambiguous signal; dispatch with one explicit PR number.")
-    output({"eligible": "true", **eligible[0]} if eligible else {"eligible": "false"})
+    if eligible:
+        # Rotate across a stable backlog, rather than retrying one failing PR
+        # indefinitely. Missed schedules are recoverable by explicit dispatch.
+        index = int(datetime.datetime.now(datetime.timezone.utc).timestamp() // 1800) % len(eligible)
+        output({"eligible": "true", **eligible[index]})
+    else:
+        output({"eligible": "false"})
 
 
 def merge(api, number, head, base):
