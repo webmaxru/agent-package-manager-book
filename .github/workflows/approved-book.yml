@@ -15,7 +15,7 @@ on:
 permissions: {}
 
 concurrency:
-  group: approved-book-${{ github.event.issue.number || github.event.inputs.pr || github.event.workflow_run.head_branch }}
+  group: approved-book
   cancel-in-progress: false
 
 jobs:
@@ -66,6 +66,7 @@ jobs:
           python-version: "3.12"
       - run: python -m pip install pyyaml playwright
       - run: python -m playwright install --with-deps chromium
+        timeout-minutes: 10
       - name: Validate edition and current evidence
         env:
           BASE: ${{ needs.authorize.outputs.base }}

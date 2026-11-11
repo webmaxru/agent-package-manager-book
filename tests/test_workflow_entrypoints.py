@@ -108,6 +108,8 @@ class WorkflowContractTests(unittest.TestCase):
         self.assertNotIn("checkout", str(signal["jobs"]))
         controller = self.workflow("approved-book.yml")
         self.assertEqual(controller["permissions"], {})
+        self.assertEqual(controller["concurrency"],
+                         {"group": "approved-book", "cancel-in-progress": "false"})
         self.assertIn("workflow_run", controller["on"])
         self.assertIn("issue_comment", controller["on"])
         self.assertEqual(controller["jobs"]["preflight"]["permissions"], {"contents": "read"})
