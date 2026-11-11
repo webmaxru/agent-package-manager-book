@@ -46,6 +46,17 @@ jobs:
             python site/validate_release.py
           fi
 
+      - name: Validate editorial evidence for changed content
+        if: runner.os == 'Linux' && github.event_name == 'pull_request'
+        shell: bash
+        env:
+          BASE_REF: ${{ github.event.pull_request.base.sha }}
+        run: |
+          changed="$(python -c 'import sys; sys.path.insert(0, "site"); from validate_release import changed_content; from pathlib import Path; print("yes" if changed_content(Path("."), sys.argv[1]) else "no")' "$BASE_REF")"
+          if [[ "$changed" == yes ]]; then
+            python site/validate_evidence.py --base-ref "$BASE_REF"
+          fi
+
       - name: Check launcher entry points without starting agents
         shell: pwsh
         run: |
@@ -55,3 +66,37 @@ jobs:
       - name: Build generated HTML without publishing
         if: runner.os == 'Linux'
         run: python site/generate.py
+
+      - name: Install release PDF toolchain
+        if: runner.os == 'Linux'
+        timeout-minutes: 10
+        run: |
+          python -m pip install playwright
+          python -m playwright install chromium
+
+      - name: Build and verify PDF
+        if: runner.os == 'Linux'
+        shell: bash
+        run: |
+          python site/generate_pdf.py
+          test -s site/apm-book.pdf
+          head -c 5 site/apm-book.pdf | grep -Fx '%PDF-'
+
+      - name: Upload PDF preview
+        if: runner.os == 'Linux'
+        uses: actions/upload-artifact@v4
+        with:
+          name: book-preview-${{ github.event.pull_request.head.sha || github.sha }}
+          path: site/apm-book.pdf
+          if-no-files-found: error
+
+  book-release-preflight:
+    name: Book release preflight
+    if: always()
+    needs: preflight
+    runs-on: ubuntu-latest
+    steps:
+      - name: Require both platform checks
+        env:
+          RESULT: ${{ needs.preflight.result }}
+        run: test "$RESULT" = success
