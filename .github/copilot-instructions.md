@@ -56,8 +56,9 @@ integrates. Work proceeds in waves (pilot chapter first), with a checkpoint comm
 - **Frozen update target.** `content/version.yml` records the book edition and reviewed
   `apm_version`; the root skill lockfile is not the book's upstream baseline. Use one pinned
   executable across an update, and advance the baseline only after the quality gates pass.
-- **Prepare before publish.** Updates commit reviewed content locally. Merge/tag/push/release
-  require an explicit publication request; never push every local tag.
+- **Prepare before publish.** Updates commit reviewed content locally. A subsequent owner
+  approval of a qualifying content-only PR explicitly authorizes automated merge and release;
+  otherwise publication requires an explicit request. Never push every local tag.
 - **Content ⟂ presentation.** Authors write content; `frontend-builder` owns chrome/nav/theming.
 
 ## APM reference (verified)

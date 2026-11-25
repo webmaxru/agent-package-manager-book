@@ -131,11 +131,14 @@ old verification stamps intact; do not claim that a build proves CLI behavior.
 
 Only after all affected chapters and integration ACCEPT, follow `/release-content` in **prepare**
 mode. Set `content/version.yml`'s edition/date and reviewed `apm_version` together, and add the
-matching content-only changelog section. A relevant unresolved breaking change blocks advancing
+matching content-only changelog section. Bind actual source files and reports and enumerate
+example results using `scripts/README.md#edition-evidence`; do not manufacture verdicts.
+A relevant unresolved breaking change blocks advancing
 the baseline; explicitly out-of-scope features may be deferred with rationale.
 
 Require release preflight and a successful HTML/PDF build. Commit the accepted update and
-reports locally, then stop with the exact commit and remaining publication steps.
+reports locally, then stop with the exact commit and remaining publication steps. Subsequent
+owner approval of a qualifying content-only PR authorizes the separate automated release.
 The PR/release workflows enforce metadata/provenance/build checks; they do not execute the
 agent examples or judge prose. Actual verifier and reviewer evidence is still mandatory.
 

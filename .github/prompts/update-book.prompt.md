@@ -59,7 +59,9 @@ Resolve failures before advancing the reviewed upstream baseline.
 
 After acceptance, invoke the **prepare** phase of `.github/prompts/release-content.prompt.md`:
 set the edition/date/reviewed `apm_version`, add content-only release notes, persist the actual
-verification and review reports, run release preflight, and require the HTML/PDF build.
+verification and review reports, produce the source/report Git-object binding described in
+`scripts/README.md` from those actual results, run release preflight, and require the HTML/PDF
+build. The binding is not a substitute for verification or review.
 
 ## Stop boundary
 

@@ -79,9 +79,50 @@ python .\site\extract_release_notes.py 1.2
 python -m unittest discover -s tests -v
 ```
 
-Only an explicit tag push publishes a release. The tag must be `vX.Y`, match the edition, point
-at HEAD in a clean checkout, and be an ancestor of `origin/main`. Push only that tag; never
-all local tags. Pages deploys separately when content is merged to `main`.
+An owner-approved content PR can be merged and published by **Release approved book**.
+For owner-authored PRs, GitHub prohibits self-approval; post `/release-book <full-head-sha>`.
+The controller checks the current head, owner approval, checks, content-only paths and base,
+then builds HTML/PDF read-only before merging. It explicitly dispatches publication for the
+resulting merge SHA, and publication explicitly dispatches Pages. Mixed infrastructure changes
+are excluded. Tag pushes alone do not publish; existing published tags are never moved.
+
+## Edition evidence
+
+For a new edition, retain the actual `chNN-review.md`, `chNN-verification.md` and
+`integration-review.md` files from the verifier and reviewers. Each needs an explicit
+`Verdict: ACCEPT` (reviews) or `Verdict: PASS` (verification), and must name the exact
+reviewed APM version. Create `content/research/updates/<edition>/commit-binding.json`
+after the reviewed files are final. Example for one affected chapter:
+
+```json
+{
+  "book_edition": "1.3",
+  "reviewed_apm_version": "0.32.0",
+  "result": "PASS",
+  "affected_chapters": [1],
+  "removed_paths": [],
+  "example_results": [
+    {"chapter": 1, "id": "chapter-example-id", "status": "PASS"}
+  ],
+  "bound_paths": [
+    {"path": "content/chapters/the-context-problem.html", "git_blob_oid": "<git-blob-id>"},
+    {"path": "content/research/updates/1.3/ch01-review.md", "git_blob_oid": "<git-blob-id>"},
+    {"path": "content/research/updates/1.3/ch01-verification.md", "git_blob_oid": "<git-blob-id>"},
+    {"path": "content/research/updates/1.3/integration-review.md", "git_blob_oid": "<git-blob-id>"}
+  ]
+}
+```
+
+Replace placeholders with the actual `git hash-object -- <path>` outputs. Bind every changed
+chapter, semantic TOC and backend example file and all required reports; list removed inputs in
+`removed_paths`. Declare each affected chapter and all its actual example results. A
+`SKIPPED-needs-network` entry also needs a nonempty `reason`. Do not invent a PASS or ACCEPT:
+If a chapter has no affected examples, use
+`"no_examples": [{"chapter": 1, "reason": "No executable examples were affected."}]`
+instead of fabricating an example result. These structured fields point to real independent
+evidence, not a substitute for it. Verify with
+`python .\site\validate_evidence.py --base-ref <base-sha>`; any later edit to a bound file
+requires fresh review/verification and a new binding.
 
 ## Safety
 
