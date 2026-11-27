@@ -35,6 +35,8 @@ Every book repository follows the same release flow. A repository conforms when 
 
 ### Per-book settings
 
+These may differ between books and are documented in each repository: the format and build, the version file, scheme and tag format, the content allowlist, the evidence rules, the deploy target and domain, the catch-up pull request rules, and how upstream updates are scouted.
+
 | Setting | Agent Package Manager book |
 | --- | --- |
 | Format/build | HTML from `content/toc.yml` and chapter fragments via `python site/generate.py`; release PDF via `python site/generate_pdf.py` (Python 3.12, PyYAML, Playwright Chromium). The sole release asset is `apm-book-vX.Y.pdf`; the website retains its Substack PDF gate. |
@@ -289,8 +291,8 @@ The release is published and complete, but **Release book** failed in its `deplo
 
 | Message | Meaning and next step |
 | --- | --- |
-| `Deployment run <id> did not deliver vX.Y: run concluded 'failure'` (or `'cancelled'`) | The Pages run failed, or a newer Pages run replaced it while it was queued. Read it with `gh run view <id> --log-failed`. |
-| `… did not deliver vX.Y: 'deploy' job concluded 'skipped'` | `published-source` refused the tag; read that job's output. |
+| `Deployment run <id> did not deliver vX.Y: run concluded 'failure'` (or `'cancelled'`) | The Pages run failed (including `published-source` refusing the tag; read that job's log), or a newer Pages run replaced it while it was queued. Read it with `gh run view <id> --log-failed`. |
+| `… did not deliver vX.Y: 'deploy' job concluded 'skipped'` | Defensive guard: the run finished without its `deploy` job running, so nothing was deployed or smoke-tested. Inspect the run before any manual deployment. |
 | `… did not deliver vX.Y: step 'Smoke test the released edition' did not succeed` | Pages deployed but the edition or discovery-file check failed or did not run. |
 | `Deployment run <id> did not finish within 2700 seconds` | Deployment and successful smoke-test evidence were not confirmed before the deadline. Even a successful response received after it is rejected; the run may still be going or may have finished. Check `gh run view <id>` before doing anything else. |
 | `Deployment dispatch returned no workflow run ID` | It is unknown whether a run started. Check `gh run list --workflow deploy-pages.yml -L 5` first; the release never guesses a run or re-dispatches. |
