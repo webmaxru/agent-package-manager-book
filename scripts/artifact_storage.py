@@ -146,7 +146,7 @@ def cleanup_preview(api, run_id):
         match = PREVIEW.fullmatch(candidate.get("name", ""))
         if (not match or match.groups()[:2] != identity[:2]
                 or candidate.get("expired") is not False
-                or candidate.get("id", replacement["id"]) >= replacement["id"]
+                or candidate.get("id", replacement["id"]) == replacement["id"]
                 or tuple(map(int, match.groups()[2:])) >= identity[2:]
                 or created(candidate) > replacement_time):
             continue

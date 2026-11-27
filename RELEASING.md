@@ -66,6 +66,8 @@ overlong ref names. After successful manual CI, **Clean replaced book previews**
 code from `main`, without checking out or downloading producer code/artifacts. It uses the
 exact replacement artifact ID, namespace, producing workflow/run/attempt, repository and
 branch metadata, and creation order to delete only older previews of that same full ref.
+Artifact IDs identify objects but are not chronological; age checks use creation timestamps
+and producing run/attempt order, never numeric artifact-ID order.
 Cleanup serializes by repository and source name without cancelling an executing cleanup;
 branches/tags sharing a short name also serialize but never replace each other's previews.
 It requires the current attempt's successful upload step and selects only that attempt's exact

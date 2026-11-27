@@ -163,6 +163,26 @@ class PreviewTests(unittest.TestCase):
         storage.cleanup_preview(api, 200)
         self.assertEqual(api.deleted(), [])
 
+    def test_older_preview_with_higher_artifact_id_is_pruned(self):
+        api = self.fixture()
+        older = api.artifacts.pop(10)
+        older["id"] = 30
+        api.artifacts[30] = older
+        storage.cleanup_preview(api, 200)
+        self.assertEqual(api.deleted(), [30])
+        self.assertIn(20, api.artifacts)
+
+    def test_older_same_run_attempt_with_higher_artifact_id_is_pruned(self):
+        api = self.fixture()
+        older = api.artifacts.pop(20)
+        older["id"] = 30
+        api.artifacts[30] = older
+        api.runs[200]["run_attempt"] = 2
+        api.artifact(21, api.runs[200])
+        storage.cleanup_preview(api, 200)
+        self.assertEqual(api.deleted(), [10, 30])
+        self.assertIn(21, api.artifacts)
+
     def test_newer_producer_with_earlier_upload_id_and_time_is_preserved(self):
         api = self.fixture()
         api.artifact(15, api.producer(300))
