@@ -35,6 +35,12 @@ class GateError(ValueError):
     pass
 
 
+class StaleBase(GateError):
+    def __init__(self, base, main):
+        super().__init__(f"approved, but its base {base[:12]} is behind main {main[:12]}. "
+                         "Update the branch from main, then approve the new head.")
+
+
 class APIError(RuntimeError):
     pass
 
@@ -199,18 +205,22 @@ def candidate(api, number, *, expected_head=None, expected_base=None, checks=Fal
     else:
         if pr.get("mergeable") is not True:
             raise GateError("PR is not mergeable (or GitHub has not computed it yet).")
-        base = main_sha(api)
+        base = full_sha(pr["base"]["sha"])
     if expected_base and base != full_sha(expected_base):
         raise GateError("PR base changed after preflight.")
-    if not pr.get("merged"):
-        comparison = api.request("GET", f"compare/{base}...{head}")
-        if comparison["merge_base_commit"]["sha"] != base:
-            raise GateError("PR head is behind main; update it and obtain fresh approval.")
     if checks:
         checks_passed(api, pr, head)
     if not approval(pr, api.pages(f"pulls/{number}/reviews"), api.pages(f"issues/{number}/comments"),
                     api.pages(f"issues/{number}/timeline")):
         raise GateError("No current owner approval of this exact PR head.")
+    if not pr.get("merged"):
+        tip = main_sha(api)
+        if base != tip:
+            raise StaleBase(base, tip)
+        comparison = api.request("GET", f"compare/{tip}...{head}")
+        ancestor = full_sha(comparison["merge_base_commit"]["sha"])
+        if ancestor != tip:
+            raise StaleBase(ancestor, tip)
     fresh = api.request("GET", f"pulls/{number}")
     if (any(fresh.get(key) != pr.get(key) for key in
             ("head", "base", "state", "draft", "merged", "merge_commit_sha", "merged_by", "user"))
@@ -261,6 +271,13 @@ def inspect(api, event):
             pr, head, base = candidate(api, number, checks=True)
             if pr.get("merged"):
                 continue
+        except StaleBase as error:
+            message = f"PR {number}: {error}"
+            print(f"::warning::{message}")
+            if summary := os.environ.get("GITHUB_STEP_SUMMARY"):
+                with open(summary, "a", encoding="utf-8") as handle:
+                    print(message, file=handle)
+            continue
         except GateError as error:
             print(f"PR {number} not eligible: {error}", file=sys.stderr)
             continue

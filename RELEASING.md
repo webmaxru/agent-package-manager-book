@@ -266,7 +266,7 @@ To unblock the PR, the owner must authorize its current head **strictly after** 
 
 ### 5. The branch is behind `main`
 
-Being behind `main` stops the merge on its own, even with no conflict: the head must already contain the current `main`, or the controller refuses with `PR head is behind main; update it and obtain fresh approval.` Update the branch, wait for preflight on the new head, and approve again:
+An approved PR with green preflight can fall behind when another PR merges into `main`. Even without a conflict, **Release approved book** skips the stale PR before rebuilding the book. Its `authorize` job emits a warning and writes the same message in the run summary: `PR N: approved, but its base <old SHA> is behind main <live SHA>. Update the branch from main, then approve the new head.` Rerunning the controller alone won't help. Update the branch, wait for preflight on the new head, and approve again:
 
 ```sh
 gh pr update-branch N
@@ -276,7 +276,7 @@ gh pr review N --approve    # or comment /release-book <new SHA> on your own PR
 
 ### 6. Approved, but the PR is still open
 
-Look at the latest **Release approved book** run. Its `authorize` job prints `PR N not eligible: <reason>` for every open PR it declined. Typical causes: a failing or still-running preflight, a head that moved after approval, a head behind `main`, a file outside the allowlist, or a run that was replaced in GitHub's concurrency queue. The scan covers only the 30 most recently updated PRs. Fix the cause, or run the controller for this PR:
+Look at the latest **Release approved book** run. Check the run summary for the stale-base warning from scenario 5; for other rejections the `authorize` job prints `PR N not eligible: <reason>`. Typical causes include a failing or still-running preflight, a head that moved after approval, or a file outside the allowlist. A run can also be replaced in GitHub's concurrency queue. The scan covers only the 30 most recently updated PRs. Fix the cause, or run the controller for this PR:
 
 ```sh
 gh workflow run approved-book.yml -f pr=N

@@ -354,6 +354,50 @@ class ReleaseCLIEndToEndTests(CLIBase):
         self.cli("merge", "--pr", "7", "--head", self.repo.head, "--base", self.repo.base, succeeds=False)
         self.no_writes()
 
+    def test_inspect_reports_stale_approved_base_until_updated_and_reapproved(self):
+        event = self.repo.write("event.json", json.dumps({"inputs": {"pr": "7"}}))
+        summary = self.folder / "summary.md"
+        self.env["GITHUB_STEP_SUMMARY"] = str(summary)
+        main = self.repo.add_main_commit("README.md", "Another PR merged.\n")
+
+        def inspect():
+            return self.cli("inspect", "--event", str(event))
+
+        for reported_base in (self.repo.base, main):
+            with self.subTest(reported_base=reported_base):
+                self.repo.pull["base"]["sha"] = reported_base
+                self.repo.actions.clear()
+                summary.write_text("Prior step\n", encoding="utf-8")
+                result, outputs = inspect()
+                self.assertEqual(outputs, {"eligible": "false"})
+                message = (f"PR 7: approved, but its base {self.repo.base[:12]} is behind main {main[:12]}. "
+                           "Update the branch from main, then approve the new head.")
+                self.assertIn(f"::warning::{message}", result.stdout)
+                self.assertEqual(summary.read_text(encoding="utf-8").splitlines(), ["Prior step", message])
+                if reported_base != main:
+                    self.assertFalse(any("/compare/" in a[1] for a in self.repo.actions))
+                self.no_writes()
+
+        self.repo.git("checkout", "content")
+        self.repo.git("merge", "--no-edit", "main")
+        self.repo.head = self.repo.git("rev-parse", "HEAD")
+        self.repo.pull["head"]["sha"] = self.repo.head
+        result, outputs = inspect()
+        self.assertEqual(outputs, {"eligible": "false"})
+        self.assertNotIn("::warning::", result.stdout)
+        self.assertIn("No current owner approval", result.stderr)
+        self.repo.comments = [comment(self.repo.head)]
+        _, outputs = inspect()
+        self.assertEqual(outputs, {"eligible": "true", "pr": "7", "head": self.repo.head, "base": main})
+        self.no_writes()
+
+    def test_main_moving_at_final_merge_check_blocks_all_writes(self):
+        self.repo.move_main_after_read = 2
+        result, _ = self.cli("merge", "--pr", "7", "--head", self.repo.head,
+                             "--base", self.repo.base, succeeds=False)
+        self.assertIn("Main advanced during preflight", result.stderr)
+        self.no_writes()
+
     def test_complete_release_cannot_hide_forged_squash_tree(self):
         self.repo.merge = self.repo.git("commit-tree", f"{self.repo.base}^{{tree}}",
                                         "-p", self.repo.base, "-m", "Forged merge")
