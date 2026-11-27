@@ -1,0 +1,34 @@
+name: Clean replaced book previews
+
+on:
+  workflow_run:
+    workflows: ["Book CI"]
+    types: [completed]
+
+permissions: {}
+
+jobs:
+  cleanup:
+    if: >-
+      github.ref == 'refs/heads/main'
+      && github.event.workflow_run.event == 'workflow_dispatch'
+      && github.event.workflow_run.conclusion == 'success'
+      && github.event.workflow_run.head_repository.full_name == github.repository
+    runs-on: ubuntu-24.04
+    # Branches and tags sharing a short name also serialize; full refs remain distinct in names.
+    concurrency:
+      group: preview-cleanup-${{ github.repository_id }}-${{ github.event.workflow_run.head_branch }}
+      cancel-in-progress: false
+    permissions:
+      contents: read
+      actions: write
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: main
+          persist-credentials: false
+      - name: Remove only completed older previews of this full source ref
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PRODUCER_RUN_ID: ${{ github.event.workflow_run.id }}
+        run: python scripts/artifact_storage.py preview --run-id "$PRODUCER_RUN_ID"

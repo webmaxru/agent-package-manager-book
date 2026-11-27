@@ -173,6 +173,9 @@ def github_fixture(fixture):
         def do_PUT(self):
             self.respond()
 
+        def do_DELETE(self):
+            self.respond()
+
         def respond(self):
             length = int(self.headers.get("Content-Length", "0"))
             body = json.loads(self.rfile.read(length)) if length else None

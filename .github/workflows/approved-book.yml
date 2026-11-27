@@ -86,12 +86,6 @@ jobs:
           test -s site/index.html
           test -s site/apm-book.pdf
           head -c 5 site/apm-book.pdf | grep -Fx '%PDF-'
-      - uses: actions/upload-artifact@v7
-        with:
-          name: approved-book-preview-${{ needs.authorize.outputs.head }}
-          path: book/site/apm-book.pdf
-          if-no-files-found: error
-
   merge:
     needs: [authorize, preflight]
     if: github.ref == 'refs/heads/main' && needs.authorize.outputs.eligible == 'true'
