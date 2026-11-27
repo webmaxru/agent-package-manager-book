@@ -21,17 +21,17 @@ Every book repository follows the same release flow. A repository conforms when 
 3. **Eligibility.**
    The pull request is open, not a draft, from the same repository, targets `main`, is mergeable, and its head contains the current `main`. Its files are content-only under the book's allowlist. "Book release preflight" is green on the exact head, and the version, CHANGELOG and evidence checks pass.
 4. **Authorization.**
-   Someone else's pull request: an owner Approve review on the current head. The owner's own pull request: an owner comment `/release-book <40-character head SHA>`. A later push, a CHANGES_REQUESTED review, a dismissed review or an edited or deleted comment revokes it. A non-owner never authorizes.
+   Someone else's pull request: the latest formal owner review is Approve on the current head; ordinary COMMENTED reviews neither authorize nor revoke. The owner's own pull request: any still-present, unedited owner comment with the exact whole body `/release-book <40-character lowercase head SHA>`; extra whitespace is invalid. A later push invalidates authorization for the old head. A CHANGES_REQUESTED or DISMISSED review from any reviewer, or any review-dismissal timeline event at its actual event time, requires fresh owner authorization strictly afterward. Editing or deleting an authorization comment removes that comment's authority, but unrelated, stale or invalid comments do not cancel another valid comment. A non-owner never authorizes. The identical `tests/test_approval_contract.py` exercises these decisions in all four books.
 5. **Merge.**
    A squash merge conditioned on the approved head SHA. The controller then dispatches `release.yml`, because merges made with `GITHUB_TOKEN` trigger no workflows.
 6. **Release.**
-   `release.yml` is dispatch-only, with the inputs `pr`, `head_sha`, `base_sha`, `merge_sha` and `tag`, and the concurrency group `book-publish`. Steps: plan, build from the merge commit, annotated tag, draft release, upload assets, publish, deploy the released tag, smoke test. Never clobber assets and never move a tag. A complete release is a no-op. A partial release or a provenance mismatch fails with no writes. Latest goes only to the highest stable version, and prereleases are never Latest. A fix is a new version.
+   `release.yml` is dispatch-only, with the inputs `pr`, `head_sha`, `base_sha`, `merge_sha` and `tag`, and the concurrency group `book-publish`. Steps: plan, build from the merge commit, annotated tag, draft release, upload assets, publish, deploy the released tag, smoke test. Never clobber assets and never move a tag. A complete published release is a no-op, including no redeployment. A partial release (tag-only, any existing draft, or incomplete published assets) or a provenance mismatch fails with no writes. Latest goes only to the highest published stable edition; bare tags, drafts and prereleases do not compete. A fix is a new version.
 7. **Deploy.**
-   Production serves only released editions. A push to `main` deploys only when the content equals the latest published release (the `published-source` job). The release deploys its own tag. A manual dispatch takes a released ref or sha, which is the rollback path.
+   Production serves only released editions. A push to `main` deploys only when the content equals the latest published stable release (the `published-source` job). After a new publication, the release automatically deploys its own tag only if it is the highest published stable edition; older editions and prereleases do not roll production back. The release waits for its exact deployment run and requires successful deployment and smoke-test steps; failure, timeout, missing credentials or skipped checks cannot be reported as a successful deployment. A manual deploy dispatch takes a published stable ref or sha, including an older edition, which is the explicit rollback path.
 8. **No other publisher.**
    A tag push, a label or a branch name never publishes. A manual merge to `main` bypasses the controller; the fix is a catch-up pull request with a higher version.
 9. **Pins.**
-   Runner `ubuntu-24.04`. `actions/checkout@v7`, `actions/setup-python@v7`, `actions/upload-artifact@v7`, `actions/download-artifact@v8` (a full commit SHA with a trailing `# v7.x.y` version comment is acceptable).
+   Runner `ubuntu-24.04`. `actions/checkout@v7`, `actions/setup-python@v7`, `actions/upload-artifact@v7`, `actions/download-artifact@v8`.
 
 ### Per-book settings
 
@@ -41,7 +41,7 @@ Every book repository follows the same release flow. A repository conforms when 
 | Version file, scheme and tag | `content/version.yml`: quoted major.minor `X.Y`, date and independently pinned `apm_version` (`X.Y.Z`). Structural rewrites are major; other reader-visible updates are minor. Tags are stable-only `vX.Y`; no patch or prerelease editions. |
 | Content allowlist | Trusted `scripts/book_release.py::allowed_path`: `content/version.yml`, `content/CHANGELOG.md`, `content/toc.yml`, `content/chapters/**`, `content/research/**`, `backend/examples/**`, generated `site/index.html`, `site/chapters/**/*.html`, `site/llms.txt`, `site/llms-full.txt`, `site/sitemap.xml`, `site/robots.txt`, `site/site.webmanifest`. Renames check both paths. The same policy defines the deploy content comparison; workflows carry no separate path list. |
 | Evidence rules | `content/research/updates/<edition>/commit-binding.json` binds affected chapter/TOC/example inputs and reports to Git blob IDs, names every affected chapter and example result (or an explicit no-example reason). Integration and chapter reviews require ACCEPT; verification requires PASS or justified `SKIPPED-needs-network`, all at the pinned APM baseline. Trusted validators check structure and binding, not prose quality. |
-| Deploy target/domain | GitHub Pages, `deploy-pages.yml`, `github-pages` environment, `https://apm.isainative.dev`. Pushes rebuild current main only if allowed content equals the latest published edition; release/manual deployments use a published tag or its full SHA. Smoke checks verify the edition and discovery files. Existing `v1.2` remains deployable; historical `v1.0`/`v1.1` lack today's metadata/toolchain and are preserved, not rebuilt by this workflow. |
+| Deploy target/domain | GitHub Pages, `deploy-pages.yml`, `github-pages` environment, `https://apm.isainative.dev`. Pushes rebuild current main only if allowed content equals the latest published edition; release/manual deployments use a published tag or its full SHA. A new publication auto-deploys only when it is the highest published stable edition, and **Release book** waits for that exact Pages run (job `deploy`, steps `Deploy to GitHub Pages` and `Smoke test the released edition`, up to 45 minutes). Smoke checks verify the edition and discovery files. Existing `v1.2` remains deployable; historical `v1.0`/`v1.1` lack today's metadata/toolchain and are preserved, not rebuilt by this workflow. |
 | Catch-up PR rules | Start at current main; choose an edition higher than main, make a real chapter/TOC change, and provide fresh bound evidence. Fold stranded untagged CHANGELOG entries into the new entry, leaving the latest fetched lower edition tag immediately below it (normally the latest published edition). Both PR preflight and release-candidate validation enforce the fold before merge. A partial tagged edition remains an immutable predecessor; retain its entry and choose a higher version. |
 | Upstream-update scouting | No scheduled scout. `python scripts/check_upstream.py` or `/update-book` with `Mode: check` reads stable `microsoft/apm` releases against `content/version.yml`; an update freezes one explicit APM target and requires the chapter quality gates. The root skill lockfile is not the upstream baseline. |
 
@@ -81,7 +81,12 @@ For someone else's non-draft PR, **webmaxru** submits an **Approve** review on i
 
 The controller, **Release approved book**, runs on `main` with its own trusted validators. It reacts to the review or comment, to the completion of **Book CI**, to a scan of up to 30 recently updated open PRs at minutes 17 and 47, and to **Run workflow → pr**. None of those triggers grants approval. It requires an open, mergeable, non-draft, same-repository PR against `main` whose files are all on the content allowlist, a head that already contains the current `main`, and a successful **Book CI** run with **Book release preflight** green for exactly that head. It then repeats the preflight on its own build of the head, including the PDF, and merges with a **squash** that is conditional on the approved head. If `main` moved in the meantime it stops with `Main advanced during preflight; update the branch and approve again.`
 
-Publication is a separate dispatch from the controller, because a merge made with `GITHUB_TOKEN` does not trigger other workflows. **Release book** receives `pr`, `head_sha`, `base_sha`, `merge_sha` and `tag`, and proves that the merge commit is the PR's merge on `main`, with the approved tree. It rebuilds the book from that commit, creates an annotated tag `vX.Y` there, uploads `apm-book-vX.Y.pdf` to a **draft** release, publishes it, and marks it Latest only if no newer stable release exists. It then dispatches **Deploy book to GitHub Pages** with `ref=vX.Y`, independent of later changes to `main`. The deploy workflow smoke-tests the edition and discovery files; observe its separate run as well as the publisher. The website keeps its Substack gate in front of the PDF, so the PDF is downloaded from the GitHub release.
+Publication is a separate dispatch from the controller, because a merge made with `GITHUB_TOKEN` does not trigger other workflows. **Release book** receives `pr`, `head_sha`, `base_sha`, `merge_sha` and `tag`, and proves that the merge commit is the PR's merge on `main`, with the approved tree. It rebuilds the book from that commit, creates an annotated tag `vX.Y` there, uploads `apm-book-vX.Y.pdf` to a **draft** release, publishes it, and marks it Latest only if no newer stable release exists. Its final `deploy` job (`book_release.py deliver`) then rechecks that the release is complete and provenance-valid and compares the tag with every published stable release (bare tags, drafts and prereleases are ignored):
+
+- **Highest published stable edition:** it dispatches **Deploy book to GitHub Pages** once with `ref=vX.Y` (independent of later changes to `main`), using the REST API version that returns the new run's ID, and follows only that run. It succeeds only when the run concluded `success` and its `deploy` job ran both `Deploy to GitHub Pages` and `Smoke test the released edition` successfully. A failed, cancelled (for example superseded in the `pages` queue) or timed-out run, a skipped `deploy` job, or a missing or skipped smoke step fails **Release book**. A dispatch without a run ID also fails: it never guesses a recent run and never re-dispatches.
+- **Older edition** (a newer stable edition is already published): it publishes the release but dispatches nothing, and posts the notice `Production not rolled back` with the manual rollback command. Production keeps serving the newer edition.
+
+A complete published release found by the plan is a no-op, including no redeployment. The website keeps its Substack gate in front of the PDF, so the PDF is downloaded from the GitHub release.
 
 The repository has no branch protection or ruleset, so nothing enforces this gate: **manual merges bypass it**.
 
@@ -95,7 +100,7 @@ gh workflow run release.yml --ref main -f pr=N -f merge_sha=$(gh pr view N --jso
 
 | State found | What recovery does |
 | --- | --- |
-| Release published with the PDF | Nothing to do (no-op): `Existing published edition preserved.` |
+| Release published with the PDF | Nothing to do (no-op, no redeploy): `Existing published edition preserved.` |
 | No tag | Creates the tag at the merge commit, then a draft, uploads the PDF, publishes. |
 | Tag but no release, or a draft | Stops without writes. An interrupted/partial edition is not repaired in place; prepare a new edition. |
 | Published release without the PDF | Stops without changes. Prepare a new edition; never overwrite immutable assets. |
@@ -114,10 +119,10 @@ Commands use the [GitHub CLI](https://cli.github.com/) (`gh`) from a clone of th
 | Event | What happens | Release? |
 | --- | --- | --- |
 | PR opened or pushed | **Book CI** runs the tests, edition and evidence checks, site generation and the PDF build. Its **Book release preflight** job is the gate. | No |
-| Owner **Approve** review, or an owner `/release-book <SHA>` comment | **Release approved book** re-checks everything and squash-merges the approved head. **Release book** follows. | Yes, a few minutes later |
+| Owner **Approve** review, or an owner `/release-book <SHA>` comment | **Release approved book** re-checks everything and squash-merges the approved head. **Release book** follows, publishes, and deploys and smoke-tests the edition if it is the highest published stable edition. | Yes, a few minutes later |
 | **Book CI** finishes, or the 30-minute scan | The controller looks for an approved PR it missed. It never approves anything itself. | Only if a valid approval exists |
 | **Release approved book → Run workflow** with `pr` | Same re-check for one PR. | Only if a valid approval exists |
-| **Release book → Run workflow** | Recovery for an approved merged PR or an existing tag. | Publishes only a fresh edition; complete editions are no-ops and partial editions fail without writes |
+| **Release book → Run workflow** | Recovery for an approved merged PR or an existing tag. | Publishes only a fresh edition; complete editions are no-ops (no redeploy) and partial editions fail without writes |
 | Push a tag, add a label, press **Merge** | Nothing in the release flow. | **No** |
 | Any push to `main` | **Book CI** runs; **Deploy book to GitHub Pages** runs `published-source` and deploys only if allowed content equals the latest published release. Unreleased content leaves production unchanged. | No |
 | **Deploy book to GitHub Pages → Run workflow**, `ref=vX.Y` (or its full SHA) | Verifies a published release and deploys that edition; an older released ref is rollback. An unreleased ref is refused. | No |
@@ -164,7 +169,7 @@ Commands use the [GitHub CLI](https://cli.github.com/) (`gh`) from a clone of th
    gh release view vX.Y
    ```
 
-**Result:** the PR is squash-merged, `vX.Y` is a tag on the merge commit, the release has `apm-book-vX.Y.pdf`, it is Latest if it is the highest stable edition, and the website shows the new edition.
+**Result:** the PR is squash-merged, `vX.Y` is a tag on the merge commit, the release has `apm-book-vX.Y.pdf`, it is Latest if it is the highest stable edition, and the website shows the new edition. **Release book** turns green only after its `deploy` job has seen the exact Pages run deploy and smoke-test `vX.Y`.
 
 ### 2. Someone else's PR on a branch in this repository
 
@@ -276,21 +281,35 @@ The PR is merged but the release is missing or incomplete, or **Release book** f
 gh workflow run release.yml --ref main -f pr=N -f merge_sha=$(gh pr view N --json mergeCommit --jq .mergeCommit.oid)
 ```
 
-What it does is in [the table above](#recovery-and-corrections). A tag without a release, a draft, an incomplete asset, or mismatched provenance fails without writes. Inspect it, then ship the fix as the next edition through scenario 1, which needs a real chapter change. A complete edition is a no-op; that does not retry Pages, so use scenario 12 for a failed deploy. If an older run failed on `The previous changelog edition and fetched tag must match.`, follow scenario 9 step 3. Never move a tag or overwrite a PDF.
+What it does is in [the table above](#recovery-and-corrections). A tag without a release, a draft, an incomplete asset, or mismatched provenance fails without writes. Inspect it, then ship the fix as the next edition through scenario 1, which needs a real chapter change. A complete edition is a no-op; that does not retry Pages, so if only the final `deploy` job failed use scenario 12. If an older run failed on `The previous changelog edition and fetched tag must match.`, follow scenario 9 step 3. Never move a tag or overwrite a PDF.
 
 ### 12. Only the website deploy failed
 
-The release is published and complete but [apm.isainative.dev](https://apm.isainative.dev/) still shows the old edition. **Release book** dispatches Pages for its own released tag; later main changes do not substitute another edition. Inspect the separate deploy run and smoke-test result, then retry the published tag:
+The release is published and complete, but **Release book** failed in its `deploy` job or [apm.isainative.dev](https://apm.isainative.dev/) still shows the old edition. The job names the exact Pages run it dispatched and why it was not accepted:
+
+| Message | Meaning and next step |
+| --- | --- |
+| `Deployment run <id> did not deliver vX.Y: run concluded 'failure'` (or `'cancelled'`) | The Pages run failed, or a newer Pages run replaced it while it was queued. Read it with `gh run view <id> --log-failed`. |
+| `… did not deliver vX.Y: 'deploy' job concluded 'skipped'` | `published-source` refused the tag; read that job's output. |
+| `… did not deliver vX.Y: step 'Smoke test the released edition' did not succeed` | Pages deployed but the edition or discovery-file check failed or did not run. |
+| `Deployment run <id> did not finish within 2700 seconds` | The run may still be going. Check `gh run view <id>` before doing anything else. |
+| `Deployment dispatch returned no workflow run ID` | It is unknown whether a run started. Check `gh run list --workflow deploy-pages.yml -L 5` first; the release never guesses a run or re-dispatches. |
+
+Later main changes never substitute another edition. Dispatching **Release book** again is a no-op for a complete edition and does not redeploy. After you have fixed the cause and confirmed no deployment of this edition is still running, deploy the published tag yourself and watch the run:
 
 ```sh
 gh workflow run deploy-pages.yml --ref main -f ref=v1.2
+gh run list --workflow deploy-pages.yml -L 3
+gh run watch <run-id>
 ```
+
+Instead of the manual dispatch, and under the same conditions, you can use **Re-run failed jobs** on the **Release book** run. Its `deploy` job rechecks the release and the newest-edition rule, then dispatches and follows exactly one new run.
 
 Use a published tag or its full 40-character commit SHA in `ref`. The workflow verifies that the release is non-draft and the tag resolves to that commit; an arbitrary main SHA, branch name or unpublished tag is refused. A push can rebuild newer tooling only after the trusted allowlist comparison proves the content still equals the latest release.
 
 ### 13. A published release is wrong, or the site must go back
 
-Do not edit the release or move its tag. Fix `main` through scenario 1 and release the next edition, for example `1.3`. The edition must be above the one on `main`. For an immediate website rollback, dispatch the earlier published tag (for example `v1.2` after `v1.3`):
+Do not edit the release or move its tag. Fix `main` through scenario 1 and release the next edition, for example `1.3`. The edition must be above the one on `main`. **Release book** never rolls production back on its own: if a newer stable edition is already published, it publishes the older one without deploying it and posts the notice `Production not rolled back` with the command below. For an immediate website rollback, dispatch the earlier published tag yourself (for example `v1.2` after `v1.3`):
 
 ```sh
 gh workflow run deploy-pages.yml --ref main -f ref=v1.2

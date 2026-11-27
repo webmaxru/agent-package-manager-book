@@ -125,7 +125,9 @@ jobs:
     permissions:
       contents: write
       pull-requests: read
-      actions: write
+      actions: read
+    outputs:
+      published: ${{ steps.publish.outputs.published }}
     steps:
       - uses: actions/checkout@v7
         with:
@@ -136,6 +138,7 @@ jobs:
           name: release-book-${{ needs.authorize.outputs.sha }}
           path: artifacts
       - name: Recheck authorization and publish draft after PDF upload
+        id: publish
         env:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
@@ -154,9 +157,26 @@ jobs:
           python scripts/book_release.py release-plan --merge-sha "$MERGE" "${args[@]}"
           python scripts/book_release.py publish --tag "$TAG" --merge-sha "$MERGE" \
             --pdf "artifacts/apm-book-$TAG.pdf" --notes artifacts/notes.md
-      - name: Explicitly dispatch Pages for the released tag
+
+  deploy:
+    needs: [authorize, build, publish]
+    if: >-
+      github.ref == 'refs/heads/main' && needs.authorize.outputs.recovery != 'true'
+      && needs.publish.outputs.published == 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    permissions:
+      contents: read
+      pull-requests: read
+      actions: write
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: main
+          persist-credentials: false
+      - name: Deploy the released tag and require its exact smoke-tested run
         env:
           GH_TOKEN: ${{ github.token }}
-          GH_REPO: ${{ github.repository }}
           TAG: ${{ needs.build.outputs.tag }}
-        run: gh workflow run deploy-pages.yml --ref main -f ref="$TAG"
+          MERGE: ${{ needs.authorize.outputs.sha }}
+        run: python scripts/book_release.py deliver --tag "$TAG" --merge-sha "$MERGE"

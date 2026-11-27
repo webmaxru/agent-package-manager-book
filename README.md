@@ -341,12 +341,15 @@ changed-file allowlist; it runs an independent read-only HTML/PDF preflight befo
 SHA-conditional squash merge. Mixed infrastructure/workflow PRs are never auto-merged.
 The exact resulting merge commit is explicitly dispatched to **Release book** (`release.yml`),
 which rebuilds, validates provenance, creates the immutable tag, uploads the PDF to a draft,
-then publishes and explicitly dispatches Pages with the released tag. Approving before checks finish is supported.
-Release and Pages runs remain separately observable; the website retains its Substack PDF gate.
+then publishes. If the new edition is the highest published stable edition, its `deploy` job
+dispatches Pages once with the released tag and waits for that exact run: **Release book**
+succeeds only if the run's deployment and `Smoke test the released edition` steps succeeded.
+An older edition is published without deploying (notice `Production not rolled back`).
+Approving before checks finish is supported. The website retains its Substack PDF gate.
 
 For a failed publication, dispatch **Release book** with the same PR number and
 merge SHA or with the existing exact `vX.Y` tag. It rechecks provenance and never moves a tag.
-Already published releases are left unchanged; a successful no-op requires the same approval
+Already published releases are left unchanged and are not redeployed; a successful no-op requires the same approval
 provenance and an existing PDF. Historical releases without that provenance fail closed and remain
 unchanged. An old edition is not promoted to latest. For a failed pre-merge attempt, dispatch
 **Release approved book** with the PR number.
@@ -356,8 +359,9 @@ the workflow names, authorization and immutable release boundary. An edited/dele
 comment revokes authorization. Partial releases (including drafts) fail without writes.
 Pages pushes are gated by `published-source`: tooling can redeploy only when book content equals
 the latest published release. Manual `deploy-pages.yml` dispatch requires a published `ref`
-(tag or full SHA), which is also the rollback path. The release deploys its own tag and Pages
-smoke-tests that edition. A hand-merged content change stays off production until a higher-version
+(tag or full SHA), which is also the rollback path, including to an older edition. A release
+auto-deploys only the highest published stable edition and waits for that exact Pages run's
+smoke test. A hand-merged content change stays off production until a higher-version
 catch-up PR is approved, with stranded CHANGELOG notes folded into its new entry.
 
 GitHub may replace a pending run in a concurrency group. A bounded scheduled scan re-evaluates

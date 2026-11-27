@@ -4,6 +4,7 @@ import os
 import re
 import shutil
 import subprocess
+import sys
 import tempfile
 import unittest
 from pathlib import Path
@@ -87,10 +88,31 @@ class WorkflowContractTests(unittest.TestCase):
         self.assertEqual(publish["needs"], ["authorize", "build"])
         self.assertIn("release-plan", str(publish["steps"]))
         self.assertIn("scripts/book_release.py publish", str(publish["steps"]))
-        self.assertIn("gh workflow run deploy-pages.yml", str(publish["steps"]))
-        dispatch = publish["steps"][-1]
-        self.assertIn('-f ref="$TAG"', dispatch["run"])
-        self.assertEqual(dispatch["env"]["TAG"], "${{ needs.build.outputs.tag }}")
+        self.assertEqual(publish["permissions"]["actions"], "read")
+        self.assertEqual(publish["outputs"]["published"], "${{ steps.publish.outputs.published }}")
+        self.assertNotIn("gh workflow run", str(workflow["jobs"]))
+
+    def test_release_delivers_only_new_publications_and_waits_for_the_exact_smoke_test(self):
+        sys.path.insert(0, str(ROOT / "scripts"))
+        import book_release
+
+        workflow = self.workflow("release.yml")
+        deploy = workflow["jobs"]["deploy"]
+        self.assertEqual(deploy["needs"], ["authorize", "build", "publish"])
+        self.assertIn("needs.authorize.outputs.recovery != 'true'", deploy["if"])
+        self.assertIn("needs.publish.outputs.published == 'true'", deploy["if"])
+        self.assertEqual(deploy["permissions"], {"contents": "read", "pull-requests": "read",
+                                                 "actions": "write"})
+        step = deploy["steps"][-1]
+        self.assertEqual(step["run"], 'python scripts/book_release.py deliver --tag "$TAG" --merge-sha "$MERGE"')
+        self.assertEqual(step["env"]["TAG"], "${{ needs.build.outputs.tag }}")
+        self.assertEqual(step["env"]["MERGE"], "${{ needs.authorize.outputs.sha }}")
+        self.assertGreater(int(deploy["timeout-minutes"]) * 60, book_release.DEPLOY_WAIT_SECONDS)
+        pages = self.workflow(book_release.DEPLOY_WORKFLOW)
+        self.assertEqual(pages["on"]["workflow_dispatch"]["inputs"].keys(), {"ref"})
+        names = [s.get("name") for s in pages["jobs"][book_release.DEPLOY_JOB]["steps"]]
+        for name in book_release.DEPLOY_STEPS:
+            self.assertEqual(names.count(name), 1, name)
 
     def test_pr_workflow_is_read_only_and_covers_both_platforms(self):
         workflow = self.workflow("ci.yml")

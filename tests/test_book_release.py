@@ -176,6 +176,9 @@ def github_fixture(fixture):
         def respond(self):
             length = int(self.headers.get("Content-Length", "0"))
             body = json.loads(self.rfile.read(length)) if length else None
+            if hasattr(fixture, "headers_seen"):
+                fixture.headers_seen.append(
+                    (self.command, self.path, {k.lower(): v for k, v in self.headers.items()}))
             try:
                 data = fixture.route(self.command, self.path, body)
             except AssertionError:

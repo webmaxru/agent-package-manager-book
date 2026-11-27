@@ -83,8 +83,10 @@ explicit authorization for the automated merge and release.
 2. **Release approved book** rechecks the owner approval, PR scope and exact head, runs
    read-only HTML/PDF/evidence preflight, then SHA-conditionally squash-merges and explicitly
    dispatches **Release book** (`release.yml`). The publisher verifies the exact merged tree,
-   builds before creating the immutable `vX.Y` tag, uploads the PDF to a draft release, publishes
-   and explicitly dispatches Pages for that published tag. Tag pushes themselves do not publish. Never move a tag.
+   builds before creating the immutable `vX.Y` tag, uploads the PDF to a draft release and
+   publishes. If it is the highest published stable edition, its `deploy` job dispatches Pages
+   for that tag and waits for the exact run's deploy and smoke-test steps; an older edition is
+   not deployed. Tag pushes themselves do not publish. Never move a tag.
 
 3. Confirm both completed successfully, inspect the live edition and PDF, and inspect:
    ```powershell

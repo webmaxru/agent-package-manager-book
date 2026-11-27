@@ -58,6 +58,28 @@ class GitHubRepository:
         self.skip_upload = False
         self.fail_upload = False
         self.latest = None
+        self.headers_seen = []
+        self.reset_deployment()
+
+    def reset_deployment(self):
+        self.deploy_dispatch = {"workflow_run_id": 9001,
+                                "run_url": "https://api.github.com/repos/webmaxru/book/actions/runs/9001",
+                                "html_url": "https://github.com/webmaxru/book/actions/runs/9001"}
+        self.deploy_statuses = ["queued", "in_progress", "completed"]
+        self.deploy_run = {"id": 9001, "path": ".github/workflows/deploy-pages.yml",
+                           "event": "workflow_dispatch", "head_branch": "main", "conclusion": "success"}
+
+        def job(name, *steps):
+            return {"name": name, "run_id": 9001, "status": "completed", "conclusion": "success",
+                    "steps": [{"name": step, "status": "completed", "conclusion": "success"}
+                              for step in ("Set up job", *steps)]}
+
+        jobs = [job("published-source", "Plan released source"), job("build", "Build site"),
+                job("deploy", "Deploy to GitHub Pages", "Smoke test the released edition")]
+        self.deploy_jobs = {"total_count": len(jobs), "jobs": jobs}
+
+    def deploy_job(self):
+        return next(j for j in self.deploy_jobs["jobs"] if j["name"] == "deploy")
 
     def git(self, *args, input=None):
         return subprocess.run(
@@ -177,6 +199,15 @@ class GitHubRepository:
             assert data == {"ref": "main", "inputs": {"pr": "7", "head_sha": self.head,
                            "base_sha": self.base, "merge_sha": self.merge, "tag": "v1.3"}}
             return None
+        if path == "actions/workflows/deploy-pages.yml/dispatches" and method == "POST":
+            return copy.deepcopy(self.deploy_dispatch)
+        if path == "actions/runs/9001":
+            status = self.deploy_statuses.pop(0) if len(self.deploy_statuses) > 1 else self.deploy_statuses[0]
+            return dict(self.deploy_run, status=status,
+                        conclusion=self.deploy_run["conclusion"] if status == "completed" else None)
+        if path == "actions/runs/9001/jobs":
+            assert query["filter"] == ["latest"]
+            return copy.deepcopy(self.deploy_jobs)
         if path == "contents/content/version.yml":
             text = self.git("show", f"{query['ref'][0]}:content/version.yml") + "\n"
             return {"encoding": "base64", "content": base64.b64encode(text.encode()).decode()}
@@ -409,6 +440,172 @@ class ReleaseCLIEndToEndTests(CLIBase):
         self.repo.merged()
         for operation in ("release-plan", "publish"):
             self.cli(operation, "--tag", "v1.3-rc.1", "--merge-sha", self.repo.merge, succeeds=False)
+        self.no_writes()
+
+
+class DeliveryCLIEndToEndTests(CLIBase):
+    """Release delivery: highest stable edition only, one dispatch, exact smoke-tested run."""
+
+    DISPATCH = "/repos/webmaxru/book/actions/workflows/deploy-pages.yml/dispatches"
+
+    def setUp(self):
+        super().setUp()
+        self.repo.released("v1.2", self.repo.base, annotated=True, pdf=True)
+        self.repo.merged()
+
+    def publish(self):
+        _, values = self.cli("publish", "--tag", "v1.3", "--merge-sha", self.repo.merge, *self.artifacts())
+        self.assertEqual(values, {"published": "true"})
+        self.repo.actions.clear()
+        self.repo.gh_calls.clear()
+        self.repo.headers_seen.clear()
+
+    def deliver(self, *extra, succeeds=True):
+        return self.cli("deliver", "--tag", "v1.3", "--merge-sha", self.repo.merge,
+                        "--poll-seconds", "0.01", *extra, succeeds=succeeds)
+
+    def writes(self):
+        return [a for a in self.repo.actions if a[0] != "GET"]
+
+    def run_reads(self):
+        return [a for a in self.repo.actions if "/actions/runs/9001" in a[1]]
+
+    def test_new_highest_edition_waits_for_its_exact_smoke_tested_run(self):
+        self.publish()
+        _, values = self.deliver()
+        self.assertEqual(values, {"deployment": "success", "run_id": "9001",
+                                  "run_url": "https://github.com/webmaxru/book/actions/runs/9001"})
+        self.assertEqual(self.writes(), [("POST", self.DISPATCH, {"ref": "main", "inputs": {"ref": "v1.3"}})])
+        self.assertFalse(self.repo.gh_calls)
+        self.assertEqual(len([a for a in self.run_reads() if "/jobs" not in a[1]]), 3)
+        versions = {path.split("?")[0]: headers["x-github-api-version"]
+                    for _, path, headers in self.repo.headers_seen}
+        self.assertEqual(versions.pop(self.DISPATCH), "2026-03-10")
+        self.assertEqual(set(versions.values()), {"2022-11-28"})
+        self.repo.actions.clear()
+        _, again = self.cli("publish", "--tag", "v1.3", "--merge-sha", self.repo.merge)
+        self.assertEqual(again, {"published": "false"})
+        self.no_writes()
+
+    def test_older_edition_is_published_but_never_replaces_a_newer_one(self):
+        self.repo.released("v1.10", self.repo.base, pdf=True)
+        self.publish()
+        result, values = self.deliver()
+        self.assertEqual(values, {"deployment": "skipped", "run_id": "", "run_url": ""})
+        self.assertIn("::notice title=Production not rolled back::v1.3 is older than", result.stdout)
+        self.assertIn("v1.10", result.stdout)
+        self.assertIn("gh workflow run deploy-pages.yml -f ref=v1.3", result.stdout)
+        self.no_writes()
+        self.assertFalse(self.run_reads())
+
+    def test_drafts_prereleases_and_bare_tags_do_not_block_delivery(self):
+        self.repo.released("v9.0", self.repo.base, draft=True)
+        self.repo.released("v10.0", self.repo.base, prerelease=True)
+        self.repo.released("v88.0-rc.1", self.repo.base)
+        self.repo.git("update-ref", "refs/tags/v11.0", self.repo.base)
+        self.publish()
+        _, values = self.deliver()
+        self.assertEqual(values["deployment"], "success")
+        self.assertEqual(len(self.writes()), 1)
+
+    def test_failed_cancelled_skipped_or_unsmoked_runs_never_report_delivery(self):
+        self.publish()
+
+        def step(name):
+            return next(s for s in self.repo.deploy_job()["steps"] if s["name"] == name)
+
+        def drop_job():
+            self.repo.deploy_jobs["jobs"].remove(self.repo.deploy_job())
+            self.repo.deploy_jobs["total_count"] -= 1
+
+        def drop_smoke():
+            self.repo.deploy_job()["steps"].remove(step("Smoke test the released edition"))
+
+        def duplicate_job():
+            self.repo.deploy_jobs["jobs"].append(copy.deepcopy(self.repo.deploy_job()))
+            self.repo.deploy_jobs["total_count"] += 1
+
+        cases = {
+            "run failed": lambda: self.repo.deploy_run.update(conclusion="failure"),
+            "run cancelled": lambda: self.repo.deploy_run.update(conclusion="cancelled"),
+            "published-source skipped deploy": lambda: self.repo.deploy_job().update(
+                conclusion="skipped", steps=[]),
+            "deploy job missing": drop_job,
+            "duplicate deploy job": duplicate_job,
+            "job list truncated": lambda: self.repo.deploy_jobs.update(total_count=4),
+            "smoke missing": drop_smoke,
+            "smoke skipped": lambda: step("Smoke test the released edition").update(conclusion="skipped"),
+            "smoke failed": lambda: step("Smoke test the released edition").update(conclusion="failure"),
+            "pages step failed": lambda: step("Deploy to GitHub Pages").update(conclusion="failure"),
+            "smoke still running": lambda: step("Smoke test the released edition").update(
+                status="in_progress", conclusion=None),
+        }
+        for label, mutate in cases.items():
+            with self.subTest(label):
+                self.repo.reset_deployment()
+                self.repo.actions.clear()
+                mutate()
+                result, values = self.deliver(succeeds=False)
+                self.assertIn("did not deliver v1.3", result.stderr)
+                self.assertNotEqual(values.get("deployment"), "success")
+                self.assertEqual(len(self.writes()), 1)
+                self.assertFalse(self.repo.gh_calls)
+
+    def test_timeout_fails_without_redispatching_or_choosing_another_run(self):
+        self.publish()
+        self.repo.deploy_statuses = ["in_progress"]
+        result, values = self.deliver("--wait-seconds", "0.2", "--poll-seconds", "0.05", succeeds=False)
+        self.assertIn("did not finish", result.stderr)
+        self.assertEqual(values, {})
+        self.assertEqual(len(self.writes()), 1)
+        self.assertGreater(len(self.run_reads()), 1)
+        self.assertFalse([a for a in self.run_reads() if "/jobs" in a[1]])
+
+    def test_missing_or_invalid_run_id_is_never_guessed_or_retried(self):
+        self.publish()
+        for response in (None, {}, {"workflow_run_id": "9001"}, {"workflow_run_id": 0},
+                         {"workflow_run_id": True}, {"workflow_run_id": 9001.0}):
+            with self.subTest(response=response):
+                self.repo.actions.clear()
+                self.repo.deploy_dispatch = response
+                result, _ = self.deliver(succeeds=False)
+                self.assertIn("no workflow run ID", result.stderr)
+                self.assertEqual(len(self.writes()), 1)
+                self.assertFalse(self.run_reads())
+                self.assertFalse([a for a in self.repo.actions if "actions/runs?" in a[1]])
+
+    def test_a_run_that_is_not_the_dispatched_pages_run_is_rejected(self):
+        self.publish()
+        for override in ({"id": 42}, {"path": ".github/workflows/ci.yml"},
+                         {"path": ".github/workflows/deploy-pages.yml@refs/heads/content"},
+                         {"event": "push"}, {"head_branch": "content"}):
+            with self.subTest(override=override):
+                self.repo.reset_deployment()
+                self.repo.actions.clear()
+                self.repo.deploy_run.update(override)
+                result, _ = self.deliver(succeeds=False)
+                self.assertIn("is not the dispatched deploy-pages.yml run", result.stderr)
+                self.assertEqual(len(self.writes()), 1)
+                self.assertFalse([a for a in self.run_reads() if "/jobs" in a[1]])
+
+    def test_unpublished_incomplete_or_invalid_editions_are_never_dispatched(self):
+        result, _ = self.deliver(succeeds=False)
+        self.assertIn("not a complete published release", result.stderr)
+        self.repo.released("v1.3", self.repo.merge, draft=True, pdf=True)
+        self.deliver(succeeds=False)
+        self.repo.releases[-1]["draft"] = False
+        self.repo.assets[self.repo.releases[-1]["id"]] = []
+        result, _ = self.deliver(succeeds=False)
+        self.assertIn("incomplete", result.stderr)
+        self.repo.assets[self.repo.releases[-1]["id"]] = [
+            {"name": "apm-book-v1.3.pdf", "state": "uploaded", "size": 30}]
+        for args in (("--tag", "v1.3-rc.1", "--merge-sha", self.repo.merge),
+                     ("--tag", "v1.3", "--merge-sha", self.repo.merge[:12]),
+                     ("--tag", "v1.3", "--merge-sha", self.repo.base),
+                     ("--tag", "v1.3", "--merge-sha", self.repo.merge, "--wait-seconds", "0"),
+                     ("--tag", "v1.3", "--merge-sha", self.repo.merge, "--poll-seconds", "-1")):
+            with self.subTest(args=args):
+                self.cli("deliver", *args, succeeds=False)
         self.no_writes()
 
 
