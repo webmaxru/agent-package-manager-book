@@ -124,12 +124,10 @@ def approval(pr, reviews, comments, timeline=()):
         key=lambda r: (r.get("submitted_at") or "", r["id"]),
     )
     latest = formal[-1] if formal else None
-    barrier = max((r.get("submitted_at") or "" for r in formal
-                   if r["state"] != "APPROVED"), default="")
-    owner_reviews = {r["id"] for r in formal}
+    barrier = max((r.get("submitted_at") or "" for r in reviews
+                   if r["state"] in {"CHANGES_REQUESTED", "DISMISSED"}), default="")
     for event in timeline:
-        if (event.get("event") == "review_dismissed"
-                and (event.get("dismissed_review") or {}).get("review_id") in owner_reviews):
+        if event.get("event") == "review_dismissed":
             barrier = max(barrier, event.get("created_at") or "")
     if pr["user"]["login"] != OWNER:
         return bool(latest and latest["state"] == "APPROVED" and latest["commit_id"] == head

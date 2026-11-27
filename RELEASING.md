@@ -201,7 +201,9 @@ You now own the new PR, so continue with scenario 1: add the edition bump, CHANG
 
 ### 4. A new push after approval, requested changes or a dismissed review
 
-An approval counts only for the head it was given on. A push after approval, a **Request changes** review or a dismissed review voids it. Editing or deleting an authorization comment revokes that comment too. Nothing merges until you approve again: a new **Approve** review, or a new, unedited `/release-book <SHA>` with the current head SHA. An old SHA in an old comment is ignored.
+Only the owner can authorize a release, but **any reviewer’s change request or dismissed review revokes earlier authorization**. A dismissal counts when it happens on the PR timeline, even if the original review was much earlier. An ordinary **Comment** review neither authorizes nor revokes. Pushing a new head invalidates approval of the old SHA; editing or deleting an authorization comment invalidates that comment.
+
+To unblock the PR, the owner must authorize its current head **strictly after** the most recent change request or dismissal. For a contributor’s PR, submit a new **Approve** review. For your own PR, post a new, unedited `/release-book <SHA>` comment. An authorization with the same timestamp as the revocation does not count.
 
 ### 5. The branch is behind `main`
 
