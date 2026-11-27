@@ -49,6 +49,58 @@ These may differ between books and are documented in each repository: the format
 
 The Linux runner is pinned to `ubuntu-24.04`; the existing extra Windows launcher regression lane is pinned to `windows-2025`. Both feed the single required aggregate check.
 
+## Preview downloads and Actions storage
+
+Ordinary pushes, PR checks and the approval controller still build and verify the full HTML
+and PDF, but upload no book bundles. To request a downloadable PDF, select **Book CI ->
+Run workflow**, choose the source branch/tag, and enable **upload_preview** (default `false`):
+
+```sh
+gh workflow run ci.yml --ref main -f upload_preview=true
+```
+
+The preview expires after **one day**. Its name is
+`book-preview-v1-<repository ID>-<SHA256 of full source ref>-<run ID>-<attempt>`.
+The hash distinguishes `refs/heads/feature` from `refs/tags/feature` and avoids unsafe or
+overlong ref names. After successful manual CI, **Clean replaced book previews** runs trusted
+code from `main`, without checking out or downloading producer code/artifacts. It uses the
+exact replacement artifact ID, namespace, producing workflow/run/attempt, repository and
+branch metadata, and creation order to delete only older previews of that same full ref.
+Artifact IDs identify objects but are not chronological; age checks use creation timestamps
+and producing run/attempt order, never numeric artifact-ID order.
+Cleanup serializes by repository and source name without cancelling an executing cleanup;
+branches/tags sharing a short name also serialize but never replace each other's previews.
+It requires the current attempt's successful upload step and selects only that attempt's exact
+namespace, so reruns can safely replace artifacts retained from earlier completed attempts.
+A skipped upload is a no-op; a successful upload with missing or expired replacement data
+fails clearly and retains previous previews. Cleanup rechecks the replacement and producer
+immediately before deletion, preserves active runs,
+newer uploads, other refs/workflows, diagnostics and release staging, and does nothing without
+a successful replacement. Active runs and unverifiable historical attempts may leave overlap until a later
+cleanup or one-day expiry. Cleanup failures are visible failed jobs, not hidden successes.
+
+Release builds retain their PDF and notes transfer artifact for **seven days** for failure
+inspection/recovery. Only `publish` downloads it; website deployment rebuilds released source
+and uses its own required **one-day** Pages transfer artifact. Release staging is deleted by
+a separate least-privilege cleanup job only after publication and delivery have succeeded,
+all build/publish/deploy consumers are finished, the existing provenance/publication validator
+passes again, and the published PDF's GitHub SHA-256 digest matches the built PDF. Missing
+integrity metadata, failed/skipped delivery, drafts, incomplete publication or any uncertainty
+retain staging. Existing immutable/no-write release recovery behavior is unchanged.
+No release assets, releases, tags or deployed content are deleted.
+
+The workflow YAML in this repository is the source of truth: there is no shared workflow
+template/generator to regenerate. The prior CI and approval-preview uploads had no consumers.
+The existing controller/deployment `actions: write` permissions remain necessary for dispatch;
+new deletion privileges exist only in the trusted cleanup jobs. Fork PR checks remain read-only.
+
+Retention settings affect **new artifacts only**, not existing expiration dates. At the
+2026-11-27 inventory, this repository had ten unexpired legacy preview archives (32.33 MiB)
+with the default **90-day** expiry, some in February 2027; they are not retroactively shortened
+or purged by this change. Other repositories still consume the account's shared **500 MB**
+included Actions artifact-storage allowance. Archive-size totals are not a billing calculation,
+and storage accounting can lag deletion/expiry.
+
 ## Prepare the edition
 
 Run [`/update-book`](.github/prompts/update-book.prompt.md) to follow an APM release (add `Mode: check` for a read-only impact report), or make the chapter edits yourself. Then run [`/release-content`](.github/prompts/release-content.prompt.md): it updates the edition and the CHANGELOG, requires a fresh HTML and PDF build, and commits locally. Review the result and open a content PR against `main`.

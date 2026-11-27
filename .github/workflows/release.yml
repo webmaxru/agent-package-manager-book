@@ -67,6 +67,8 @@ jobs:
       contents: read
     outputs:
       tag: ${{ steps.meta.outputs.tag }}
+      staging_id: ${{ steps.staging.outputs.artifact-id }}
+      pdf_sha256: ${{ steps.integrity.outputs.sha256 }}
     steps:
       - uses: actions/checkout@v7
         with:
@@ -112,11 +114,16 @@ jobs:
           cp book/site/apm-book.pdf "artifacts/apm-book-$TAG.pdf"
           python trusted/site/extract_release_notes.py "${TAG#v}" --changelog book/content/CHANGELOG.md > artifacts/notes.md
           test -s artifacts/notes.md
+      - name: Record expected PDF integrity
+        id: integrity
+        run: echo "sha256=$(sha256sum artifacts/*.pdf | cut -d ' ' -f 1)" >> "$GITHUB_OUTPUT"
       - uses: actions/upload-artifact@v7
+        id: staging
         with:
           name: release-book-${{ needs.authorize.outputs.sha }}
           path: artifacts
           if-no-files-found: error
+          retention-days: 7
 
   publish:
     needs: [authorize, build]
@@ -180,3 +187,31 @@ jobs:
           TAG: ${{ needs.build.outputs.tag }}
           MERGE: ${{ needs.authorize.outputs.sha }}
         run: python scripts/book_release.py deliver --tag "$TAG" --merge-sha "$MERGE"
+
+  cleanup-staging:
+    needs: [authorize, build, publish, deploy]
+    if: >-
+      github.ref == 'refs/heads/main'
+      && needs.publish.outputs.published == 'true'
+      && needs.deploy.result == 'success'
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      pull-requests: read
+      actions: write
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: main
+          persist-credentials: false
+      - name: Verify published PDF and finished consumers before deleting staging
+        env:
+          GH_TOKEN: ${{ github.token }}
+          STAGING_ID: ${{ needs.build.outputs.staging_id }}
+          PDF_SHA256: ${{ needs.build.outputs.pdf_sha256 }}
+          TAG: ${{ needs.build.outputs.tag }}
+          MERGE: ${{ needs.authorize.outputs.sha }}
+        run: >-
+          python scripts/artifact_storage.py release
+          --run-id "$GITHUB_RUN_ID" --artifact-id "$STAGING_ID"
+          --tag "$TAG" --merge-sha "$MERGE" --pdf-sha256 "$PDF_SHA256"
