@@ -276,7 +276,7 @@ gh pr review N --approve    # or comment /release-book <new SHA> on your own PR
 
 ### 6. Approved, but the PR is still open
 
-Look at the latest **Release approved book** run. Check the run summary for the stale-base warning from scenario 5; for other rejections the `authorize` job prints `PR N not eligible: <reason>`. Typical causes include a failing or still-running preflight, a head that moved after approval, or a file outside the allowlist. A run can also be replaced in GitHub's concurrency queue. The scan covers only the 30 most recently updated PRs. Fix the cause, or run the controller for this PR:
+Look at the latest **Release approved book** run. Check the run summary for the stale-base warning from scenario 5 or the tooling and mixed-PR warnings from scenarios 7 and 8; for other rejections the `authorize` job prints `PR N not eligible: <reason>`. Typical causes include a failing or still-running preflight, a head that moved after approval, or a file outside the allowlist. A run can also be replaced in GitHub's concurrency queue. The scan covers only the 30 most recently updated PRs. Fix the cause, or run the controller for this PR:
 
 ```sh
 gh workflow run approved-book.yml -f pr=N
@@ -286,13 +286,25 @@ If the run died within a second with no steps, see [Runs that fail without start
 
 ### 7. Tooling, docs and workflow changes
 
-A PR that touches only files outside the content allowlist (`scripts/`, `site/` generator code, `.github/`, `README.md`, `RELEASING.md`, tests) is **tooling-only**. It needs no edition bump, and a bump with no chapter change fails the checks. It never releases: the controller refuses it (`Not an automatic content update: <path>`). Merge it yourself when the checks are green. The push to `main` redeploys with the new tooling only if the allowed content still matches the latest published edition; otherwise `published-source` skips the build and deploy.
+A PR that touches only files outside the content allowlist (`scripts/`, `site/` generator code, `.github/`, `README.md`, `RELEASING.md`, tests) is **tooling-only**. It needs no edition bump, and a bump with no chapter change fails the checks. It never releases. The owner's **Approve** on its current head, a `/release-book <SHA>` comment or `gh workflow run approved-book.yml -f pr=N` ends in a green **Release approved book** run with one warning, repeated in the run summary, and no merge or release:
+
+```text
+PR #N is tooling-only (no book content changed: <first up to 5 paths, comma-separated>); the release controller never merges or releases tooling PRs. Merge it yourself once its checks are green.
+```
+
+Merge it yourself when the checks are green. Scheduled scans, **Book CI** completions and other reviewers' reviews only log the quiet `PR N not eligible: <reason>` line. The push to `main` redeploys with the new tooling only if the allowed content still matches the latest published edition; otherwise `published-source` skips the build and deploy.
 
 That comparison includes tracked generated HTML and discovery files, not just chapter sources. Previously regenerated output can therefore hold a tooling-only push behind the gate even when chapter prose is unchanged. The existing website remains live; deploy a published tag explicitly or prepare the next reviewed content edition rather than weakening the gate.
 
 ### 8. Mixed content and tooling
 
-A PR that changes both content and tooling gets the same `Not an automatic content update: <path>` refusal and is never merged by the controller. Split it into two PRs: tooling first (merged by you), then the content PR.
+A PR that changes both content and tooling is never merged by the controller. The same owner requests end in a green run with one warning, also in the run summary:
+
+```text
+PR #N mixes book content with tooling (<first up to 5 non-allowlisted paths>); split it: merge the tooling PR yourself, then authorize the content PR.
+```
+
+Split it into two PRs: tooling first (merged by you), then the content PR.
 
 ### 9. A manual merge by mistake
 

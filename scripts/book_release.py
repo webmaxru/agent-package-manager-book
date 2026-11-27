@@ -115,15 +115,29 @@ def allowed_path(path):
     return path.startswith("site/chapters/") and path.endswith(".html")
 
 
-def content_files(files):
+class OutOfScope(GateError):
+    """A tooling-only or mixed PR, which the release controller never merges or releases."""
+
+
+def content_files(files, number):
     if not files:
         raise GateError("No changed files.")
-    paths = []
+    paths, outside, content = [], [], False
     for item in files:
         for path in (item["filename"], item.get("previous_filename", item["filename"])):
-            if not allowed_path(path):
-                raise GateError(f"Not an automatic content update: {path}")
+            if allowed_path(path):
+                content = True
+            elif path not in outside:
+                outside.append(path)
         paths.append(item["filename"])
+    listed = ", ".join(outside[:5])
+    if not content:
+        raise OutOfScope(f"PR #{number} is tooling-only (no book content changed: {listed}); the release "
+                         "controller never merges or releases tooling PRs. Merge it yourself once its "
+                         "checks are green.")
+    if outside:
+        raise OutOfScope(f"PR #{number} mixes book content with tooling ({listed}); split it: merge the "
+                         "tooling PR yourself, then authorize the content PR.")
     if not any(path.startswith("content/chapters/") or path == "content/toc.yml" for path in paths):
         raise GateError("No reader-facing chapter/TOC changes.")
     if not {"content/version.yml", "content/CHANGELOG.md"}.issubset(paths):
@@ -194,7 +208,7 @@ def candidate(api, number, *, expected_head=None, expected_base=None, checks=Fal
     files = api.pages(f"pulls/{number}/files")
     if len(files) != pr["changed_files"]:
         raise GateError("Changed-file list is incomplete.")
-    content_files(files)
+    content_files(files, number)
     if pr.get("merged"):
         if (pr.get("merged_by") or {}).get("login") != MERGER:
             raise GateError("Release requires a merge by the GitHub Actions controller.")
@@ -264,7 +278,32 @@ def event_numbers(api, event):
     return [p["number"] for p in api.pages(f"pulls?state=open&base=main&head={head}")]
 
 
+def owner_approval_signal(api, number, event):
+    # The signal run carries its actor and head, not the review state, so the owner's
+    # current approval of the exact head is re-read before a scope refusal is surfaced.
+    run = event.get("workflow_run") or {}
+    if run.get("event") != "pull_request_review" or (run.get("actor") or {}).get("login") != OWNER:
+        return False
+    pr = api.request("GET", f"pulls/{number}")
+    head = pr["head"]["sha"]
+    if not isinstance(head, str) or not SHA.fullmatch(head) or run.get("head_sha") != head:
+        return False
+    return approval(pr, api.pages(f"pulls/{number}/reviews"), api.pages(f"issues/{number}/comments"),
+                    api.pages(f"issues/{number}/timeline"))
+
+
+def report_scope(error):
+    reason = str(error)
+    data = reason.replace("%", "%25").replace("\r", "%0D").replace("\n", "%0A")
+    # stdout carries the step outputs; the runner also reads workflow commands from stderr.
+    print(f"::warning::{data}", file=sys.stderr)
+    if summary := os.environ.get("GITHUB_STEP_SUMMARY"):
+        with open(summary, "a", encoding="utf-8") as handle:
+            print(reason, file=handle)
+
+
 def inspect(api, event):
+    explicit = "pull_request" in event.get("issue", {}) or bool(event.get("inputs", {}).get("pr"))
     eligible = []
     for number in event_numbers(api, event):
         try:
@@ -279,7 +318,10 @@ def inspect(api, event):
                     print(message, file=handle)
             continue
         except GateError as error:
-            print(f"PR {number} not eligible: {error}", file=sys.stderr)
+            if isinstance(error, OutOfScope) and (explicit or owner_approval_signal(api, number, event)):
+                report_scope(error)
+            else:
+                print(f"PR {number} not eligible: {error}", file=sys.stderr)
             continue
         eligible.append({"pr": str(number), "head": head, "base": base})
     if len(eligible) > 1 and not event.get("schedule"):

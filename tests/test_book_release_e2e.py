@@ -49,6 +49,8 @@ class GitHubRepository:
         self.pull["head"]["sha"] = self.head
         self.pull["base"]["sha"] = self.base
         self.comments = [comment(self.head)]
+        self.files = [{"filename": p} for p in
+                      ("content/version.yml", "content/CHANGELOG.md", "content/chapters/intro.html")]
         self.reviews = []
         self.timeline = []
         self.actions = []
@@ -179,8 +181,7 @@ class GitHubRepository:
         if path == "pulls":
             return [{"number": 7}]
         if path == "pulls/7/files":
-            return [{"filename": p} for p in
-                    ("content/version.yml", "content/CHANGELOG.md", "content/chapters/intro.html")]
+            return copy.deepcopy(self.files)
         if path == "pulls/7/reviews":
             return self.reviews
         if path == "issues/7/comments":
@@ -489,6 +490,109 @@ class ReleaseCLIEndToEndTests(CLIBase):
         for operation in ("release-plan", "publish"):
             self.cli(operation, "--tag", "v1.3-rc.1", "--merge-sha", self.repo.merge, succeeds=False)
         self.no_writes()
+
+
+class ScopeRefusalCLIEndToEndTests(CLIBase):
+    """Tooling or mixed PRs are never released; explicit owner requests get one visible warning."""
+
+    TOOLING = ("RELEASING.md", ".github/workflows/ci.yml", "scripts/book_release.py",
+               "tests/test_book_release.py", "site/generate.py", "package.json")
+    TOOLING_REASON = ("PR #7 is tooling-only (no book content changed: RELEASING.md, "
+                      ".github/workflows/ci.yml, scripts/book_release.py, tests/test_book_release.py, "
+                      "site/generate.py); the release controller never merges or releases tooling PRs. "
+                      "Merge it yourself once its checks are green.")
+    SCOPE_READS = {"pulls/7", "pulls/7/files"}
+    APPROVAL_READS = {"pulls/7/reviews", "issues/7/comments", "issues/7/timeline"}
+
+    def scope(self, files):
+        self.repo.files = [{"filename": p} if isinstance(p, str) else p for p in files]
+        self.repo.pull["changed_files"] = len(self.repo.files)
+        self.summary = self.folder / "summary.md"
+        self.summary.write_text("Prior step\n", encoding="utf-8")
+        self.env["GITHUB_STEP_SUMMARY"] = str(self.summary)
+
+    def inspect(self, event):
+        self.repo.actions.clear()
+        result, outputs = self.cli("inspect", "--event", str(self.repo.write("event.json", json.dumps(event))))
+        self.assertEqual(outputs, {"eligible": "false"})
+        self.no_writes()
+        return result, {urlsplit(a[1]).path.removeprefix(f"/repos/{self.repo.repo}/")
+                        for a in self.repo.actions}
+
+    def assert_warned(self, result, reason):
+        self.assertEqual(result.stderr.count("::warning::"), 1, result.stderr)
+        self.assertIn(f"::warning::{reason}\n", result.stderr)
+        self.assertNotIn("::warning::", result.stdout)
+        self.assertNotIn("not eligible", result.stderr)
+        self.assertEqual(self.summary.read_text(encoding="utf-8").splitlines(), ["Prior step", reason])
+
+    def assert_quiet(self, result, reason):
+        self.assertNotIn("::warning::", result.stdout + result.stderr)
+        self.assertIn(f"PR 7 not eligible: {reason}\n", result.stderr)
+        self.assertEqual(self.summary.read_text(encoding="utf-8"), "Prior step\n")
+
+    def approval_signal(self, actor="webmaxru", head=None):
+        return {"workflow_run": {"name": "Book approval signal", "event": "pull_request_review",
+                                 "head_sha": head or self.repo.head, "head_branch": "content",
+                                 "head_repository": {"full_name": self.repo.repo},
+                                 "actor": {"login": actor}, "pull_requests": []}}
+
+    def test_explicit_command_on_tooling_pr_warns_once_on_green_run(self):
+        for event in ({"issue": {"number": 7, "pull_request": {}}, "comment": comment(self.repo.head)},
+                      {"inputs": {"pr": "7"}}):
+            with self.subTest(event=next(iter(event))):
+                self.scope(self.TOOLING)
+                result, reads = self.inspect(event)
+                self.assert_warned(result, self.TOOLING_REASON)
+                self.assertEqual(reads, self.SCOPE_READS)
+
+    def test_explicit_command_on_mixed_pr_asks_for_a_split(self):
+        self.scope(["content/version.yml", "content/CHANGELOG.md", "content/chapters/intro.html",
+                    "scripts/book_release.py",
+                    {"filename": "content/chapters/new.html", "previous_filename": "site/old.html"}])
+        result, reads = self.inspect({"inputs": {"pr": "7"}})
+        self.assert_warned(result, "PR #7 mixes book content with tooling (scripts/book_release.py, "
+                                   "site/old.html); split it: merge the tooling PR yourself, then "
+                                   "authorize the content PR.")
+        self.assertEqual(reads, self.SCOPE_READS)
+
+    def test_owner_approval_signal_on_tooling_pr_warns_once(self):
+        self.repo.pull["user"]["login"] = "contributor"
+        self.repo.reviews = [review(sha=self.repo.head)]
+        self.scope(self.TOOLING)
+        result, reads = self.inspect(self.approval_signal())
+        self.assert_warned(result, self.TOOLING_REASON)
+        self.assertEqual(reads, {"pulls"} | self.SCOPE_READS | self.APPROVAL_READS)
+
+    def test_scans_and_other_review_signals_stay_quiet(self):
+        stale = dict(review(sha=self.repo.base), id=2)
+        cases = {
+            "schedule": ({"schedule": "17,47 * * * *"}, [review(sha=self.repo.head)]),
+            "book-ci-run": ({"workflow_run": {"name": "Book CI", "event": "pull_request",
+                                              "head_sha": self.repo.head, "head_branch": "content",
+                                              "head_repository": {"full_name": self.repo.repo},
+                                              "actor": {"login": "webmaxru"}}},
+                            [review(sha=self.repo.head)]),
+            "bot-review": (self.approval_signal("copilot-pull-request-reviewer[bot]"),
+                           [review(sha=self.repo.head)]),
+            "older-head-signal": (self.approval_signal(head=self.repo.base), [review(sha=self.repo.head)]),
+            "approval-not-current": (self.approval_signal(), [stale]),
+        }
+        for name, (event, reviews) in cases.items():
+            with self.subTest(name):
+                self.repo.pull["user"]["login"] = "contributor"
+                self.repo.reviews = reviews
+                self.scope(self.TOOLING)
+                result, reads = self.inspect(event)
+                self.assert_quiet(result, self.TOOLING_REASON)
+                if name != "approval-not-current":
+                    self.assertFalse(reads & self.APPROVAL_READS)
+
+    def test_other_explicit_refusals_keep_quiet_reason(self):
+        self.repo.comments = []
+        self.scope(["content/version.yml", "content/CHANGELOG.md", "content/chapters/intro.html"])
+        result, _ = self.inspect({"inputs": {"pr": "7"}})
+        self.assert_quiet(result, "No current owner approval of this exact PR head.")
 
 
 class DeliveryCLIEndToEndTests(CLIBase):
