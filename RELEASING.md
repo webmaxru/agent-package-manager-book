@@ -292,7 +292,7 @@ The release is published and complete, but **Release book** failed in its `deplo
 | `Deployment run <id> did not deliver vX.Y: run concluded 'failure'` (or `'cancelled'`) | The Pages run failed, or a newer Pages run replaced it while it was queued. Read it with `gh run view <id> --log-failed`. |
 | `… did not deliver vX.Y: 'deploy' job concluded 'skipped'` | `published-source` refused the tag; read that job's output. |
 | `… did not deliver vX.Y: step 'Smoke test the released edition' did not succeed` | Pages deployed but the edition or discovery-file check failed or did not run. |
-| `Deployment run <id> did not finish within 2700 seconds` | The run may still be going. Check `gh run view <id>` before doing anything else. |
+| `Deployment run <id> did not finish within 2700 seconds` | Deployment and successful smoke-test evidence were not confirmed before the deadline. Even a successful response received after it is rejected; the run may still be going or may have finished. Check `gh run view <id>` before doing anything else. |
 | `Deployment dispatch returned no workflow run ID` | It is unknown whether a run started. Check `gh run list --workflow deploy-pages.yml -L 5` first; the release never guesses a run or re-dispatches. |
 
 Later main changes never substitute another edition. Dispatching **Release book** again is a no-op for a complete edition and does not redeploy. After you have fixed the cause and confirmed no deployment of this edition is still running, deploy the published tag yourself and watch the run:

@@ -497,22 +497,30 @@ def deliver(api, tag, sha, *, wait_seconds=DEPLOY_WAIT_SECONDS, poll_seconds=15)
     url = dispatched.get("html_url") if isinstance(dispatched.get("html_url"), str) else ""
     print(f"Waiting for {DEPLOY_WORKFLOW} run {run_id} {url}".rstrip())
     deadline = time.monotonic() + wait_seconds
+
+    def remaining_wait():
+        remaining = deadline - time.monotonic()
+        if remaining <= 0:
+            raise GateError(f"Deployment run {run_id} did not finish within {wait_seconds} seconds; "
+                            f"{tag} is not confirmed live.")
+        return remaining
+
     while True:
+        remaining_wait()
         run = api.request("GET", f"actions/runs/{run_id}")
+        remaining = remaining_wait()
         if (not isinstance(run, dict) or run.get("id") != run_id
                 or run.get("path") != f".github/workflows/{DEPLOY_WORKFLOW}"
                 or run.get("event") != "workflow_dispatch" or run.get("head_branch") != "main"):
             raise GateError(f"Run {run_id} is not the dispatched {DEPLOY_WORKFLOW} run on main.")
         if run.get("status") == "completed":
             break
-        if time.monotonic() >= deadline:
-            raise GateError(f"Deployment run {run_id} did not finish within {wait_seconds} seconds; "
-                            f"{tag} is not confirmed live.")
-        time.sleep(poll_seconds)
+        time.sleep(min(poll_seconds, remaining))
     jobs = api.request("GET", f"actions/runs/{run_id}/jobs?filter=latest&per_page=100")
     failure = deployment_failure(run, jobs, run_id)
     if failure:
         raise GateError(f"Deployment run {run_id} did not deliver {tag}: {failure}.")
+    remaining_wait()
     output({"deployment": "success", "run_id": str(run_id), "run_url": url})
 
 

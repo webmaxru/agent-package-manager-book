@@ -9,8 +9,10 @@ import shlex
 import subprocess
 import sys
 import tempfile
+import time
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 from urllib.parse import parse_qs, urlsplit
 
 from test_book_release import ROOT, comment, github_fixture, pr, review
@@ -560,6 +562,41 @@ class DeliveryCLIEndToEndTests(CLIBase):
         self.assertEqual(len(self.writes()), 1)
         self.assertGreater(len(self.run_reads()), 1)
         self.assertFalse([a for a in self.run_reads() if "/jobs" in a[1]])
+
+    def test_late_successful_run_or_smoke_response_times_out(self):
+        self.publish()
+        route = self.repo.route
+        for endpoint in ("actions/runs/9001", "actions/runs/9001/jobs"):
+            with self.subTest(endpoint=endpoint):
+                self.repo.reset_deployment()
+                self.repo.deploy_statuses = ["completed"]
+                self.repo.actions.clear()
+                delayed_path = f"/repos/{self.repo.repo}/{endpoint}"
+
+                def delayed_response(method, url, data):
+                    response = route(method, url, data)
+                    if urlsplit(url).path == delayed_path:
+                        time.sleep(0.5)
+                    return response
+
+                with patch.object(self.repo, "route", side_effect=delayed_response):
+                    result, values = self.deliver("--wait-seconds", "0.2", succeeds=False)
+                self.assertIn("did not finish within 0.2 seconds", result.stderr)
+                self.assertEqual(values, {})
+                self.assertEqual(urlsplit(self.run_reads()[-1][1]).path, delayed_path)
+                self.assertEqual(self.writes(), [
+                    ("POST", self.DISPATCH, {"ref": "main", "inputs": {"ref": "v1.3"}})])
+                self.assertFalse(self.repo.gh_calls)
+
+    def test_poll_interval_cannot_extend_the_deadline(self):
+        self.publish()
+        self.repo.deploy_statuses = ["in_progress", "completed"]
+        result, values = self.deliver("--wait-seconds", "0.2", "--poll-seconds", "1", succeeds=False)
+        self.assertIn("did not finish within 0.2 seconds", result.stderr)
+        self.assertEqual(values, {})
+        self.assertEqual(len(self.run_reads()), 1)
+        self.assertEqual(len(self.writes()), 1)
+        self.assertFalse(self.repo.gh_calls)
 
     def test_missing_or_invalid_run_id_is_never_guessed_or_retried(self):
         self.publish()
