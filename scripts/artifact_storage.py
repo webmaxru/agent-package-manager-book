@@ -46,8 +46,11 @@ def collection(api, path, key):
     raise GateError(f"Pagination limit exceeded for {key}.")
 
 
-def run(api, run_id, workflow):
-    value = api.request("GET", f"actions/runs/{positive_id(run_id)}")
+def run(api, run_id, workflow, *, attempt=None):
+    path = f"actions/runs/{positive_id(run_id)}"
+    if attempt is not None:
+        path += f"/attempts/{positive_id(attempt)}"
+    value = api.request("GET", path)
     if (value.get("id") != run_id or value.get("path") != f".github/workflows/{workflow}"
             or value.get("event") != "workflow_dispatch"
             or (value.get("repository") or {}).get("full_name") != api.repo
@@ -55,6 +58,8 @@ def run(api, run_id, workflow):
         raise GateError("Artifact producer does not match the trusted workflow/repository.")
     positive_id(value.get("run_attempt"))
     positive_id(value.get("workflow_id"))
+    if attempt is not None and value["run_attempt"] != attempt:
+        raise GateError("Artifact producer attempt does not match the requested attempt.")
     return value
 
 
@@ -100,15 +105,37 @@ def completed(producer, *, success=False):
         not success or producer.get("conclusion") == "success")
 
 
+def preview_uploaded(api, producer):
+    jobs = collection(api, f"actions/runs/{producer['id']}/attempts/"
+                      f"{producer['run_attempt']}/jobs", "jobs")
+    matches = [j for j in jobs if j.get("name") == "preflight (ubuntu-24.04)"]
+    if (len(matches) != 1 or matches[0].get("run_id") != producer["id"]
+            or matches[0].get("run_attempt") != producer["run_attempt"]
+            or not completed(matches[0], success=True)):
+        raise GateError("Missing successful current-attempt preview job evidence; nothing deleted.")
+    steps = matches[0].get("steps") or []
+    uploads = [s for s in steps if s.get("name") == "Upload PDF preview"]
+    if (len(uploads) != 1 or uploads[0].get("status") != "completed"
+            or uploads[0].get("conclusion") not in {"success", "skipped"}):
+        raise GateError("Missing successful/skipped current-attempt preview upload evidence; nothing deleted.")
+    return uploads[0]["conclusion"] == "success"
+
+
 def cleanup_preview(api, run_id):
     replacement_run = run(api, run_id, "ci.yml")
     if not completed(replacement_run, success=True):
         raise GateError("Replacement run has not completed successfully; nothing deleted.")
-    artifacts = collection(api, f"actions/runs/{run_id}/artifacts", "artifacts")
-    matches = [a for a in artifacts if PREVIEW.fullmatch(a.get("name", ""))]
-    if not matches:
-        print("::notice::No versioned replacement preview ID; nothing deleted.")
+    if not preview_uploaded(api, replacement_run):
+        print("::notice::Current-attempt preview upload was skipped; nothing deleted.")
         return
+    artifacts = collection(api, f"actions/runs/{run_id}/artifacts", "artifacts")
+    names = {preview_name(replacement_run["repository"]["id"],
+                          f"refs/{kind}/{replacement_run['head_branch']}",
+                          run_id, replacement_run["run_attempt"])
+             for kind in ("heads", "tags")}
+    matches = [a for a in artifacts if a.get("name") in names]
+    if not matches:
+        raise GateError("Missing replacement preview after successful current-attempt upload; nothing deleted.")
     if len(matches) != 1:
         raise GateError("Ambiguous replacement preview; nothing deleted.")
     replacement = matches[0]
@@ -126,9 +153,13 @@ def cleanup_preview(api, run_id):
         producer = run(api, int(match[3]), "ci.yml")
         if (producer["workflow_id"] != replacement_run["workflow_id"]
                 or producer.get("head_branch") != replacement_run.get("head_branch")
-                or not completed(producer) or producer["run_attempt"] != int(match[4])):
+                or not completed(producer) or producer["run_attempt"] < int(match[4])):
             continue
-        preview_identity(candidate, producer)
+        attempt = (producer if producer["run_attempt"] == int(match[4]) else
+                   run(api, producer["id"], "ci.yml", attempt=int(match[4])))
+        if not completed(attempt) or attempt["workflow_id"] != producer["workflow_id"]:
+            continue
+        preview_identity(candidate, attempt)
         # Re-read both producers and exact IDs immediately before deletion, never just names.
         fresh_replacement = api.request("GET", f"actions/artifacts/{replacement['id']}")
         fresh_run = run(api, run_id, "ci.yml")

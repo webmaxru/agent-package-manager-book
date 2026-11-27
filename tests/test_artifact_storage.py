@@ -30,6 +30,8 @@ class API(release_tests.RecoveryTests.API):
     def __init__(self):
         super().__init__()
         self.runs = {}
+        self.attempts = {}
+        self.preview_jobs = {}
         self.artifacts = {}
         self.calls = []
         self.reads = {}
@@ -48,9 +50,23 @@ class API(release_tests.RecoveryTests.API):
                  "path": f".github/workflows/{workflow}", "event": "workflow_dispatch",
                  "run_attempt": attempt, "status": status, "conclusion": conclusion}
         self.runs[number] = value
+        self.attempts[number, attempt] = copy.deepcopy(value)
+        if workflow == "ci.yml":
+            self.preview_job(value)
         return value
 
+    def preview_job(self, producer, *, upload="success"):
+        self.preview_jobs[producer["id"], producer["run_attempt"]] = [{
+            "name": "preflight (ubuntu-24.04)", "run_id": producer["id"],
+            "run_attempt": producer["run_attempt"], "status": "completed", "conclusion": "success",
+            "steps": [{"name": "Upload PDF preview", "status": "completed", "conclusion": upload}],
+        }]
+
     def artifact(self, number, producer, *, ref=REF, name=None, created=None):
+        key = producer["id"], producer["run_attempt"]
+        if key not in self.attempts:
+            self.attempts[key] = copy.deepcopy(producer)
+            self.preview_job(producer)
         value = {"id": number, "expired": False, "name": name or storage.preview_name(
                      42, ref, producer["id"], producer["run_attempt"]),
                  "created_at": created or f"2026-11-27T12:{number % 60:02d}:00Z",
@@ -80,7 +96,12 @@ class API(release_tests.RecoveryTests.API):
                 return super().request(method, path, *args, **kwargs)
             if len(parts) == 3:
                 return copy.deepcopy(self.runs[number])
-            if parts[-1] == "jobs":
+            if parts[3] == "attempts":
+                attempt = int(parts[4])
+                if len(parts) == 5:
+                    return copy.deepcopy(self.attempts[number, attempt])
+                values, key = self.preview_jobs[number, attempt], "jobs"
+            elif parts[-1] == "jobs":
                 values, key = self.jobs, "jobs"
             else:
                 values = [a for a in self.artifacts.values() if a["workflow_run"]["id"] == number]
@@ -156,8 +177,9 @@ class PreviewTests(unittest.TestCase):
         storage.cleanup_preview(api, 300)
         self.assertEqual(api.deleted(), [10, 20])
         self.assertIn(30, api.artifacts)
-        # A stale cleanup whose replacement has since been deleted is a no-op.
-        storage.cleanup_preview(api, 200)
+        # A successful upload whose replacement has since disappeared fails closed.
+        with self.assertRaisesRegex(storage.GateError, "Missing replacement"):
+            storage.cleanup_preview(api, 200)
         self.assertEqual(api.deleted(), [10, 20])
 
     def test_failed_or_active_replacement_never_deletes_previous_preview(self):
@@ -173,7 +195,8 @@ class PreviewTests(unittest.TestCase):
     def test_missing_replacement_identity_or_ambiguous_upload_never_cleans(self):
         api = self.fixture()
         del api.artifacts[20]
-        storage.cleanup_preview(api, 200)
+        with self.assertRaisesRegex(storage.GateError, "Missing replacement"):
+            storage.cleanup_preview(api, 200)
         self.assertEqual(api.deleted(), [])
         api = self.fixture()
         api.artifact(21, api.runs[200])
@@ -211,15 +234,71 @@ class PreviewTests(unittest.TestCase):
             storage.cleanup_preview(api, 200)
         self.assertEqual(api.deleted(), [])
 
-    def test_expired_preview_and_old_attempts_are_retained(self):
-        for change in ("expired", "attempt"):
-            api = self.fixture()
-            if change == "expired":
-                api.artifacts[10]["expired"] = True
-            else:
-                api.runs[100]["run_attempt"] = 2
+    def test_expired_previous_preview_is_retained(self):
+        api = self.fixture()
+        api.artifacts[10]["expired"] = True
+        storage.cleanup_preview(api, 200)
+        self.assertEqual(api.deleted(), [])
+
+    def test_rerun_selects_current_upload_and_prunes_completed_older_attempts(self):
+        api = self.fixture()
+        api.runs[200]["run_attempt"] = 2
+        api.artifact(21, api.runs[200])
+        storage.cleanup_preview(api, 200)
+        self.assertEqual(api.deleted(), [10, 20])
+        self.assertIn(21, api.artifacts)
+
+    def test_completed_previous_attempt_of_another_run_is_pruned(self):
+        api = self.fixture()
+        api.runs[100]["run_attempt"] = 2
+        storage.cleanup_preview(api, 200)
+        self.assertEqual(api.deleted(), [10])
+        self.assertIn(("GET", "actions/runs/100/attempts/1"), api.calls)
+
+    def test_skipped_current_upload_is_noop_even_with_previous_attempt_artifacts(self):
+        api = self.fixture()
+        api.runs[200]["run_attempt"] = 2
+        api.preview_job(api.runs[200], upload="skipped")
+        storage.cleanup_preview(api, 200)
+        self.assertEqual(api.deleted(), [])
+        self.assertIn(20, api.artifacts)
+
+    def test_successful_upload_with_expired_replacement_fails_clearly(self):
+        api = self.fixture()
+        api.artifacts[20]["expired"] = True
+        with self.assertRaisesRegex(storage.GateError, "expired|identity"):
             storage.cleanup_preview(api, 200)
-            self.assertEqual(api.deleted(), [])
+        self.assertEqual(api.deleted(), [])
+
+    def test_missing_failed_or_wrong_attempt_upload_evidence_never_cleans(self):
+        for change in ("missing-job", "missing-step", "failed", "wrong-attempt"):
+            with self.subTest(change=change):
+                api = self.fixture()
+                job = api.preview_jobs[200, 1][0]
+                if change == "missing-job":
+                    api.preview_jobs[200, 1] = []
+                elif change == "missing-step":
+                    job["steps"] = []
+                elif change == "failed":
+                    job["steps"][0]["conclusion"] = "failure"
+                else:
+                    job["run_attempt"] = 2
+                with self.assertRaises(storage.GateError):
+                    storage.cleanup_preview(api, 200)
+                self.assertEqual(api.deleted(), [])
+
+    def test_active_rerun_preserves_all_its_previous_attempts(self):
+        for number in (100, 200):
+            with self.subTest(number=number):
+                api = self.fixture()
+                api.runs[number].update(run_attempt=2, status="in_progress")
+                if number == 200:
+                    api.artifact(21, api.runs[number])
+                    with self.assertRaisesRegex(storage.GateError, "not completed successfully"):
+                        storage.cleanup_preview(api, 200)
+                else:
+                    storage.cleanup_preview(api, 200)
+                self.assertEqual(api.deleted(), [])
 
     def test_repository_workflow_or_producer_mismatch_never_deletes(self):
         for change in ("repository", "workflow", "head", "event", "metadata", "namespace"):

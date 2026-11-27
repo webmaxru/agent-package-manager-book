@@ -68,9 +68,13 @@ exact replacement artifact ID, namespace, producing workflow/run/attempt, reposi
 branch metadata, and creation order to delete only older previews of that same full ref.
 Cleanup serializes by repository and source name without cancelling an executing cleanup;
 branches/tags sharing a short name also serialize but never replace each other's previews.
-It rechecks the replacement and producer immediately before deletion, preserves active runs,
+It requires the current attempt's successful upload step and selects only that attempt's exact
+namespace, so reruns can safely replace artifacts retained from earlier completed attempts.
+A skipped upload is a no-op; a successful upload with missing or expired replacement data
+fails clearly and retains previous previews. Cleanup rechecks the replacement and producer
+immediately before deletion, preserves active runs,
 newer uploads, other refs/workflows, diagnostics and release staging, and does nothing without
-a successful replacement. Active runs and superseded attempts may leave overlap until a later
+a successful replacement. Active runs and unverifiable historical attempts may leave overlap until a later
 cleanup or one-day expiry. Cleanup failures are visible failed jobs, not hidden successes.
 
 Release builds retain their PDF and notes transfer artifact for **seven days** for failure
