@@ -2,7 +2,9 @@
 from __future__ import annotations
 
 import base64
+import contextlib
 import copy
+import io
 import json
 import os
 import shlex
@@ -15,7 +17,7 @@ from pathlib import Path
 from unittest.mock import patch
 from urllib.parse import parse_qs, urlsplit
 
-from test_book_release import ROOT, comment, github_fixture, pr, review
+from test_book_release import ROOT, comment, github_fixture, pr, release, review
 
 
 class GitHubRepository:
@@ -590,13 +592,30 @@ class DeliveryCLIEndToEndTests(CLIBase):
 
     def test_poll_interval_cannot_extend_the_deadline(self):
         self.publish()
-        self.repo.deploy_statuses = ["in_progress", "completed"]
-        result, values = self.deliver("--wait-seconds", "0.2", "--poll-seconds", "1", succeeds=False)
-        self.assertIn("did not finish within 0.2 seconds", result.stderr)
-        self.assertEqual(values, {})
-        self.assertEqual(len(self.run_reads()), 1)
-        self.assertEqual(len(self.writes()), 1)
-        self.assertFalse(self.repo.gh_calls)
+        for wake_times, sleeps in (((0.3,), (0.2,)), ((0.1, 0.3), (0.2, 0.1))):
+            with self.subTest(wake_times=wake_times):
+                self.repo.reset_deployment()
+                self.repo.actions.clear()
+                self.repo.deploy_statuses = ["in_progress"] * len(wake_times) + ["completed"]
+                self.output_path.write_text("", encoding="utf-8")
+                stdout, stderr = io.StringIO(), io.StringIO()
+                wakes = iter(wake_times)
+                with (patch.dict(os.environ, self.env),
+                      patch.object(release, "time") as clock,
+                      contextlib.redirect_stdout(stdout), contextlib.redirect_stderr(stderr)):
+                    clock.monotonic.return_value = 0.0
+                    clock.sleep.side_effect = lambda seconds: setattr(clock.monotonic, "return_value", next(wakes))
+                    result = release.main(["deliver", "--tag", "v1.3", "--merge-sha", self.repo.merge,
+                                           "--wait-seconds", "0.2", "--poll-seconds", "1"])
+                self.assertEqual(result, 1, stderr.getvalue())
+                self.assertIn("did not finish within 0.2 seconds", stderr.getvalue())
+                self.assertNotIn("deployment=success", stdout.getvalue())
+                self.assertEqual(self.output_path.read_text(encoding="utf-8"), "")
+                self.assertEqual([call.args[0] for call in clock.sleep.call_args_list], list(sleeps))
+                self.assertEqual(len(self.run_reads()), len(wake_times))
+                self.assertFalse([a for a in self.run_reads() if "/jobs" in a[1]])
+                self.assertEqual(len(self.writes()), 1)
+                self.assertFalse(self.repo.gh_calls)
 
     def test_missing_or_invalid_run_id_is_never_guessed_or_retried(self):
         self.publish()
