@@ -73,7 +73,7 @@ ANALYTICS_ENV_VAR = "APPINSIGHTS_CONNECTION_STRING"
 # The BOOK CONTENT is versioned independently of the site tooling: content/version.yml
 # is the single source of truth (major.minor) and content/CHANGELOG.md records each
 # edition. The edition + its date are surfaced on the site and in the PDF, and every
-# edition maps to a `vX.Y` GitHub Release (see .github/workflows/release-content.yml).
+# edition maps to a `vX.Y` GitHub Release (see .github/workflows/release.yml).
 VERSION_PATH = ROOT / "content" / "version.yml"
 CHANGELOG_URL = f"{REPO_URL}/blob/main/content/CHANGELOG.md"
 RELEASES_URL = f"{REPO_URL}/releases"

@@ -8,7 +8,9 @@ import sys
 from pathlib import Path
 
 from release_metadata import (
+    ChangelogEntry,
     EDITION_PATTERN,
+    Edition,
     ReleaseError,
     parse_metadata,
     validate_metadata,
@@ -54,8 +56,19 @@ def changed_content(root: Path, base: str) -> list[str]:
     return sorted(paths)
 
 
+def previous_edition(root: Path, edition: Edition, entries: list[ChangelogEntry]) -> str:
+    tags = [tag for tag in git(root, "tag", "--list", "v*").splitlines()
+            if re.fullmatch(rf"v{EDITION_PATTERN}", tag)
+            and version_tuple(tag[1:]) < version_tuple(edition.version)]
+    previous = max(tags, key=lambda tag: version_tuple(tag[1:]), default=None)
+    recorded = f"v{entries[1].version}" if len(entries) > 1 else None
+    if previous != recorded or not previous:
+        raise ReleaseError("The previous changelog edition and fetched tag must match.")
+    return previous
+
+
 def validate_change(root: Path, base_ref: str) -> None:
-    edition, _ = validate_metadata(root)
+    edition, entries = validate_metadata(root)
     base = resolve_commit(root, base_ref)
     metadata_path = "content/version.yml"
     base_has_metadata = git(root, "ls-tree", "--name-only", base, "--", metadata_path)
@@ -90,6 +103,8 @@ def validate_change(root: Path, base_ref: str) -> None:
             raise ReleaseError("Changing the reviewed APM baseline requires a new content edition.")
     elif not changed:
         raise ReleaseError("Edition bumps require chapter or TOC changes, not only tooling or metadata.")
+    else:
+        previous_edition(root, edition, entries)
 
 
 def validate_tag(root: Path, tag: str, main_ref: str = "origin/main") -> None:

@@ -30,6 +30,7 @@ class EvidenceTests(unittest.TestCase):
         self.write("content/CHANGELOG.md", "## [1.2] - 2026-01-01\n- Before.\n")
         self.git("add", ".")
         self.git("commit", "--quiet", "-m", "Base")
+        self.git("tag", "v1.2")
         self.base = self.git("rev-parse", "HEAD")
         self.write("content/chapters/sample.html", "<p>after</p>\n")
         self.write("content/version.yml", 'version: "1.3"\ndate: "2026-01-02"\napm_version: "0.32.0"\n')

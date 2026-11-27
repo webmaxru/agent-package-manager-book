@@ -83,8 +83,15 @@ An owner-approved content PR can be merged and published by **Release approved b
 For owner-authored PRs, GitHub prohibits self-approval; post `/release-book <full-head-sha>`.
 The controller checks the current head, owner approval, checks, content-only paths and base,
 then builds HTML/PDF read-only before merging. It explicitly dispatches publication for the
-resulting merge SHA, and publication explicitly dispatches Pages. Mixed infrastructure changes
+resulting merge SHA via `release.yml`, and publication explicitly dispatches Pages for the
+published tag. Mixed infrastructure changes
 are excluded. Tag pushes alone do not publish; existing published tags are never moved.
+
+The [shared flow contract and practical scenarios](../RELEASING.md) specify `ci.yml` (**Book CI**),
+the trusted-main validators, approval revocation, immutable/no-write recovery, and catch-up
+CHANGELOG folding. Pages uses the same trusted allowlist as the controller: a main push with
+unreleased content cannot deploy. A manual `deploy-pages.yml` dispatch takes `ref=vX.Y` or a
+published edition's full SHA for a retry or rollback; the deploy smoke-tests the edition.
 
 ## Edition evidence
 

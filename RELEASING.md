@@ -5,10 +5,47 @@ A release is a Git tag `vX.Y` on the merge commit of an **owner-approved, conten
 ```text
 /update-book ─► /release-content ─► content PR ─► Book release preflight (green)
         ─► owner approval of the exact head ─► Release approved book: squash merge
-        ─► Publish content release: tag, draft + PDF, publish ─► GitHub Pages: apm.isainative.dev
+        ─► Release book: tag, draft + PDF, publish ─► released tag → GitHub Pages: apm.isainative.dev
 ```
 
 The sections below explain each step. [Scenarios](#scenarios-what-to-do-when) walks through the situations you will actually meet, with commands. The tooling behind this page is documented in the [README](README.md#versioning--releases) ([update from an APM release](README.md#update-from-an-apm-release), [prepare, approve, then publish](README.md#prepare-approve-then-publish)) and in [`scripts/README.md`](scripts/README.md) ([state, evidence and release boundary](scripts/README.md#state-evidence-and-release-boundary), [edition evidence](scripts/README.md#edition-evidence)).
+
+## Book release flow contract v1
+
+Every book repository follows the same release flow. A repository conforms when `tests/test_flow_contract.py` passes and each rule below is covered by a test in that repository's own suite.
+
+1. **Workflow surface (same names everywhere).**
+   `ci.yml` named "Book CI" with the aggregate job "Book release preflight"; `book-approval-signal.yml` named "Book approval signal"; `approved-book.yml` named "Release approved book"; `release.yml` named "Release book"; one deploy workflow, `deploy-swa.yml` or `deploy-pages.yml`.
+2. **Controller.**
+   Triggers: `workflow_run` of "Book approval signal" and "Book CI", `issue_comment`, schedule `17,47 * * * *`, and `workflow_dispatch` with the input `pr`. Jobs run only from `main`. Workflow `permissions: {}` with least privilege per job. Concurrency group `approved-book`, no cancel. Validators always run from `main`, never from the pull request.
+3. **Eligibility.**
+   The pull request is open, not a draft, from the same repository, targets `main`, is mergeable, and its head contains the current `main`. Its files are content-only under the book's allowlist. "Book release preflight" is green on the exact head, and the version, CHANGELOG and evidence checks pass.
+4. **Authorization.**
+   Someone else's pull request: an owner Approve review on the current head. The owner's own pull request: an owner comment `/release-book <40-character head SHA>`. A later push, a CHANGES_REQUESTED review, a dismissed review or an edited or deleted comment revokes it. A non-owner never authorizes.
+5. **Merge.**
+   A squash merge conditioned on the approved head SHA. The controller then dispatches `release.yml`, because merges made with `GITHUB_TOKEN` trigger no workflows.
+6. **Release.**
+   `release.yml` is dispatch-only, with the inputs `pr`, `head_sha`, `base_sha`, `merge_sha` and `tag`, and the concurrency group `book-publish`. Steps: plan, build from the merge commit, annotated tag, draft release, upload assets, publish, deploy the released tag, smoke test. Never clobber assets and never move a tag. A complete release is a no-op. A partial release or a provenance mismatch fails with no writes. Latest goes only to the highest stable version, and prereleases are never Latest. A fix is a new version.
+7. **Deploy.**
+   Production serves only released editions. A push to `main` deploys only when the content equals the latest published release (the `published-source` job). The release deploys its own tag. A manual dispatch takes a released ref or sha, which is the rollback path.
+8. **No other publisher.**
+   A tag push, a label or a branch name never publishes. A manual merge to `main` bypasses the controller; the fix is a catch-up pull request with a higher version.
+9. **Pins.**
+   Runner `ubuntu-24.04`. `actions/checkout@v7`, `actions/setup-python@v7`, `actions/upload-artifact@v7`, `actions/download-artifact@v8` (a full commit SHA with a trailing `# v7.x.y` version comment is acceptable).
+
+### Per-book settings
+
+| Setting | Agent Package Manager book |
+| --- | --- |
+| Format/build | HTML from `content/toc.yml` and chapter fragments via `python site/generate.py`; release PDF via `python site/generate_pdf.py` (Python 3.12, PyYAML, Playwright Chromium). The sole release asset is `apm-book-vX.Y.pdf`; the website retains its Substack PDF gate. |
+| Version file, scheme and tag | `content/version.yml`: quoted major.minor `X.Y`, date and independently pinned `apm_version` (`X.Y.Z`). Structural rewrites are major; other reader-visible updates are minor. Tags are stable-only `vX.Y`; no patch or prerelease editions. |
+| Content allowlist | Trusted `scripts/book_release.py::allowed_path`: `content/version.yml`, `content/CHANGELOG.md`, `content/toc.yml`, `content/chapters/**`, `content/research/**`, `backend/examples/**`, generated `site/index.html`, `site/chapters/**/*.html`, `site/llms.txt`, `site/llms-full.txt`, `site/sitemap.xml`, `site/robots.txt`, `site/site.webmanifest`. Renames check both paths. The same policy defines the deploy content comparison; workflows carry no separate path list. |
+| Evidence rules | `content/research/updates/<edition>/commit-binding.json` binds affected chapter/TOC/example inputs and reports to Git blob IDs, names every affected chapter and example result (or an explicit no-example reason). Integration and chapter reviews require ACCEPT; verification requires PASS or justified `SKIPPED-needs-network`, all at the pinned APM baseline. Trusted validators check structure and binding, not prose quality. |
+| Deploy target/domain | GitHub Pages, `deploy-pages.yml`, `github-pages` environment, `https://apm.isainative.dev`. Pushes rebuild current main only if allowed content equals the latest published edition; release/manual deployments use a published tag or its full SHA. Smoke checks verify the edition and discovery files. Existing `v1.2` remains deployable; historical `v1.0`/`v1.1` lack today's metadata/toolchain and are preserved, not rebuilt by this workflow. |
+| Catch-up PR rules | Start at current main; choose an edition higher than main, make a real chapter/TOC change, and provide fresh bound evidence. Fold stranded untagged CHANGELOG entries into the new entry, leaving the latest fetched lower edition tag immediately below it (normally the latest published edition). Both PR preflight and release-candidate validation enforce the fold before merge. A partial tagged edition remains an immutable predecessor; retain its entry and choose a higher version. |
+| Upstream-update scouting | No scheduled scout. `python scripts/check_upstream.py` or `/update-book` with `Mode: check` reads stable `microsoft/apm` releases against `content/version.yml`; an update freezes one explicit APM target and requires the chapter quality gates. The root skill lockfile is not the upstream baseline. |
+
+The Linux runner is pinned to `ubuntu-24.04`; the existing extra Windows launcher regression lane is pinned to `windows-2025`. Both feed the single required aggregate check.
 
 ## Prepare the edition
 
@@ -23,7 +60,7 @@ Only reader-visible chapter prose and meaningful TOC changes justify a new editi
 
 Editions are `major.minor`, with no patch level. The edition lives in [`content/version.yml`](content/version.yml) next to the date and `apm_version`, the APM release the chapters were reviewed against. The book's `1.2` and APM's `0.31.0` are independent numbers. Changing `apm_version` needs a new edition, and it cannot go backwards.
 
-**Book release preflight** (the **Check book update** workflow) is the gate. It runs the tooling tests on Linux and Windows, checks the edition, CHANGELOG and evidence, regenerates the site and builds the PDF. For a content PR:
+**Book release preflight** (the **Book CI** workflow, `ci.yml`) is the gate. It runs the tooling tests on Linux and Windows, checks the edition, CHANGELOG and evidence with validators from `main`, regenerates the site and builds the PDF. For a content PR:
 
 - Change only [`content/`](content) (`version.yml`, `CHANGELOG.md`, `toc.yml`, `chapters/`, `research/`), `backend/examples/` and the generated site files (`site/index.html`, `site/chapters/*.html`, `llms.txt`, `llms-full.txt`, `sitemap.xml`, `robots.txt`, `site.webmanifest`). Anything else is tooling and belongs in a separate PR with no version bump.
 - Set the edition above the one on `main` and add a matching `## [X.Y] - YYYY-MM-DD` section at the **top** of `content/CHANGELOG.md`. The checks fail in these cases:
@@ -33,37 +70,38 @@ Editions are `major.minor`, with no patch level. The edition lives in [`content/
   | Edited a chapter, no bump | `Reader-facing content changed without a new edition: content/chapters/<file>.html` |
   | Bumped `version.yml`, no CHANGELOG entry | `The first released CHANGELOG entry must match content/version.yml.` |
   | Bumped and added a CHANGELOG entry, no chapter or TOC change | `Edition bumps require chapter or TOC changes, not only tooling or metadata.` |
+  | Left a stranded unpublished entry below the new CHANGELOG section | `The previous changelog edition and fetched tag must match.` |
   | No evidence for the edition | `evidence preflight: Cannot read edition evidence: …` |
 
 - Add the evidence. Under `content/research/updates/<edition>/`, keep an `integration-review.md` (`Verdict: ACCEPT`), a `chNN-review.md` (`Verdict: ACCEPT`) and a `chNN-verification.md` (`Verdict: PASS`) for every changed chapter, each naming the `apm_version`, and a `commit-binding.json` that lists the affected chapters, every example result (or a reason there are none) and the Git blob ID of every changed chapter, TOC and example file and of every report. Get an ID with `git hash-object -- <path>`. The format is in [`scripts/README.md`](scripts/README.md#edition-evidence). **Any edit to a bound file afterwards needs a new binding.** The check proves the files exist, match the binding and carry the verdicts. It does not judge whether the prose or examples are right. You do.
 
 ## Authorize and publish
 
-For someone else's non-draft PR, **webmaxru** submits an **Approve** review on its current head. For an owner-authored PR, post exactly `/release-book <full lowercase 40-character head SHA>` in a new PR conversation comment. An older SHA, another user's comment, or approval superseded by requested changes or dismissal does not count. A new commit needs new approval. Approving before the checks finish is fine: the controller waits for them.
+For someone else's non-draft PR, **webmaxru** submits an **Approve** review on its current head. For an owner-authored PR, post exactly `/release-book <full lowercase 40-character head SHA>` in a new, unedited PR conversation comment. An older SHA, another user's comment, an edited or deleted comment, or approval superseded by requested changes or dismissal does not count. A new commit needs new approval. Approving before the checks finish is fine: the controller waits for them.
 
-The controller, **Release approved book**, runs on `main` with its own trusted validators. It reacts to the review or comment, to the completion of **Check book update**, to a scan of up to 30 recently updated open PRs every 30 minutes, and to **Run workflow → pr**. None of those triggers grants approval. It requires a non-draft, same-repository PR against `main` whose files are all on the content allowlist, a head that already contains the current `main`, and a successful **Check book update** run for exactly that head. It then repeats the preflight on its own build of the head, including the PDF, and merges with a **squash** that is conditional on the approved head. If `main` moved in the meantime it stops with `Main advanced during preflight; update the branch and approve again.`
+The controller, **Release approved book**, runs on `main` with its own trusted validators. It reacts to the review or comment, to the completion of **Book CI**, to a scan of up to 30 recently updated open PRs at minutes 17 and 47, and to **Run workflow → pr**. None of those triggers grants approval. It requires an open, mergeable, non-draft, same-repository PR against `main` whose files are all on the content allowlist, a head that already contains the current `main`, and a successful **Book CI** run with **Book release preflight** green for exactly that head. It then repeats the preflight on its own build of the head, including the PDF, and merges with a **squash** that is conditional on the approved head. If `main` moved in the meantime it stops with `Main advanced during preflight; update the branch and approve again.`
 
-Publication is a separate dispatch from the controller, because a merge made with `GITHUB_TOKEN` does not trigger other workflows. **Publish content release** receives the PR, head, base and merge SHAs and proves that the merge commit is the PR's merge on `main`, with the approved tree. It rebuilds the book from that commit, creates the tag `vX.Y` there, uploads `apm-book-vX.Y.pdf` to a **draft** release, publishes it, and marks it Latest only if no newer stable release exists. It then dispatches **Deploy book to GitHub Pages** for the merge commit. The website keeps its Substack gate in front of the PDF, so the PDF is downloaded from the GitHub release.
+Publication is a separate dispatch from the controller, because a merge made with `GITHUB_TOKEN` does not trigger other workflows. **Release book** receives `pr`, `head_sha`, `base_sha`, `merge_sha` and `tag`, and proves that the merge commit is the PR's merge on `main`, with the approved tree. It rebuilds the book from that commit, creates an annotated tag `vX.Y` there, uploads `apm-book-vX.Y.pdf` to a **draft** release, publishes it, and marks it Latest only if no newer stable release exists. It then dispatches **Deploy book to GitHub Pages** with `ref=vX.Y`, independent of later changes to `main`. The deploy workflow smoke-tests the edition and discovery files; observe its separate run as well as the publisher. The website keeps its Substack gate in front of the PDF, so the PDF is downloaded from the GitHub release.
 
 The repository has no branch protection or ruleset, so nothing enforces this gate: **manual merges bypass it**.
 
 ## Recovery and corrections
 
-Pushing a tag no longer publishes. If the merge succeeded but publication failed, dispatch **Publish content release** for that merged PR. It rechecks the approval and provenance, and never moves a tag or overwrites a published file:
+Pushing a tag no longer publishes. If the merge succeeded but publication failed before creating a tag or draft, dispatch **Release book** for that merged PR. It rechecks the approval and provenance, and never moves a tag or overwrites a published file:
 
 ```sh
-gh workflow run release-content.yml -f pr=N -f merge_sha=$(gh pr view N --json mergeCommit --jq .mergeCommit.oid)
+gh workflow run release.yml --ref main -f pr=N -f merge_sha=$(gh pr view N --json mergeCommit --jq .mergeCommit.oid)
 ```
 
 | State found | What recovery does |
 | --- | --- |
 | Release published with the PDF | Nothing to do (no-op): `Existing published edition preserved.` |
 | No tag | Creates the tag at the merge commit, then a draft, uploads the PDF, publishes. |
-| Tag but no release, or a draft | Creates or completes the draft, uploads the PDF, publishes. |
-| Published release without the PDF | Stops without changes: `Published release is incomplete; do not overwrite immutable assets.` |
+| Tag but no release, or a draft | Stops without writes. An interrupted/partial edition is not repaired in place; prepare a new edition. |
+| Published release without the PDF | Stops without changes. Prepare a new edition; never overwrite immutable assets. |
 | Tag points to another commit | Stops: `Existing edition tag points to another commit; never move it.` |
 
-If the tag already exists, `-f tag=vX.Y` selects it instead. It must match `content/version.yml` at the approved merge commit. Releases that predate this automation, `v1.0` and `v1.1`, have no approval provenance, so they fail closed and stay as they are.
+If the tag already exists, `-f tag=vX.Y` selects it instead. It must match `content/version.yml` at the approved merge commit. Any historical release without this controller's approval/merge provenance fails closed and stays unchanged; this is separate from the published-tag deployment check, which supports `v1.2`.
 
 A correction needs a **new edition**, not a rebuild. Never move a tag or replace a published PDF. See [scenarios 11–13](#11-the-release-failed-after-the-merge).
 
@@ -75,13 +113,14 @@ Commands use the [GitHub CLI](https://cli.github.com/) (`gh`) from a clone of th
 
 | Event | What happens | Release? |
 | --- | --- | --- |
-| PR opened or pushed | **Check book update** runs the tests, edition and evidence checks, site generation and the PDF build. Its **Book release preflight** job is the gate. | No |
-| Owner **Approve** review, or an owner `/release-book <SHA>` comment | **Release approved book** re-checks everything and squash-merges the approved head. **Publish content release** follows. | Yes, a few minutes later |
-| **Check book update** finishes, or the 30-minute scan | The controller looks for an approved PR it missed. It never approves anything itself. | Only if a valid approval exists |
+| PR opened or pushed | **Book CI** runs the tests, edition and evidence checks, site generation and the PDF build. Its **Book release preflight** job is the gate. | No |
+| Owner **Approve** review, or an owner `/release-book <SHA>` comment | **Release approved book** re-checks everything and squash-merges the approved head. **Release book** follows. | Yes, a few minutes later |
+| **Book CI** finishes, or the 30-minute scan | The controller looks for an approved PR it missed. It never approves anything itself. | Only if a valid approval exists |
 | **Release approved book → Run workflow** with `pr` | Same re-check for one PR. | Only if a valid approval exists |
-| **Publish content release → Run workflow** | Recovery for an already merged PR or an existing tag. | Completes a release, never overwrites one |
+| **Release book → Run workflow** | Recovery for an approved merged PR or an existing tag. | Publishes only a fresh edition; complete editions are no-ops and partial editions fail without writes |
 | Push a tag, add a label, press **Merge** | Nothing in the release flow. | **No** |
-| Any push to `main` | **Deploy book to GitHub Pages** validates the edition against the previous `main` and redeploys the site. | No |
+| Any push to `main` | **Book CI** runs; **Deploy book to GitHub Pages** runs `published-source` and deploys only if allowed content equals the latest published release. Unreleased content leaves production unchanged. | No |
+| **Deploy book to GitHub Pages → Run workflow**, `ref=vX.Y` (or its full SHA) | Verifies a published release and deploys that edition; an older released ref is rollback. An unreleased ref is refused. | No |
 | A new APM release | Nothing. There is no scheduled scout: look yourself with `python scripts/check_upstream.py` or `/update-book` with `Mode: check`. | No |
 
 ### 1. Routine update (your own PR)
@@ -120,7 +159,7 @@ Commands use the [GitHub CLI](https://cli.github.com/) (`gh`) from a clone of th
 
    ```sh
    gh run list --workflow approved-book.yml -L 3
-   gh run list --workflow release-content.yml -L 3
+   gh run list --workflow release.yml -L 3
    gh run watch <run-id>
    gh release view vX.Y
    ```
@@ -162,7 +201,7 @@ You now own the new PR, so continue with scenario 1: add the edition bump, CHANG
 
 ### 4. A new push after approval, requested changes or a dismissed review
 
-An approval counts only for the head it was given on. A push after approval, a **Request changes** review or a dismissed review voids it. Nothing merges until you approve again: a new **Approve** review, or a new `/release-book <SHA>` with the new head SHA. An old SHA in an old comment is ignored.
+An approval counts only for the head it was given on. A push after approval, a **Request changes** review or a dismissed review voids it. Editing or deleting an authorization comment revokes that comment too. Nothing merges until you approve again: a new **Approve** review, or a new, unedited `/release-book <SHA>` with the current head SHA. An old SHA in an old comment is ignored.
 
 ### 5. The branch is behind `main`
 
@@ -186,7 +225,9 @@ If the run died within a second with no steps, see [Runs that fail without start
 
 ### 7. Tooling, docs and workflow changes
 
-A PR that touches only files outside the content allowlist (`scripts/`, `site/` generator code, `.github/`, `README.md`, `RELEASING.md`, tests) is **tooling-only**. It needs no edition bump, and a bump with no chapter change fails the checks. It never releases: the controller refuses it (`Not an automatic content update: <path>`). Merge it yourself when the checks are green. The push to `main` redeploys the website with the new tooling.
+A PR that touches only files outside the content allowlist (`scripts/`, `site/` generator code, `.github/`, `README.md`, `RELEASING.md`, tests) is **tooling-only**. It needs no edition bump, and a bump with no chapter change fails the checks. It never releases: the controller refuses it (`Not an automatic content update: <path>`). Merge it yourself when the checks are green. The push to `main` redeploys with the new tooling only if the allowed content still matches the latest published edition; otherwise `published-source` skips the build and deploy.
+
+That comparison includes tracked generated HTML and discovery files, not just chapter sources. Previously regenerated output can therefore hold a tooling-only push behind the gate even when chapter prose is unchanged. The existing website remains live; deploy a published tag explicitly or prepare the next reviewed content edition rather than weakening the gate.
 
 ### 8. Mixed content and tooling
 
@@ -197,16 +238,16 @@ A PR that changes both content and tooling gets the same `Not an automatic conte
 Pressing **Merge** on a content PR, or merging from the command line, bypasses the controller. The repository has no branch protection or ruleset, so GitHub allows it. The effects:
 
 - **No tag, no release, no PDF.**
-- The push to `main` still runs **Deploy book to GitHub Pages**, which validates the edition against the previous `main`. If the PR carried a valid bump and CHANGELOG entry, **the unreleased edition goes live on the website** while the downloads stay on the old one. If it did not, the deploy fails and the site keeps the previous edition, while the content sits on `main` waiting for the catch-up.
+- The push to `main` still runs **Deploy book to GitHub Pages**, but `published-source` sees content different from the latest published release and skips deployment. **Production stays on its released edition**, while the content sits on `main` waiting for the catch-up.
 - The edition the PR carried is now on `main` unreleased. The next PR must be above it, so that version number is stranded.
 
 Fix it with a **catch-up PR**. For example, if `main` carries edition `1.3` but the latest tag is `v1.2`:
 
 1. Branch from `main`. The catch-up must contain a **real chapter or TOC change** (a correction, a clarified paragraph, an added cross-reference). A PR that only bumps the version and CHANGELOG fails with `Edition bumps require chapter or TOC changes, not only tooling or metadata.`
 2. Set `version` in `content/version.yml` to `"1.4"`, above the stranded `1.3`. Keeping `1.3` fails with `Reader-facing content changed without a new edition`.
-3. **Fold the stranded notes into the new CHANGELOG section.** Add `## [1.4] - YYYY-MM-DD`, move the `1.3` bullets under it and delete the `## [1.3]` heading, so the headings read `[1.4]`, `[1.2]`, and so on. The release build requires the entry after the new one to equal the latest published tag.
+3. **Fold the stranded notes into the new CHANGELOG section.** Add `## [1.4] - YYYY-MM-DD`, move the untagged `1.3` bullets under it and delete the `## [1.3]` heading, so the headings read `[1.4]`, `[1.2]`, and so on. The entry after the new one must equal the latest fetched lower edition tag, `v1.2` here. If a failed publisher already created a partial `v1.3` tag, never move/delete it: keep its predecessor entry and prepare a higher edition instead.
 
-   > **Trap.** If you leave `## [1.3]` in place, the PR passes every preflight check and can be approved and merged. The release then fails in the **Publish content release** build with `The previous changelog edition and fetched tag must match.` The content is merged but unreleased, and `1.4` is stranded too. Catch it before you push, with `release_candidate.py` below.
+   > **Preflight guard.** Leaving `## [1.3]` in place now fails **Book release preflight** with `The previous changelog edition and fetched tag must match.` Both PR CI and the trusted controller run the candidate check, so the mistake is caught before the automatic merge. Fetch tags before running the same check locally.
 4. Add the evidence for the new edition: `content/research/updates/1.4/` with the reports and a `commit-binding.json` whose `book_edition` is `1.4`.
 5. Check it. All three must pass, and the last one must print `tag=v1.4`:
 
@@ -219,35 +260,41 @@ Fix it with a **catch-up PR**. For example, if `main` carries edition `1.3` but 
 
 6. Open the PR and authorize it as in scenario 1.
 
-Recovery of a PR you merged by hand is not covered here. **Publish content release** rechecks approval provenance that only the controller's own merge has. Use the catch-up PR, which is the path that was rehearsed.
+**Release book** requires owner authorization and controller merge provenance. It is not a bypass for a manual merge: use the catch-up PR, which is the path that was rehearsed.
 
 ### 10. Runs that fail without starting
 
-If **Release approved book** or **Check book update** runs end in about a second with no steps and the annotation *"The job was not started because recent account payments have failed or your spending limit needs to be increased"*, GitHub Actions is blocked by billing, not by this repository. Fix **Settings → Billing and plans**, then run `gh workflow run approved-book.yml -f pr=N` for each affected PR. A PR whose **Check book update** run failed this way needs a new run of it first: push a commit or use **Re-run all jobs**.
+If **Release approved book** or **Book CI** runs end in about a second with no steps and the annotation *"The job was not started because recent account payments have failed or your spending limit needs to be increased"*, GitHub Actions is blocked by billing, not by this repository. Fix **Settings → Billing and plans**, then run `gh workflow run approved-book.yml -f pr=N` for each affected PR. A PR whose **Book CI** run failed this way needs a new run of it first: push a commit or use **Re-run all jobs**.
 
 ### 11. The release failed after the merge
 
-The PR is merged but the release is missing or incomplete, or **Publish content release** failed. Find the run (`gh run list --workflow release-content.yml -L 3`) and read the failed job. If the cause was transient, or you fixed it, dispatch recovery:
+The PR is merged but the release is missing or incomplete, or **Release book** failed. Find the run (`gh run list --workflow release.yml -L 3`) and read the failed job. If it failed before any tag/release write, fix the cause and dispatch recovery:
 
 ```sh
-gh workflow run release-content.yml -f pr=N -f merge_sha=$(gh pr view N --json mergeCommit --jq .mergeCommit.oid)
+gh workflow run release.yml --ref main -f pr=N -f merge_sha=$(gh pr view N --json mergeCommit --jq .mergeCommit.oid)
 ```
 
-What it does is in [the table above](#recovery-and-corrections). If it stops with `Published release is incomplete; do not overwrite immutable assets.`, open the release on GitHub and inspect it: a published release is immutable, so never overwrite it. Ship the fix as the next edition through scenario 1, which needs a real chapter change. If it fails on `The previous changelog edition and fetched tag must match.`, the CHANGELOG was not folded: scenario 9 step 3. Never move a tag or overwrite a published PDF.
+What it does is in [the table above](#recovery-and-corrections). A tag without a release, a draft, an incomplete asset, or mismatched provenance fails without writes. Inspect it, then ship the fix as the next edition through scenario 1, which needs a real chapter change. A complete edition is a no-op; that does not retry Pages, so use scenario 12 for a failed deploy. If an older run failed on `The previous changelog edition and fetched tag must match.`, follow scenario 9 step 3. Never move a tag or overwrite a PDF.
 
 ### 12. Only the website deploy failed
 
-The release is published and complete but [apm.isainative.dev](https://apm.isainative.dev/) still shows the old edition. The last step of **Publish content release** dispatches the deploy for the merge commit and fails if `main` has moved on since. A push to `main` deploys by itself, so the site may already be current. Otherwise redeploy `main`:
+The release is published and complete but [apm.isainative.dev](https://apm.isainative.dev/) still shows the old edition. **Release book** dispatches Pages for its own released tag; later main changes do not substitute another edition. Inspect the separate deploy run and smoke-test result, then retry the published tag:
 
 ```sh
-gh workflow run deploy-pages.yml
+gh workflow run deploy-pages.yml --ref main -f ref=v1.2
 ```
 
-Pass `-f sha=<current main commit>` to pin it. The workflow refuses any other commit. The same command redeploys after a tooling change or a failed Pages build.
+Use a published tag or its full 40-character commit SHA in `ref`. The workflow verifies that the release is non-draft and the tag resolves to that commit; an arbitrary main SHA, branch name or unpublished tag is refused. A push can rebuild newer tooling only after the trusted allowlist comparison proves the content still equals the latest release.
 
 ### 13. A published release is wrong, or the site must go back
 
-Do not edit the release or move its tag. Fix `main` through scenario 1 and release the next edition, for example `1.3`. The edition must be above the one on `main`, so there is no way to publish an older edition after a newer one. To pull a mistaken edition back, restore the content in a new PR with a higher edition number. This repository has no workflow that deploys the website from an old tag or reverts a release: the site always follows `main`.
+Do not edit the release or move its tag. Fix `main` through scenario 1 and release the next edition, for example `1.3`. The edition must be above the one on `main`. For an immediate website rollback, dispatch the earlier published tag (for example `v1.2` after `v1.3`):
+
+```sh
+gh workflow run deploy-pages.yml --ref main -f ref=v1.2
+```
+
+This changes the website only, not Git history, release assets or GitHub Latest. A future qualifying push or release can deploy the newest edition again. `v1.0` and `v1.1` predate the required build metadata and cannot be rebuilt by today's workflow; preserve their assets and use a buildable published edition.
 
 ### 14. Choosing the version
 
@@ -260,7 +307,7 @@ If you use the book control center, each alert has a fix on this page:
 | Alert | Cause and fix |
 | --- | --- |
 | `PR #N is ready for your approval` | Preflight is green. Approve the head (scenario 2) or comment `/release-book <SHA>` (scenario 1). |
-| `PR #N release preflight is failing` | Open the failed **Check book update** run. Fix the PR, or re-run failed jobs if the failure was transient. |
+| `PR #N release preflight is failing` | Open the failed **Book CI** run. Fix the PR, or re-run failed jobs if the failure was transient. |
 | `PR #N was approved but is still open` | Scenario 6. |
 | `PR #N changed after your approval` | Scenario 4. Approve the new head. |
 | `<workflow> failed` | Open the run. Re-run failed jobs, or use scenario 10 (billing), 11 (release) or 12 (deploy). |
