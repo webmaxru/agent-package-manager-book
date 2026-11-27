@@ -1,86 +1,109 @@
 name: Deploy book to GitHub Pages
 
-# Builds the static APM book from content/toc.yml + content/chapters/ fragments
-# via site/generate.py.
-# then publishes site/ to GitHub Pages.
-
 on:
   push:
     branches: [main]
   workflow_dispatch:
     inputs:
-      sha:
-        description: "Exact current main commit to deploy"
-        required: false
+      ref:
+        description: "Published edition tag (vX.Y) or its full commit SHA; older editions roll back"
+        required: true
 
-# Least-privilege permissions required by the Pages deployment.
-permissions:
-  contents: read
-  pages: write
-  id-token: write
+permissions: {}
 
-# Allow one concurrent deployment; don't cancel an in-progress publish.
 concurrency:
   group: pages
   cancel-in-progress: false
 
 jobs:
-  build:
-    runs-on: ubuntu-latest
+  published-source:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+    outputs:
+      eligible: ${{ steps.source.outputs.eligible }}
+      sha: ${{ steps.source.outputs.sha }}
+      tag: ${{ steps.source.outputs.tag }}
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
-          fetch-depth: 0
-          ref: ${{ inputs.sha || github.sha }}
-
-      - name: Require current main for an explicit deployment
-        if: inputs.sha != ''
+          ref: main
+          persist-credentials: false
+      - name: Require released content using the trusted allowlist
+        id: source
         env:
-          SHA: ${{ inputs.sha }}
+          GH_TOKEN: ${{ github.token }}
+          EVENT: ${{ github.event_name }}
+          REF: ${{ inputs.ref }}
+          SHA: ${{ github.sha }}
         run: |
-          [[ "$SHA" =~ ^[0-9a-f]{40}$ ]]
-          test "$(git rev-parse HEAD)" = "$SHA"
-          test "$(git rev-parse origin/main)" = "$SHA"
-
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.12"
-
-      - name: Install dependencies
-        run: python -m pip install --upgrade pip pyyaml
-
-      - name: Validate content edition before deployment
-        env:
-          BASE_REF: ${{ github.event.before }}
-        run: |
-          if [[ -n "$BASE_REF" && "$BASE_REF" != "0000000000000000000000000000000000000000" ]]; then
-            python site/validate_release.py --base-ref "$BASE_REF"
+          if [[ "$EVENT" == workflow_dispatch ]]; then
+            test -n "$REF"
+            python scripts/book_release.py deploy-plan --ref "$REF"
           else
-            python site/validate_release.py
+            python scripts/book_release.py deploy-plan --sha "$SHA"
           fi
 
+  build:
+    needs: published-source
+    if: github.ref == 'refs/heads/main' && needs.published-source.outputs.eligible == 'true'
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout trusted release validators
+        uses: actions/checkout@v7
+        with:
+          ref: main
+          path: trusted
+          persist-credentials: false
+      - name: Checkout verified published source
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ needs.published-source.outputs.sha }}
+          path: book
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+      - name: Install dependencies
+        run: python -m pip install pyyaml
+      - name: Validate content edition before deployment
+        run: python trusted/site/validate_release.py --root book
       - name: Generate site from content/toc.yml
+        working-directory: book
         run: python site/generate.py
         env:
-          # Public, write-only Application Insights client key — injected at build
-          # time as a repo *variable* (not a secret). Set with:
-          #   gh variable set APPINSIGHTS_CONNECTION_STRING --body "InstrumentationKey=...".
-          # If unset, the cookieless beacon is a safe no-op (no telemetry).
+          # Public write-only client key; an unset variable disables telemetry.
           APPINSIGHTS_CONNECTION_STRING: ${{ vars.APPINSIGHTS_CONNECTION_STRING }}
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: site
+          path: book/site
 
   deploy:
-    needs: build
-    runs-on: ubuntu-latest
+    needs: [published-source, build]
+    if: github.ref == 'refs/heads/main' && needs.published-source.outputs.eligible == 'true'
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: main
+          persist-credentials: false
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
+      - name: Smoke test the released edition
+        env:
+          SITE_URL: ${{ steps.deployment.outputs.page_url }}
+          TAG: ${{ needs.published-source.outputs.tag }}
+        run: python scripts/check_site.py --url "$SITE_URL" --tag "$TAG"

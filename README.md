@@ -260,6 +260,8 @@ changes never move the number.
 - **GitHub Releases:** each edition maps to a `vX.Y` tag. The approved-content workflow
   validates the exact merged commit, builds its PDF, and publishes changelog notes with
   `apm-book-vX.Y.pdf`. Pushing a tag alone does not publish.
+  See [`RELEASING.md`](RELEASING.md) for the step-by-step guide and what to do in each situation
+  (fork PRs, manual merges, failed releases, recovery).
 
 ### Update from an APM release
 
@@ -327,7 +329,7 @@ python .\site\generate_pdf.py
 Stop on any failure. Missing/empty/duplicate notes, malformed metadata, edition/date mismatches,
 reader-content changes without an edition bump, and tooling-only bumps are hard errors.
 
-Open a same-repository content PR targeting `main`. **Check book update** builds HTML and a PDF,
+Open a same-repository content PR targeting `main`. **Book CI** (`ci.yml`) builds HTML and a PDF,
 checks metadata and evidence, and exposes the stable **Book release preflight** check. After
 review, `webmaxru` can approve a PR authored by someone else using GitHub's review. GitHub does
 not allow authors to approve their own PRs: for an owner-authored PR, post the exact comment
@@ -337,17 +339,30 @@ new commits require a new approval.
 **Release approved book** rechecks the owner approval, current head, checks, base and the full
 changed-file allowlist; it runs an independent read-only HTML/PDF preflight before a
 SHA-conditional squash merge. Mixed infrastructure/workflow PRs are never auto-merged.
-The exact resulting merge commit is explicitly dispatched to **Publish content release**,
+The exact resulting merge commit is explicitly dispatched to **Release book** (`release.yml`),
 which rebuilds, validates provenance, creates the immutable tag, uploads the PDF to a draft,
-then publishes and explicitly dispatches Pages. Approving before checks finish is supported.
-Release and Pages runs remain separately observable; the website retains its Substack PDF gate.
+then publishes. If the new edition is the highest published stable edition, its `deploy` job
+dispatches Pages once with the released tag and waits for that exact run: **Release book**
+succeeds only if the run's deployment and `Smoke test the released edition` steps succeeded.
+An older edition is published without deploying (notice `Production not rolled back`).
+Approving before checks finish is supported. The website retains its Substack PDF gate.
 
-For a failed publication, dispatch **Publish content release** with the same PR number and
+For a failed publication, dispatch **Release book** with the same PR number and
 merge SHA or with the existing exact `vX.Y` tag. It rechecks provenance and never moves a tag.
-Already published releases are left unchanged; a successful no-op requires the same approval
+Already published releases are left unchanged and are not redeployed; a successful no-op requires the same approval
 provenance and an existing PDF. Historical releases without that provenance fail closed and remain
 unchanged. An old edition is not promoted to latest. For a failed pre-merge attempt, dispatch
 **Release approved book** with the PR number.
+
+The shared [Book release flow contract v1](RELEASING.md#book-release-flow-contract-v1) defines
+the workflow names, authorization and immutable release boundary. An edited/deleted approval
+comment revokes authorization. Partial releases (including drafts) fail without writes.
+Pages pushes are gated by `published-source`: tooling can redeploy only when book content equals
+the latest published release. Manual `deploy-pages.yml` dispatch requires a published `ref`
+(tag or full SHA), which is also the rollback path, including to an older edition. A release
+auto-deploys only the highest published stable edition and waits for that exact Pages run's
+smoke test. A hand-merged content change stays off production until a higher-version
+catch-up PR is approved, with stranded CHANGELOG notes folded into its new entry.
 
 GitHub may replace a pending run in a concurrency group. A bounded scheduled scan re-evaluates
 up to 30 recently updated open PRs and rotates among eligible approvals; if a schedule is
@@ -357,7 +372,7 @@ PR number. Both paths recheck the same owner approval, checks, head and current 
 Content corrections need a new edition and tag; do not move public tags. Historical v1.0/v1.1
 predate release metadata/tooling, so their published assets are preserved rather than rebuilt.
 
-The **Check book update** PR workflow runs the tooling regressions and preflight on Windows/Linux,
+The **Book CI** PR/push workflow runs the tooling regressions and preflight on Windows/Linux,
 and builds HTML and a PDF on Linux without deployment permissions. Run its offline checks locally:
 
 ```powershell

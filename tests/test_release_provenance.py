@@ -10,6 +10,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "site"))
 
 from release_metadata import ReleaseError
+from release_candidate import validate_candidate
 from validate_release import validate_change, validate_tag
 
 
@@ -90,6 +91,41 @@ class ReleaseProvenanceTests(unittest.TestCase):
     def test_content_bump_prepares_without_a_tag(self):
         self.prepare()
         validate_change(self.root, "v1.1")
+
+    def test_catch_up_requires_folded_changelog_before_merge(self):
+        self.prepare()
+        self.commit()  # The untagged 1.2 edition was manually merged.
+        base = self.git("rev-parse", "HEAD")
+        self.version.write_text(
+            'version: "1.3"\ndate: "2026-09-16"\napm_version: "0.31.0"\n', encoding="utf-8"
+        )
+        self.chapter.write_text("<p>Catch-up correction.</p>\n", encoding="utf-8")
+        stranded_notes = self.changelog.read_text(encoding="utf-8")
+        new_notes = "## [1.3] - 2026-09-16\n\n- Revised chapter and catch-up correction.\n\n"
+        self.changelog.write_text(new_notes + stranded_notes, encoding="utf-8")
+        with self.assertRaisesRegex(ReleaseError, "previous changelog edition and fetched tag"):
+            validate_change(self.root, base)
+        with self.assertRaisesRegex(ReleaseError, "previous changelog edition and fetched tag"):
+            validate_candidate(self.root)
+        command = [
+            sys.executable, str(ROOT / "site" / "validate_release.py"),
+            "--root", str(self.root), "--base-ref", base,
+        ]
+        rejected = subprocess.run(command, capture_output=True, text=True, timeout=30)
+        self.assertEqual(rejected.returncode, 1)
+        self.assertIn("The previous changelog edition and fetched tag must match.", rejected.stderr)
+        self.changelog.write_text(new_notes + self.old_notes, encoding="utf-8")
+        validate_change(self.root, base)
+        self.assertEqual(validate_candidate(self.root), "v1.3")
+        accepted = subprocess.run(command, capture_output=True, text=True, timeout=30)
+        self.assertEqual(accepted.returncode, 0, accepted.stderr)
+
+    def test_pr_preflight_requires_fetched_previous_tag(self):
+        self.prepare()
+        base = self.git("rev-parse", "v1.1")
+        self.git("tag", "-d", "v1.1")
+        with self.assertRaisesRegex(ReleaseError, "previous changelog edition and fetched tag"):
+            validate_change(self.root, base)
 
     def test_changing_baseline_alone_is_blocked(self):
         self.version.write_text(

@@ -1,7 +1,7 @@
 """Print the CHANGELOG section for one content edition, as GitHub Release notes.
 
 The book's ``content/CHANGELOG.md`` is the human-readable record of each content
-edition. The ``release-content`` workflow calls this script to turn the section
+edition. The ``release.yml`` workflow calls this script to turn the section
 for the edition being released into the body of the GitHub Release, so the notes
 never drift from the changelog. It is also handy locally to preview notes:
 
@@ -12,6 +12,7 @@ Missing, empty, duplicate, or malformed changelog entries fail with exit status 
 """
 from __future__ import annotations
 
+import argparse
 import sys
 from pathlib import Path
 
@@ -26,11 +27,12 @@ def extract(version: str) -> str:
 
 
 def main(argv: list[str]) -> int:
-    if len(argv) != 2:
-        print("usage: extract_release_notes.py <version>", file=sys.stderr)
-        return 2
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("version")
+    parser.add_argument("--changelog", type=Path, default=CHANGELOG)
+    args = parser.parse_args(argv[1:])
     try:
-        notes = extract(argv[1])
+        notes = release_notes(args.version.strip(), args.changelog)
     except ReleaseError as error:
         print(f"release notes: {error}", file=sys.stderr)
         return 1

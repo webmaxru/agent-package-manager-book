@@ -1,4 +1,4 @@
-name: Publish content release
+name: Release book
 
 on:
   workflow_dispatch:
@@ -26,7 +26,8 @@ concurrency:
 
 jobs:
   authorize:
-    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-24.04
     permissions:
       contents: read
       pull-requests: read
@@ -36,7 +37,7 @@ jobs:
       base: ${{ steps.gate.outputs.base }}
       recovery: ${{ steps.gate.outputs.recovery }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           ref: main
           persist-credentials: false
@@ -60,25 +61,25 @@ jobs:
 
   build:
     needs: authorize
-    if: needs.authorize.outputs.recovery != 'true'
-    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main' && needs.authorize.outputs.recovery != 'true'
+    runs-on: ubuntu-24.04
     permissions:
       contents: read
     outputs:
       tag: ${{ steps.meta.outputs.tag }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           ref: main
           path: trusted
           persist-credentials: false
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           ref: ${{ needs.authorize.outputs.sha }}
           path: book
           fetch-depth: 0
           persist-credentials: false
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v7
         with:
           python-version: "3.12"
       - run: python -m pip install pyyaml playwright
@@ -109,9 +110,9 @@ jobs:
         run: |
           mkdir artifacts
           cp book/site/apm-book.pdf "artifacts/apm-book-$TAG.pdf"
-          python book/site/extract_release_notes.py "${TAG#v}" > artifacts/notes.md
+          python trusted/site/extract_release_notes.py "${TAG#v}" --changelog book/content/CHANGELOG.md > artifacts/notes.md
           test -s artifacts/notes.md
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: release-book-${{ needs.authorize.outputs.sha }}
           path: artifacts
@@ -119,21 +120,25 @@ jobs:
 
   publish:
     needs: [authorize, build]
-    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main' && needs.authorize.outputs.recovery != 'true'
+    runs-on: ubuntu-24.04
     permissions:
       contents: write
       pull-requests: read
-      actions: write
+      actions: read
+    outputs:
+      published: ${{ steps.publish.outputs.published }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           ref: main
           persist-credentials: false
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
         with:
           name: release-book-${{ needs.authorize.outputs.sha }}
           path: artifacts
       - name: Recheck authorization and publish draft after PDF upload
+        id: publish
         env:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
@@ -152,9 +157,26 @@ jobs:
           python scripts/book_release.py release-plan --merge-sha "$MERGE" "${args[@]}"
           python scripts/book_release.py publish --tag "$TAG" --merge-sha "$MERGE" \
             --pdf "artifacts/apm-book-$TAG.pdf" --notes artifacts/notes.md
-      - name: Explicitly dispatch Pages for token-created merge
+
+  deploy:
+    needs: [authorize, build, publish]
+    if: >-
+      github.ref == 'refs/heads/main' && needs.authorize.outputs.recovery != 'true'
+      && needs.publish.outputs.published == 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    permissions:
+      contents: read
+      pull-requests: read
+      actions: write
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: main
+          persist-credentials: false
+      - name: Deploy the released tag and require its exact smoke-tested run
         env:
           GH_TOKEN: ${{ github.token }}
-          GH_REPO: ${{ github.repository }}
+          TAG: ${{ needs.build.outputs.tag }}
           MERGE: ${{ needs.authorize.outputs.sha }}
-        run: gh workflow run deploy-pages.yml --ref main -f sha="$MERGE"
+        run: python scripts/book_release.py deliver --tag "$TAG" --merge-sha "$MERGE"

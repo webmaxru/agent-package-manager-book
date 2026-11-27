@@ -2,10 +2,10 @@ name: Release approved book
 
 on:
   workflow_run:
-    workflows: ["Book approval signal", "Check book update"]
+    workflows: ["Book approval signal", "Book CI"]
     types: [completed]
   issue_comment:
-    types: [created]
+    types: [created, edited, deleted]
   schedule:
     - cron: "17,47 * * * *"
   workflow_dispatch:
@@ -22,7 +22,8 @@ concurrency:
 
 jobs:
   authorize:
-    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-24.04
     permissions:
       contents: read
       pull-requests: read
@@ -33,10 +34,11 @@ jobs:
       head: ${{ steps.gate.outputs.head }}
       base: ${{ steps.gate.outputs.base }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           ref: main
           persist-credentials: false
+      # Owner-authored PRs require an unedited /release-book <head SHA> comment.
       - name: Check owner approval, PR scope and existing checks
         id: gate
         env:
@@ -45,25 +47,25 @@ jobs:
 
   preflight:
     needs: authorize
-    if: needs.authorize.outputs.eligible == 'true'
-    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main' && needs.authorize.outputs.eligible == 'true'
+    runs-on: ubuntu-24.04
     permissions:
       contents: read
     steps:
       - name: Checkout trusted validators
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           ref: main
           path: trusted
           persist-credentials: false
       - name: Checkout exact approved revision
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           ref: ${{ needs.authorize.outputs.head }}
           path: book
           fetch-depth: 0
           persist-credentials: false
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v7
         with:
           python-version: "3.12"
       - run: python -m pip install pyyaml playwright
@@ -75,6 +77,7 @@ jobs:
         run: |
           python trusted/site/validate_release.py --root book --base-ref "$BASE"
           python trusted/site/validate_evidence.py --root book --base-ref "$BASE"
+          python trusted/site/release_candidate.py --root book
       - name: Build exact approved HTML and PDF
         working-directory: book
         run: |
@@ -83,7 +86,7 @@ jobs:
           test -s site/index.html
           test -s site/apm-book.pdf
           head -c 5 site/apm-book.pdf | grep -Fx '%PDF-'
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: approved-book-preview-${{ needs.authorize.outputs.head }}
           path: book/site/apm-book.pdf
@@ -91,14 +94,14 @@ jobs:
 
   merge:
     needs: [authorize, preflight]
-    if: needs.authorize.outputs.eligible == 'true'
-    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main' && needs.authorize.outputs.eligible == 'true'
+    runs-on: ubuntu-24.04
     permissions:
       contents: write
       pull-requests: write
       actions: write
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           ref: main
           persist-credentials: false

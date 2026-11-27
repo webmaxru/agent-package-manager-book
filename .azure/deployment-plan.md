@@ -189,7 +189,7 @@ No Key Vault, managed identity, database, storage, or Azure-hosted compute is re
 | `README.md` | Document the free-tier setup and reporting target | Updated |
 | `azure/dashboard.json` | Portal dashboard template | Deployed unchanged |
 | `.github/workflows/deploy-pages.yml` | Build-time variable injection | Existing; variable name is correct |
-| `.github/workflows/release-content.yml` | Release build variable injection | Existing; variable name is correct |
+| `.github/workflows/release.yml` | Release build variable injection | Existing; variable name is correct |
 
 ---
 

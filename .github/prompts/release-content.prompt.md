@@ -82,9 +82,11 @@ explicit authorization for the automated merge and release.
 
 2. **Release approved book** rechecks the owner approval, PR scope and exact head, runs
    read-only HTML/PDF/evidence preflight, then SHA-conditionally squash-merges and explicitly
-   dispatches **Publish content release**. The publisher verifies the exact merged tree,
-   builds before creating the immutable `vX.Y` tag, uploads the PDF to a draft release, publishes
-   and explicitly dispatches Pages. Tag pushes themselves do not publish. Never move a tag.
+   dispatches **Release book** (`release.yml`). The publisher verifies the exact merged tree,
+   builds before creating the immutable `vX.Y` tag, uploads the PDF to a draft release and
+   publishes. If it is the highest published stable edition, its `deploy` job dispatches Pages
+   for that tag and waits for the exact run's deploy and smoke-test steps; an older edition is
+   not deployed. Tag pushes themselves do not publish. Never move a tag.
 
 3. Confirm both completed successfully, inspect the live edition and PDF, and inspect:
    ```powershell
@@ -96,10 +98,14 @@ explicit authorization for the automated merge and release.
 ## Reruns and historical editions
 
 - To retry before merge, dispatch **Release approved book** with the PR number. After merge,
-  dispatch **Publish content release** with the PR number and exact merge SHA, or use the existing
+  dispatch **Release book** with the PR number and exact merge SHA, or use the existing
   exact `vX.Y` tag. Recovery requires the same approved merged provenance; a published release
   is a successful no-op only if its versioned PDF is present. Releases lacking provenance or
   the PDF fail explicitly and are left unchanged.
+- A partial release (tag without a release, draft, or incomplete asset) fails without writes.
+  Prepare a higher edition instead; never repair it by overwriting assets or moving a tag.
+- See [RELEASING.md](../../RELEASING.md) for the shared contract, catch-up CHANGELOG folding,
+  and Pages rollback using a published `ref`. Main pushes cannot deploy unreleased book content.
 - Correcting published content or its source changelog requires a **new edition and new tag**.
   Do not retag a public edition or replace its PDF with content from another commit.
 - Historical `v1.0` and `v1.1` were published before version metadata/release tooling existed at

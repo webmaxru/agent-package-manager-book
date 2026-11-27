@@ -1,7 +1,9 @@
-name: Check book update
+name: Book CI
 
 on:
   pull_request:
+    branches: [main]
+  push:
     branches: [main]
   workflow_dispatch:
 
@@ -16,16 +18,24 @@ jobs:
   preflight:
     strategy:
       matrix:
-        os: [ubuntu-latest, windows-latest]
+        os: [ubuntu-24.04, windows-2025]
     runs-on: ${{ matrix.os }}
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           fetch-depth: 0
+          persist-credentials: false
+
+      - name: Checkout trusted release validators
+        uses: actions/checkout@v7
+        with:
+          ref: main
+          path: trusted
+          persist-credentials: false
 
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v7
         with:
           python-version: "3.12"
 
@@ -41,9 +51,9 @@ jobs:
           BASE_REF: ${{ github.event.pull_request.base.sha }}
         run: |
           if [[ -n "$BASE_REF" ]]; then
-            python site/validate_release.py --base-ref "$BASE_REF"
+            python trusted/site/validate_release.py --root . --base-ref "$BASE_REF"
           else
-            python site/validate_release.py
+            python trusted/site/validate_release.py --root .
           fi
 
       - name: Validate editorial evidence for changed content
@@ -52,9 +62,10 @@ jobs:
         env:
           BASE_REF: ${{ github.event.pull_request.base.sha }}
         run: |
-          changed="$(python -c 'import sys; sys.path.insert(0, "site"); from validate_release import changed_content; from pathlib import Path; print("yes" if changed_content(Path("."), sys.argv[1]) else "no")' "$BASE_REF")"
+          changed="$(python -c 'import sys; sys.path.insert(0, "trusted/site"); from validate_release import changed_content; from pathlib import Path; print("yes" if changed_content(Path("."), sys.argv[1]) else "no")' "$BASE_REF")"
           if [[ "$changed" == yes ]]; then
-            python site/validate_evidence.py --base-ref "$BASE_REF"
+            python trusted/site/validate_evidence.py --root . --base-ref "$BASE_REF"
+            python trusted/site/release_candidate.py --root .
           fi
 
       - name: Check launcher entry points without starting agents
@@ -84,7 +95,7 @@ jobs:
 
       - name: Upload PDF preview
         if: runner.os == 'Linux'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: book-preview-${{ github.event.pull_request.head.sha || github.sha }}
           path: site/apm-book.pdf
@@ -94,7 +105,7 @@ jobs:
     name: Book release preflight
     if: always()
     needs: preflight
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - name: Require both platform checks
         env:

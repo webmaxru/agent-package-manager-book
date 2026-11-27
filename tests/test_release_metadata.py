@@ -86,6 +86,15 @@ class ReleaseMetadataTests(unittest.TestCase):
         self.assertEqual(stdout.getvalue(), "")
         self.assertIn("no changelog entry for v1.3", stderr.getvalue())
 
+    def test_trusted_extractor_reads_the_selected_book_changelog(self):
+        stdout = io.StringIO()
+        with contextlib.redirect_stdout(stdout):
+            result = extract_release_notes.main([
+                "extract_release_notes.py", "1.2", "--changelog", str(self.changelog)
+            ])
+        self.assertEqual(result, 0)
+        self.assertEqual(stdout.getvalue(), self.notes)
+
     def test_missing_changelog_is_an_error(self):
         self.changelog.unlink()
         with self.assertRaisesRegex(ReleaseError, "Cannot read"):

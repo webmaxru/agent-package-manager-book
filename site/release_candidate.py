@@ -2,24 +2,18 @@
 from __future__ import annotations
 
 import argparse
-import re
 import sys
 from pathlib import Path
 
-from release_metadata import EDITION_PATTERN, ReleaseError, validate_metadata, version_tuple
-from validate_release import ROOT, git, validate_change
+from release_metadata import ReleaseError, validate_metadata
+from validate_release import ROOT, git, previous_edition, validate_change
 
 
 def validate_candidate(root: Path) -> str:
     edition, entries = validate_metadata(root)
-    tags = [tag for tag in git(root, "tag", "--list", "v*").splitlines()
-            if re.fullmatch(rf"v{EDITION_PATTERN}", tag)
-            and version_tuple(tag[1:]) < version_tuple(edition.version)]
-    previous = max(tags, key=lambda tag: version_tuple(tag[1:]), default=None)
-    recorded = f"v{entries[1].version}" if len(entries) > 1 else None
-    if previous != recorded or not previous:
-        raise ReleaseError("The previous changelog edition and fetched tag must match.")
-    if git(root, "merge-base", previous, "HEAD") != git(root, "rev-parse", f"{previous}^{{commit}}"):
+    previous = previous_edition(root, edition, entries)
+    ref = f"refs/tags/{previous}"
+    if git(root, "merge-base", ref, "HEAD") != git(root, "rev-parse", f"{ref}^{{commit}}"):
         raise ReleaseError("Previous edition is not an ancestor of the proposed merge.")
     validate_change(root, f"refs/tags/{previous}")
     return f"v{edition.version}"

@@ -1,8 +1,10 @@
 from __future__ import annotations
 
 import os
+import re
 import shutil
 import subprocess
+import sys
 import tempfile
 import unittest
 from pathlib import Path
@@ -74,7 +76,7 @@ class WorkflowContractTests(unittest.TestCase):
             return yaml.load(handle, Loader=yaml.BaseLoader)
 
     def test_release_build_is_read_only_and_publish_rechecks_provenance(self):
-        workflow = self.workflow("release-content.yml")
+        workflow = self.workflow("release.yml")
         self.assertEqual(workflow["permissions"], {})
         self.assertNotIn("push", workflow["on"])
         self.assertEqual(workflow["jobs"]["build"]["permissions"], {"contents": "read"})
@@ -86,18 +88,44 @@ class WorkflowContractTests(unittest.TestCase):
         self.assertEqual(publish["needs"], ["authorize", "build"])
         self.assertIn("release-plan", str(publish["steps"]))
         self.assertIn("scripts/book_release.py publish", str(publish["steps"]))
-        self.assertIn("gh workflow run deploy-pages.yml", str(publish["steps"]))
+        self.assertEqual(publish["permissions"]["actions"], "read")
+        self.assertEqual(publish["outputs"]["published"], "${{ steps.publish.outputs.published }}")
+        self.assertNotIn("gh workflow run", str(workflow["jobs"]))
+
+    def test_release_delivers_only_new_publications_and_waits_for_the_exact_smoke_test(self):
+        sys.path.insert(0, str(ROOT / "scripts"))
+        import book_release
+
+        workflow = self.workflow("release.yml")
+        deploy = workflow["jobs"]["deploy"]
+        self.assertEqual(deploy["needs"], ["authorize", "build", "publish"])
+        self.assertIn("needs.authorize.outputs.recovery != 'true'", deploy["if"])
+        self.assertIn("needs.publish.outputs.published == 'true'", deploy["if"])
+        self.assertEqual(deploy["permissions"], {"contents": "read", "pull-requests": "read",
+                                                 "actions": "write"})
+        step = deploy["steps"][-1]
+        self.assertEqual(step["run"], 'python scripts/book_release.py deliver --tag "$TAG" --merge-sha "$MERGE"')
+        self.assertEqual(step["env"]["TAG"], "${{ needs.build.outputs.tag }}")
+        self.assertEqual(step["env"]["MERGE"], "${{ needs.authorize.outputs.sha }}")
+        self.assertGreater(int(deploy["timeout-minutes"]) * 60, book_release.DEPLOY_WAIT_SECONDS)
+        pages = self.workflow(book_release.DEPLOY_WORKFLOW)
+        self.assertEqual(pages["on"]["workflow_dispatch"]["inputs"].keys(), {"ref"})
+        names = [s.get("name") for s in pages["jobs"][book_release.DEPLOY_JOB]["steps"]]
+        for name in book_release.DEPLOY_STEPS:
+            self.assertEqual(names.count(name), 1, name)
 
     def test_pr_workflow_is_read_only_and_covers_both_platforms(self):
-        workflow = self.workflow("check-book.yml")
+        workflow = self.workflow("ci.yml")
         self.assertIn("pull_request", workflow["on"])
+        self.assertEqual(workflow["on"]["push"]["branches"], ["main"])
         self.assertNotIn("pull_request_target", workflow["on"])
         self.assertEqual(workflow["permissions"], {"contents": "read"})
         job = workflow["jobs"]["preflight"]
-        self.assertEqual(job["strategy"]["matrix"]["os"], ["ubuntu-latest", "windows-latest"])
+        self.assertEqual(job["strategy"]["matrix"]["os"], ["ubuntu-24.04", "windows-2025"])
         self.assertIn("unittest discover", str(job["steps"]))
-        self.assertIn("validate_release.py --base-ref", str(job["steps"]))
+        self.assertIn("validate_release.py --root . --base-ref", str(job["steps"]))
         self.assertIn("validate_evidence.py", str(job["steps"]))
+        self.assertIn("trusted/site/release_candidate.py --root .", str(job["steps"]))
         self.assertIn("site/generate_pdf.py", str(job["steps"]))
         self.assertEqual(workflow["jobs"]["book-release-preflight"]["name"], "Book release preflight")
         self.assertNotIn("APM_PDF_REQUIRED", str(job["steps"]))
@@ -126,6 +154,63 @@ class WorkflowContractTests(unittest.TestCase):
                      if step.get("run") == "python site/generate.py")
         self.assertLess(preflight, build)
         self.assertNotIn("APM_PDF_REQUIRED", str(steps))
+
+    def test_all_workflows_parse_and_workflow_run_names_exist(self):
+        workflows = [self.workflow(path.name) for path in (ROOT / ".github" / "workflows").glob("*.yml")]
+        names = {workflow["name"] for workflow in workflows}
+        for workflow in workflows:
+            for name in workflow["on"].get("workflow_run", {}).get("workflows", []):
+                self.assertIn(name, names)
+
+    def test_documented_dispatch_commands_match_real_workflow_inputs(self):
+        docs = (ROOT / "RELEASING.md").read_text(encoding="utf-8")
+        commands = re.findall(r"gh workflow run ([\w-]+\.yml)([^\n`]*)", docs)
+        self.assertTrue(commands)
+        for filename, arguments in commands:
+            dispatch = self.workflow(filename)["on"]["workflow_dispatch"]
+            supplied = set(re.findall(r"-f (\w+)=", arguments))
+            declared = dispatch.get("inputs", {})
+            self.assertTrue(supplied.issubset(declared), (filename, supplied))
+            for name, field in declared.items():
+                if field.get("required") == "true":
+                    self.assertIn(name, supplied, (filename, arguments))
+
+    def test_privileged_jobs_are_main_only_and_run_trusted_controllers(self):
+        for name in ("approved-book.yml", "release.yml", "deploy-pages.yml"):
+            workflow = self.workflow(name)
+            for job in workflow["jobs"].values():
+                self.assertIn("github.ref == 'refs/heads/main'", job["if"])
+                checkouts = [step for step in job["steps"] if step.get("uses", "").startswith("actions/checkout@")]
+                self.assertTrue(checkouts)
+                for step in checkouts:
+                    self.assertEqual(step["with"]["persist-credentials"], "false")
+                    if step["with"].get("path") != "book":
+                        self.assertEqual(step["with"]["ref"], "main")
+                for step in job["steps"]:
+                    if any(script in step.get("run", "") for script in
+                           ("validate_release.py", "validate_evidence.py", "release_candidate.py")):
+                        self.assertIn("trusted/site/", step["run"])
+
+    def test_published_source_gates_build_and_deploy_without_yaml_path_lists(self):
+        workflow = self.workflow("deploy-pages.yml")
+        self.assertEqual(workflow["permissions"], {})
+        self.assertEqual(workflow["on"]["workflow_dispatch"]["inputs"]["ref"]["required"], "true")
+        gate = workflow["jobs"]["published-source"]
+        self.assertEqual(gate["permissions"], {"contents": "read"})
+        self.assertIn("book_release.py deploy-plan --sha", str(gate["steps"]))
+        self.assertIn("book_release.py deploy-plan --ref", str(gate["steps"]))
+        self.assertNotIn("paths", workflow["on"]["push"])
+        self.assertNotIn("content/chapters", str(gate))
+        for name in ("build", "deploy"):
+            job = workflow["jobs"][name]
+            self.assertIn("published-source", job["needs"])
+            self.assertIn("needs.published-source.outputs.eligible == 'true'", job["if"])
+        checkouts = [step for step in workflow["jobs"]["build"]["steps"]
+                     if step.get("with", {}).get("path") == "book"]
+        self.assertEqual(checkouts[0]["with"]["ref"], "${{ needs.published-source.outputs.sha }}")
+        smoke = workflow["jobs"]["deploy"]["steps"][-1]
+        self.assertIn("check_site.py", smoke["run"])
+        self.assertEqual(smoke["env"]["TAG"], "${{ needs.published-source.outputs.tag }}")
 
 
 if __name__ == "__main__":
