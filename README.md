@@ -260,6 +260,8 @@ changes never move the number.
 - **GitHub Releases:** each edition maps to a `vX.Y` tag. The approved-content workflow
   validates the exact merged commit, builds its PDF, and publishes changelog notes with
   `apm-book-vX.Y.pdf`. Pushing a tag alone does not publish.
+  See [`RELEASING.md`](RELEASING.md) for the step-by-step guide and what to do in each situation
+  (fork PRs, manual merges, failed releases, recovery).
 
 ### Update from an APM release
 
