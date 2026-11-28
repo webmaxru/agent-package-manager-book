@@ -88,14 +88,46 @@ class ApprovalTests(unittest.TestCase):
     def test_allowlist_rejects_mixed_infrastructure_and_renames(self):
         base = [{"filename": p} for p in
                 ["content/chapters/a.html", "content/version.yml", "content/CHANGELOG.md"]]
-        release.content_files(base + [{"filename": "backend/examples/new/apm.lock.yaml"}])
+        release.content_files(base + [{"filename": "backend/examples/new/apm.lock.yaml"}], 7)
         for path in [".github/workflows/evil.yml", "site/generate.py", "site/assets/app.js",
                      "scripts/run-fleet.ps1", "package.json"]:
-            with self.subTest(path=path), self.assertRaises(release.GateError):
-                release.content_files(base + [{"filename": path}])
-        with self.assertRaises(release.GateError):
-            release.content_files(base + [{"filename": "content/chapters/x.html",
-                                          "previous_filename": "site/generate.py"}])
+            with self.subTest(path=path), self.assertRaises(release.OutOfScope) as raised:
+                release.content_files(base + [{"filename": path}], 7)
+            self.assertEqual(str(raised.exception), f"PR #7 mixes book content with tooling ({path}); "
+                             "split it: merge the tooling PR yourself, then authorize the content PR.")
+        for renamed in ({"filename": "content/chapters/x.html", "previous_filename": "site/generate.py"},
+                        {"filename": "site/generate.py", "previous_filename": "content/chapters/x.html"}):
+            with self.subTest(renamed=renamed), self.assertRaises(release.OutOfScope) as raised:
+                release.content_files(base + [renamed], 7)
+            self.assertIn("mixes book content with tooling (site/generate.py);", str(raised.exception))
+
+    def test_scope_refusal_names_tooling_only_and_mixed_pull_requests(self):
+        tooling = [{"filename": p} for p in ("scripts/a.py", ".github/workflows/x.yml", "README.md",
+                                              "tests/t.py", "site/generate.py", "package.json")]
+        content = [{"filename": p} for p in
+                   ["content/chapters/a.html", "content/version.yml", "content/CHANGELOG.md"]]
+        cases = [
+            (tooling, "PR #12 is tooling-only (no book content changed: scripts/a.py, "
+                      ".github/workflows/x.yml, README.md, tests/t.py, site/generate.py); the release "
+                      "controller never merges or releases tooling PRs. Merge it yourself once its "
+                      "checks are green."),
+            ([{"filename": "scripts/new.py", "previous_filename": "scripts/old.py"},
+              {"filename": "README.md", "previous_filename": "README.md"}],
+             "PR #12 is tooling-only (no book content changed: scripts/new.py, scripts/old.py, "
+             "README.md); the release controller never merges or releases tooling PRs. Merge it "
+             "yourself once its checks are green."),
+            (content + tooling, "PR #12 mixes book content with tooling (scripts/a.py, "
+                                ".github/workflows/x.yml, README.md, tests/t.py, site/generate.py); "
+                                "split it: merge the tooling PR yourself, then authorize the content PR."),
+        ]
+        for files, message in cases:
+            with self.subTest(message=message), self.assertRaises(release.OutOfScope) as raised:
+                release.content_files(files, 12)
+            self.assertEqual(str(raised.exception), message)
+        for files in ([], content[1:], content[:1]):
+            with self.subTest(files=files), self.assertRaises(release.GateError) as raised:
+                release.content_files(files, 12)
+            self.assertNotIsInstance(raised.exception, release.OutOfScope)
 
 
 class FixtureServer:
